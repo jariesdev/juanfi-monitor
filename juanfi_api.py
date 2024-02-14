@@ -15,13 +15,14 @@ class JuanfiApi:
     def get_system_logs(self) -> list:
         self._load_system_status()
         r = self._send_api_request("api/getSystemLogs")
+        _body = r.read().decode()
         if r.status != 200:
             raise Exception("Unable to retrieve system logs. Error code: {}".format(r.status))
-        if not r.read().decode():
+        if not _body or _body == "":
             return []
 
         rows = []
-        _r = r.read().decode().split(self._row_separator)
+        _r = _body.split(self._row_separator)
         for _c in _r:
             header_data = _c.split("~")
             if len(header_data) > 1:
@@ -63,10 +64,11 @@ class JuanfiApi:
 
     def _load_system_status(self) -> None:
         r = self._send_api_request("api/dashboard")
+        _body = r.read().decode()
         if r.status != 200:
             raise Exception("Failed to retrieve system status. Error code: {}".format(r.status))
 
-        data = r.read().decode().split(self._row_separator)
+        data = _body.split(self._row_separator)
         self._system_uptime_ms = int(data[0])
         self._total_coin_count = int(data[1])
         self._current_coin_count = int(data[2])
