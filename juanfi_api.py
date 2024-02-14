@@ -1,6 +1,4 @@
 import time
-import requests
-from requests import Response
 from collections import deque
 from datetime import datetime
 import http.client
@@ -86,11 +84,6 @@ class JuanfiApi:
         self._night_light_status = bool(data[14])
         self._active_user_count = int(data[15])
         self._system_clock = str(data[16])
-
-    def _send_api_request2(self, url: str) -> Response:
-        timestamp = self._get_current_milli_time()
-        url = ("%s/admin/%s?query=%d" % (self._baseUrl, url, timestamp))
-        return requests.get(url=url, headers={'X-TOKEN': self.get_api_key()}, timeout=5)
 
     def _send_api_request(self, url: str) -> HTTPResponse:
         conn = http.client.HTTPConnection(host="192.168.42.10", port=8081, timeout=5)
