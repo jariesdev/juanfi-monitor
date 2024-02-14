@@ -2,21 +2,23 @@
     import {onMount} from "svelte";
     import debounce from 'lodash/debounce'
 
-    interface iVendoLog {
+    interface iSale {
         id: number
-        log_time: string
-        description: string
+        sale_time: string
+        mac_address: string
+        voucher: string
+        amount: number
         created_at: string
     }
 
-    let logs: iVendoLog[] = []
+    let sales: iSale[] = []
     let searchInput: string = ''
     let isLoading: boolean = false
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
 
-        let url = "http://192.46.225.21:8000/logs"
+        let url = "http://192.46.225.21:8000/sales"
         if (!!searchInput) {
             url = `${url}?q=${searchInput}`
         }
@@ -31,11 +33,11 @@
                 }
             })
             .then((response) => {
-                logs = response.data
+                sales = response.data
             })
             .catch((error) => {
                 console.error(error);
-                logs = []
+                sales = []
             })
             .finally(() => {
                 isLoading = false
@@ -56,7 +58,7 @@
 
 <div class="uk-card uk-card-default uk-card-body">
     <div class="uk-flex uk-flex-between">
-        <h3 class="uk-card-title">System Logs</h3>
+        <h3 class="uk-card-title">Sales</h3>
         <div>
             <input bind:value={searchInput} class="uk-input uk-form-width-medium uk-form-small" type="search"
                    placeholder="Search" aria-label="Input">
@@ -66,15 +68,19 @@
         <thead>
         <tr>
             <th>Time</th>
-            <th>Description</th>
+            <th>Mac Address</th>
+            <th>Voucher</th>
+            <th>Amount</th>
             <th>Created At</th>
         </tr>
         </thead>
         <tbody>
-        {#each logs as log}
+        {#each sales as log}
             <tr>
-                <td title="{humanizeTime(log.log_time)}">{log.log_time}</td>
-                <td>{log.description}</td>
+                <td title="{humanizeTime(log.sale_time)}">{log.sale_time}</td>
+                <td>{log.mac_address}</td>
+                <td>{log.voucher}</td>
+                <td>{log.amount}</td>
                 <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
             </tr>
         {/each}

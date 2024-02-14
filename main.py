@@ -2,6 +2,8 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+from controllers.api.sale_controller import SaleController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
 from log_repository import LogRepository
@@ -69,6 +71,12 @@ async def read_logs():
         "data": None,
         "status": "ok"
     })
+
+
+@app.get("/sales")
+def read_sales(q: Union[str, None] = None):
+    sale_controller = SaleController()
+    return sale_controller.all(q)
 
 
 @app.get("/vendo_status")

@@ -2,7 +2,7 @@ from typing import Union
 from database import Database
 
 
-class LogRepository:
+class SaleRepository:
     _db: Database
 
     def __init__(self):
@@ -13,13 +13,17 @@ class LogRepository:
         cur = conn.cursor()
         if q is not None:
             cur.execute(
-                "SELECT * FROM juanfi_logs WHERE juanfi_logs.description LIKE ? ORDER BY log_time DESC",
+                "SELECT * FROM juanfi_sales "
+                "WHERE juanfi_sales.mac_address LIKE ? "
+                "OR juanfi_sales.voucher LIKE ? "
+                "ORDER BY sale_time DESC",
                 [
+                    "%{}%".format(q),
                     "%{}%".format(q),
                 ]
             )
         else:
-            cur.execute("SELECT * FROM juanfi_logs ORDER BY log_time DESC")
+            cur.execute("SELECT * FROM juanfi_sales ORDER BY sale_time DESC")
 
         rows = cur.fetchall()
         conn.close()

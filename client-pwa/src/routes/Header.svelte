@@ -20,6 +20,9 @@
 			<li aria-current={$page.url.pathname === '/status' ? 'page' : undefined}>
 				<a href="/status">Status</a>
 			</li>
+			<li aria-current={$page.url.pathname === '/sales' ? 'page' : undefined}>
+				<a href="/sales">Sales</a>
+			</li>
 			<li aria-current={$page.url.pathname === '/logs' ? 'page' : undefined}>
 				<a href="/logs">Logs</a>
 			</li>
