@@ -32,7 +32,7 @@ async def read_users(q: Union[str, None] = None):
     user_repository = UserRepository()
     users = user_repository.search(q)
     return JSONResponse({
-        "users": users
+        "data": users
     })
 
 
@@ -46,7 +46,7 @@ async def read_logs(q: Union[str, None] = None):
     log_repository = LogRepository()
     logs = log_repository.search(q)
     return JSONResponse({
-        "logs": logs
+        "data": logs
     })
 
 @app.get("/vendo_status")
