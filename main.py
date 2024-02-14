@@ -58,6 +58,8 @@ async def read_logs(q: Union[str, None] = None):
     return JSONResponse({
         "data": list(map(addition, logs))
     })
+
+
 @app.post("/log/refresh")
 async def read_logs(q: Union[str, None] = None):
     juanfi_logger = JuanfiLogger()
