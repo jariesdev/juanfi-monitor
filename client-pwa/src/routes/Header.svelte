@@ -17,11 +17,11 @@
 			<li aria-current={$page.url.pathname === '/' ? 'page' : undefined}>
 				<a href="/">Home</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/vendo/status' ? 'page' : undefined}>
-				<a href="/vendo/status">Status</a>
+			<li aria-current={$page.url.pathname === '/status' ? 'page' : undefined}>
+				<a href="/status">Status</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/vendo/logs' ? 'page' : undefined}>
-				<a href="/vendo/logs">System Logs</a>
+			<li aria-current={$page.url.pathname === '/logs' ? 'page' : undefined}>
+				<a href="/logs">Logs</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
