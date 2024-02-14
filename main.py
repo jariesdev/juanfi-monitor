@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from juanfi_api import JuanfiApi
+from juanfi_logger import JuanfiLogger
 from log_repository import LogRepository
 from user_repository import UserRepository
 
@@ -56,6 +57,14 @@ async def read_logs(q: Union[str, None] = None):
 
     return JSONResponse({
         "data": list(map(addition, logs))
+    })
+@app.post("/log/refresh")
+async def read_logs(q: Union[str, None] = None):
+    juanfi_logger = JuanfiLogger()
+    juanfi_logger.run()
+    return JSONResponse({
+        "data": None,
+        "status": "ok"
     })
 
 
