@@ -14,7 +14,7 @@ class LogRepository:
         cur = conn.cursor()
         if q is not None:
             cur.execute(
-                "SELECT * FROM juanfi_logs WHERE juanfi_logs.description LIKE ?",
+                "SELECT * FROM juanfi_logs WHERE juanfi_logs.description LIKE ? ORDER BY id DESC",
                 [
                     "%{}%".format(q),
                 ]
