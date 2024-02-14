@@ -3,7 +3,8 @@ import requests
 from requests import Response
 from collections import deque
 from datetime import datetime
-
+import http.client
+from http.client import HTTPResponse
 
 class JuanfiApi:
     _system_uptime_ms: int = 0
@@ -11,20 +12,18 @@ class JuanfiApi:
     _row_separator = "|"
 
     def run(self):
-        self._load_system_uptime()
-        print(self.get_system_logs(), str(self._system_uptime_ms))
+        print(self.get_system_logs(), self.get_system_status())
 
     def get_system_logs(self) -> list:
-        self._load_system_uptime()
+        self._load_system_status()
         r = self._send_api_request("api/getSystemLogs")
-        if r.status_code != 200:
-            raise Exception("Unable to retrieve system logs")
-
-        if not r.text:
+        if r.status != 200:
+            raise Exception("Unable to retrieve system logs. Error code: {}".format(r.status))
+        if not r.read().decode():
             return []
 
         rows = []
-        _r = r.text.split(self._row_separator)
+        _r = r.read().decode().split(self._row_separator)
         for _c in _r:
             header_data = _c.split("~")
             if len(header_data) > 1:
@@ -42,18 +41,65 @@ class JuanfiApi:
         rows.reverse()
         return rows
 
-    def _load_system_uptime(self) -> None:
-        r = self._send_api_request("api/dashboard")
-        if r.status_code != 200:
-            raise Exception("Unable to retrieve system uptime")
-        body = r.text
-        uptime = body.split(self._row_separator)[0]
-        self._system_uptime_ms = int(uptime)
+    def get_system_status(self) -> dict:
+        self._load_system_status()
+        return {
+            "system_uptime_ms": self._system_uptime_ms,
+            "total_coin_count": self._total_coin_count,
+            "current_coin_count": self._current_coin_count,
+            "customer_count": self._customer_count,
+            "internet_status": self._internet_status,
+            "mikrotik_status": self._mikrotik_status,
+            "mac_address": self._mac_address,
+            "ip_address": self._ip_address,
+            "hardware_type": self._hardware_type,
+            "version": self._version,
+            "interface_type": self._interface_type,
+            "wireless_signal_strength": self._wireless_signal_strength,
+            "free_heap": self._free_heap,
+            "auth_type": self._auth_type,
+            "night_light_status": self._night_light_status,
+            "active_user_count": self._active_user_count,
+            "system_clock": self._system_clock,
+        }
 
-    def _send_api_request(self, url: str) -> Response:
+    def _load_system_status(self) -> None:
+        r = self._send_api_request("api/dashboard")
+        if r.status != 200:
+            raise Exception("Failed to retrieve system status. Error code: {}".format(r.status))
+
+        data = r.read().decode().split(self._row_separator)
+        self._system_uptime_ms = int(data[0])
+        self._total_coin_count = int(data[1])
+        self._current_coin_count = int(data[2])
+        self._customer_count = int(data[3])
+        self._internet_status = bool(data[4])
+        self._mikrotik_status = bool(data[5])
+        self._mac_address = str(data[6])
+        self._ip_address = str(data[7])
+        self._hardware_type = str(data[8])
+        self._version = float(data[9])
+        self._interface_type = str(data[10])
+        self._wireless_signal_strength = int(data[11])
+        self._free_heap = int(data[12])
+        self._auth_type = str(data[13])
+        self._night_light_status = bool(data[14])
+        self._active_user_count = int(data[15])
+        self._system_clock = str(data[16])
+
+    def _send_api_request2(self, url: str) -> Response:
         timestamp = self._get_current_milli_time()
         url = ("%s/admin/%s?query=%d" % (self._baseUrl, url, timestamp))
         return requests.get(url=url, headers={'X-TOKEN': self.get_api_key()}, timeout=5)
+
+    def _send_api_request(self, url: str) -> HTTPResponse:
+        conn = http.client.HTTPConnection(host="192.168.42.10", port=8081, timeout=5)
+        timestamp = self._get_current_milli_time()
+        url = ("/admin/%s?query=%d" % (url, timestamp))
+        conn.request(method="GET", url=url, headers={'X-TOKEN': self.get_api_key()})
+        response = conn.getresponse()
+        conn.close()
+        return response
 
     def _get_current_milli_time(self) -> int:
         return round(time.time() * 1000)
