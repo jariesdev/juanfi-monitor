@@ -4,15 +4,18 @@ from datetime import datetime
 import http.client
 from http.client import HTTPResponse
 
+
 class JuanfiApi:
     _system_uptime_ms: int = 0
     _baseUrl = "http://192.168.42.10:8081"
     _row_separator = "|"
+    system_logs = []
 
     def run(self):
-        print(self.get_system_logs(), self.get_system_status())
+        self.load_system_logs()
+        print(self.get_formatted_system_logs())
 
-    def get_system_logs(self) -> list:
+    def load_system_logs(self) -> list:
         self._load_system_status()
         r = self._send_api_request("api/getSystemLogs")
         _body = r.read().decode()
@@ -24,17 +27,37 @@ class JuanfiApi:
         rows = []
         _r = _body.split(self._row_separator)
         for _c in _r:
+            has_header = False
             header_data = _c.split("~")
             if len(header_data) > 1:
                 _c_data = header_data[1]
+                has_header = True
             else:
                 _c_data = header_data[0]
+            _i = _c_data.split("#")
 
-            parts = deque(_c_data.split("#"))
-            log_time = parts.popleft()
+            log_params = []
+            if len(_i) >= 3:
+                # take parameters from index 2 to the end
+                log_params = _i[2:]
+
+            rows.append({
+                "has_header": has_header,
+                "time": int(_i[0]),
+                "log_type_index": int(_i[1]),
+                "log_params": log_params,
+            })
+        rows.reverse()
+        self.system_logs = rows
+        return rows
+
+    def get_formatted_system_logs(self) -> list:
+        rows = []
+        _r = self.system_logs
+        for _c in _r:
             col = [
-                self._compute_log_time(int(log_time)),
-                self._format_log_message(list(parts))
+                self.compute_log_time(_c.get("time")),
+                self._format_log_message(_c.get("log_type_index"), _c.get("log_params"))
             ]
             rows.append(col)
         rows.reverse()
@@ -102,17 +125,15 @@ class JuanfiApi:
     def get_api_key(self) -> str:
         return "55eav610vk"
 
-    def _compute_log_time(self, timeSinceStartup: int) -> str:
+    def compute_log_time(self, timeSinceStartup: int) -> str:
         uptime = self._system_uptime_ms
         dt = datetime.fromtimestamp(((time.time() * 1000 - int(uptime)) + timeSinceStartup) / 1000)
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    def _format_log_message(self, data: list) -> str:
+    def _format_log_message(self, log_type: int, params: list) -> str:
         types = self._get_log_types()
-        parts = deque(data)
-        type_index = int(parts.popleft())
-        template = types[type_index]
-        return template.format(*list(parts))
+        template = types[log_type]
+        return template.format(*params)
 
     def _get_log_types(self) -> list:
         log_types = []
