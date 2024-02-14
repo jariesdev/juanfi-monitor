@@ -53,7 +53,7 @@ class JuanfiApi:
     def _send_api_request(self, url: str) -> Response:
         timestamp = self._get_current_milli_time()
         url = ("%s/admin/%s?query=%d" % (self._baseUrl, url, timestamp))
-        return requests.get(url=url, headers={'X-TOKEN': self.get_api_key()})
+        return requests.get(url=url, headers={'X-TOKEN': self.get_api_key()}, timeout=5)
 
     def _get_current_milli_time(self) -> int:
         return round(time.time() * 1000)
