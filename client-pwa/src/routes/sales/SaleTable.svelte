@@ -64,26 +64,28 @@
                    placeholder="Search" aria-label="Input">
         </div>
     </div>
-    <table class="uk-table uk-table-divider">
-        <thead>
-        <tr>
-            <th>Time</th>
-            <th>Mac Address</th>
-            <th>Voucher</th>
-            <th>Amount</th>
-            <th>Created At</th>
-        </tr>
-        </thead>
-        <tbody>
-        {#each sales as log}
+    <div class="uk-overflow-auto">
+        <table class="uk-table uk-table-divider">
+            <thead>
             <tr>
-                <td title="{humanizeTime(log.sale_time)}">{log.sale_time}</td>
-                <td>{log.mac_address}</td>
-                <td>{log.voucher}</td>
-                <td>{log.amount}</td>
-                <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
+                <th>Time</th>
+                <th>Mac Address</th>
+                <th>Voucher</th>
+                <th>Amount</th>
+                <th>Created At</th>
             </tr>
-        {/each}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+            {#each sales as log}
+                <tr>
+                    <td title="{humanizeTime(log.sale_time)}">{log.sale_time}</td>
+                    <td>{log.mac_address}</td>
+                    <td>{log.voucher}</td>
+                    <td>{log.amount}</td>
+                    <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
+                </tr>
+            {/each}
+            </tbody>
+        </table>
+    </div>
 </div>
