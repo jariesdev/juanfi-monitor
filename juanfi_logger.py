@@ -18,6 +18,7 @@ class JuanfiLogger():
                 "INSERT OR IGNORE INTO juanfi_logs(`log_time`, `description`) VALUES ('{0}','{1}')".format(*log)
             )
             self._db_conn.commit()
+        print("logs inserted")
 
 
 if __name__ == "__main__":
