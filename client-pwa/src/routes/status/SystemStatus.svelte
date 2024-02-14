@@ -10,6 +10,7 @@
     let statuses: iStatus[] = []
     let isLoading: boolean = false
     let systemUptime: number = 0
+    let serverTime: number = 0
 
     function loadStatuses(): void {
         const request = new Request("http://192.46.225.21:8000/vendo_status", {method: "GET"})
@@ -23,15 +24,15 @@
             })
             .then((response) => {
                 systemUptime = response.system_uptime_ms
+                serverTime = response.server_time
                 const list: iStatus[] = []
                 Object.keys(response).forEach((key): void => {
-                    if (!['system_uptime_ms'].includes(key)) {
+                    if (!['system_uptime_ms', 'server_time'].includes(key)) {
                         list.push({
                             label: titleCase(key),
                             text: response[key]
                         })
                     }
-
                 })
                 statuses = list
                 startTimer()
@@ -58,6 +59,10 @@
         return moment(Date.now() - time).fromNow()
     }
 
+    $: serverTimeString = ():string =>  {
+        return moment(serverTime).format()
+    }
+
     onMount(() => {
         loadStatuses()
     })
@@ -69,6 +74,10 @@
             <li class="uk-flex uk-flex-between">
                 <span>System Uptime</span>
                 <span>{toRelativeTime(systemUptime)}</span>
+            </li>
+            <li class="uk-flex uk-flex-between">
+                <span>Server Time</span>
+                <span>{serverTimeString()}</span>
             </li>
             {#each statuses as status}
                 <li class="uk-flex uk-flex-between">

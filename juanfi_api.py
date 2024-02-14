@@ -83,6 +83,7 @@ class JuanfiApi:
             "night_light_status": self._night_light_status,
             "active_user_count": self._active_user_count,
             "system_clock": self._system_clock,
+            "server_time": time.time(),
         }
 
     def _load_system_status(self) -> None:
