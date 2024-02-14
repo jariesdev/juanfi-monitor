@@ -1,5 +1,6 @@
 <script lang="ts">
     import {onMount} from "svelte";
+    import debounce from 'lodash/debounce'
 
     interface iVendoLog {
         id: number
@@ -9,11 +10,18 @@
     }
 
     let logs: iVendoLog[] = []
+    let searchInput: string = null
     let isLoading: boolean = false
-    const request = new Request("http://192.46.225.21:8000/logs", {method: "GET"});
 
-    export async function loadData(): Promise<void> {
+    export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
+
+        let url = "http://192.46.225.21:8000/logs"
+        if (!!searchInput) {
+            url = `${url}?q=${searchInput}`
+        }
+        const request = new Request(url, {method: "GET"});
+
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
@@ -32,11 +40,13 @@
             .finally(() => {
                 isLoading = false
             })
-    }
+    }, 250, {maxWait: 1000})
 
     function humanizeTime(time: string): string {
         return new Date(Date.parse(time)).toLocaleString()
     }
+
+    $: searchInput, loadData();
 
     onMount(() => {
         loadData()
@@ -45,7 +55,13 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body">
-    <h3 class="uk-card-title">System Logs</h3>
+    <div class="uk-flex uk-flex-between">
+        <h3 class="uk-card-title">System Logs</h3>
+        <div>
+            <input bind:value={searchInput} class="uk-input uk-form-width-medium uk-form-small" type="search"
+                   placeholder="Search" aria-label="Input">
+        </div>
+    </div>
     <table class="uk-table uk-table-divider">
         <thead>
         <tr>
