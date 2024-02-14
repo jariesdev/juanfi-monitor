@@ -20,7 +20,7 @@ class LogRepository:
                 ]
             )
         else:
-            cur.execute("SELECT * FROM juanfi_logs")
+            cur.execute("SELECT * FROM juanfi_logs ORDER BY id DESC")
 
         rows = cur.fetchall()
         conn.close()
