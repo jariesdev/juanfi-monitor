@@ -1,3 +1,6 @@
+import datetime
+import time
+
 from database import Database
 from juanfi_api import JuanfiApi
 from sqlite3 import Connection
@@ -18,7 +21,7 @@ class JuanfiLogger():
                 "INSERT OR IGNORE INTO juanfi_logs(`log_time`, `description`) VALUES ('{0}','{1}')".format(*log)
             )
             self._db_conn.commit()
-        print("logs inserted")
+        print("%s: logs inserted" % datetime.datetime.now())
 
 
 if __name__ == "__main__":
