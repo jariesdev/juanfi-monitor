@@ -55,9 +55,9 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body">
-    <div class="uk-flex uk-flex-between">
+    <div class="uk-column-1-2@s">
         <h3 class="uk-card-title">System Logs</h3>
-        <div>
+        <div class="uk-text-right">
             <input bind:value={searchInput} class="uk-input uk-form-width-medium uk-form-small" type="search"
                    placeholder="Search" aria-label="Input">
         </div>
