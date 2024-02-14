@@ -61,7 +61,7 @@ async def read_logs(q: Union[str, None] = None):
 
 
 @app.post("/log/refresh")
-async def read_logs(q: Union[str, None] = None):
+async def read_logs():
     juanfi_logger = JuanfiLogger()
     juanfi_logger.run()
     return JSONResponse({
