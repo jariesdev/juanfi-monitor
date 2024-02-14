@@ -45,9 +45,19 @@ def read_user(user_id: int, q: Union[str, None] = None):
 async def read_logs(q: Union[str, None] = None):
     log_repository = LogRepository()
     logs = log_repository.search(q)
+
+    def addition(d: list) -> dict:
+        return {
+            "id": d[0],
+            "log_time": d[1],
+            "description": d[2],
+            "created_at": d[3],
+        }
+
     return JSONResponse({
-        "data": logs
+        "data": list(map(addition, logs))
     })
+
 
 @app.get("/vendo_status")
 async def read_logs():
