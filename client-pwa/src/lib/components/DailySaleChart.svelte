@@ -1,11 +1,13 @@
 <script lang="ts">
     import Chart from 'chart.js/auto';
-    import {onMount} from "svelte";
+    import {onMount, onDestroy} from "svelte";
     import {apiUrl} from "$lib/store";
 
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
     let baseApiUrl: string = ''
+    let intervalId: number
+    let isLoading: boolean = false
 
     interface iDailySale {
         date: string
@@ -68,6 +70,13 @@
 
     onMount(() => {
         loadChartData()
+        setInterval(() => loadChartData(), 5000)
+    })
+
+    onDestroy(() => {
+        if(intervalId) {
+            clearInterval(intervalId)
+        }
     })
 </script>
 
