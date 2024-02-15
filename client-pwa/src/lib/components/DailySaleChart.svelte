@@ -2,31 +2,34 @@
     import Chart from 'chart.js/auto';
     import {onMount, onDestroy} from "svelte";
     import {apiUrl} from "$lib/store";
+    import map from "lodash/map";
 
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
     let baseApiUrl: string = ''
     let intervalId: number
     let isLoading: boolean = false
+    let chart: Chart
 
     interface iDailySale {
         date: string
         total: number
     }
 
-    function renderChart(data: any[]): void {
-        const chart = new Chart(canvas, {
+    function renderChart(saleList: any[]): void {
+        chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Daily Sales',
+                data: [],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        };
+        chart = new Chart(canvas, {
             type: 'line',
-            data: data,
-            options: {
-                onClick: (e) => {
-                    const canvasPosition = getRelativePosition(e, chart);
-
-                    // Substitute the appropriate scale IDs
-                    const dataX = chart.scales.x.getValueForPixel(canvasPosition.x);
-                    const dataY = chart.scales.y.getValueForPixel(canvasPosition.y);
-                }
-            }
+            data: chartData
         });
     }
 
@@ -41,20 +44,22 @@
                 }
             })
             .then(({data}) => {
-            const labels = data.map((d: iDailySale) => d.date);
-            const saleData = data.map((d: iDailySale) => d.total);
-            chartData = {
-                labels: labels,
-                datasets: [{
-                    label: 'Daily Sales',
-                    data: saleData,
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            };
-
-            renderChart(chartData)
+                const labels = map(data, (d: iDailySale) => {
+                    const dt = new Date(Date.parse(d.date))
+                    const m = dt.getMonth() + 1
+                    const dy = dt.getDate()
+                    return `${m}-${dy}`
+                });
+                const saleData = map(data, (d: iDailySale) => d.total);
+                if (chart) {
+                    chart.data.labels = labels
+                    chart.data.datasets = [{
+                        label: 'Sales',
+                        data: saleData,
+                        borderWidth: 1
+                    }]
+                    chart.update();
+                }
             })
             .catch((error) => {
                 console.error(error);
@@ -69,12 +74,13 @@
     })
 
     onMount(() => {
+        renderChart()
         loadChartData()
-        setInterval(() => loadChartData(), 5000)
+        setInterval(() => loadChartData(), 10000)
     })
 
     onDestroy(() => {
-        if(intervalId) {
+        if (intervalId) {
             clearInterval(intervalId)
         }
     })
