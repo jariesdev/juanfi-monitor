@@ -28,3 +28,18 @@ class SaleRepository:
         rows = cur.fetchall()
         conn.close()
         return rows
+
+    def get_daily_sales(self) -> list[dict]:
+        conn = self._db.get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT DATE(sale_time) AS date, SUM(amount) AS total FROM juanfi_sales GROUP BY DATE(sale_time) ORDER BY sale_time DESC")
+        rows = cur.fetchall()
+        conn.close()
+
+        def mapper(d: list) -> dict:
+            return {
+                "date": d[0],
+                "total": d[1],
+            }
+
+        return list(map(mapper, rows))

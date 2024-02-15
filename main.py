@@ -78,6 +78,11 @@ def read_sales(q: Union[str, None] = None):
     sale_controller = SaleController()
     return sale_controller.all(q)
 
+@app.get("/daily-sales")
+def read_daily_sales():
+    sale_controller = SaleController()
+    return sale_controller.daily_sales()
+
 
 @app.get("/vendo_status")
 async def read_logs():
