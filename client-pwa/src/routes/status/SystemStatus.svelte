@@ -1,6 +1,7 @@
 <script lang="ts">
     import {onMount} from "svelte";
     import moment from 'moment'
+    import {apiUrl} from "$lib/store";
 
     interface iStatus {
         label: string
@@ -11,9 +12,10 @@
     let isLoading: boolean = false
     let systemUptime: number = 0
     let serverTime: number = 0
+    let baseApiUrl: string = ''
 
     function loadStatuses(): void {
-        const request = new Request("http://192.46.225.21:8000/vendo_status", {method: "GET"})
+        const request = new Request(`${baseApiUrl}/vendo_status`, {method: "GET"})
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
@@ -59,9 +61,13 @@
         return moment(Date.now() - time).fromNow()
     }
 
-    $: serverTimeString = ():string =>  {
+    $: serverTimeString = (): string => {
         return moment(serverTime).format()
     }
+
+    apiUrl.subscribe(function (value) {
+        baseApiUrl = value
+    })
 
     onMount(() => {
         loadStatuses()

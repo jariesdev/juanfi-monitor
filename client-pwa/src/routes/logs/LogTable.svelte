@@ -1,6 +1,7 @@
 <script lang="ts">
     import {onMount} from "svelte";
     import debounce from 'lodash/debounce'
+    import {apiUrl} from "$lib/store";
 
     interface iVendoLog {
         id: number
@@ -12,11 +13,12 @@
     let logs: iVendoLog[] = []
     let searchInput: string = ''
     let isLoading: boolean = false
+    let baseApiUrl: string = ''
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
 
-        let url = "http://192.46.225.21:8000/logs"
+        let url = `${baseApiUrl}/logs`
         if (!!searchInput) {
             url = `${url}?q=${searchInput}`
         }
@@ -47,6 +49,10 @@
     }
 
     $: searchInput, loadData();
+
+    apiUrl.subscribe(function(value) {
+        baseApiUrl = value
+    })
 
     onMount(() => {
         loadData()
