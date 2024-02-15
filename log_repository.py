@@ -13,7 +13,10 @@ class LogRepository:
         cur = conn.cursor()
         if q is not None:
             cur.execute(
-                "SELECT * FROM juanfi_logs WHERE juanfi_logs.description LIKE ? ORDER BY log_time DESC",
+                "SELECT id, log_time, description, DATETIME(created_at, 'localtime')"
+                "FROM juanfi_logs "
+                "WHERE juanfi_logs.description LIKE ? "
+                "ORDER BY log_time DESC",
                 [
                     "%{}%".format(q),
                 ]

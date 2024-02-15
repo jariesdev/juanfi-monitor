@@ -13,7 +13,8 @@ class SaleRepository:
         cur = conn.cursor()
         if q is not None:
             cur.execute(
-                "SELECT * FROM juanfi_sales "
+                "SELECT id, sale_time, mac_address, voucher, amount, DATETIME(created_at, 'localtime') "
+                "FROM juanfi_sales "
                 "WHERE juanfi_sales.mac_address LIKE ? "
                 "OR juanfi_sales.voucher LIKE ? "
                 "ORDER BY sale_time DESC",
