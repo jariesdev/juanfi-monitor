@@ -16,7 +16,7 @@
         total: number
     }
 
-    function renderChart(saleList: any[]): void {
+    function renderChart(): void {
         chartData = {
             labels: [],
             datasets: [{
@@ -76,7 +76,7 @@
     onMount(() => {
         renderChart()
         loadChartData()
-        setInterval(() => loadChartData(), 10000)
+        setInterval(() => loadChartData(), 30 * 1000)
     })
 
     onDestroy(() => {
