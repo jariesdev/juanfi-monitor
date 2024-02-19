@@ -23,7 +23,7 @@ class JuanfiLogger():
         logs = self._juanfi.get_formatted_system_logs()
         for log in logs:
             self._db_conn.execute(
-                "INSERT OR IGNORE INTO juanfi_logs(`log_time`, `description`) VALUES ('{0}','{1}')".format(*log)
+                "INSERT OR IGNORE INTO juanfi_logs(`log_time`, `description`, `created_at`) VALUES ('{0}', '{1}', DATETIME('now', 'localtime'))".format(*log)
             )
             self._db_conn.commit()
         print("%s: logs inserted" % datetime.datetime.now())
@@ -32,7 +32,7 @@ class JuanfiLogger():
         sale_logs = filter(lambda log: log.get("log_type_index") == 14, logs)
         for _log in sale_logs:
             self._db_conn.execute(
-                "INSERT OR IGNORE INTO juanfi_sales(`sale_time`, `mac_address`, `voucher`, `amount`) VALUES ('{0}','{1}', '{2}', '{3}')".format(
+                "INSERT OR IGNORE INTO juanfi_sales(`sale_time`, `mac_address`, `voucher`, `amount`, `created_at`) VALUES ('{0}', '{1}', '{2}', '{3}', DATETIME('now', 'localtime'))".format(
                     self._juanfi.compute_log_time(_log.get("time")),
                     _log.get("log_params")[0],
                     _log.get("log_params")[1],
