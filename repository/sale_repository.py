@@ -33,7 +33,11 @@ class SaleRepository:
     def get_daily_sales(self) -> list[dict]:
         conn = self._db.get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT DATE(sale_time) AS date, SUM(amount) AS total FROM juanfi_sales GROUP BY DATE(sale_time) ORDER BY sale_time ASC")
+        cur.execute("SELECT DATE(sale_time) AS date, SUM(amount) AS total "
+                    "FROM juanfi_sales "
+                    "WHERE sale_time > DATE('now', '-3 months')"
+                    "GROUP BY DATE(sale_time) "
+                    "ORDER BY sale_time ASC")
         rows = cur.fetchall()
         conn.close()
 
