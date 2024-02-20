@@ -112,7 +112,7 @@ class JuanfiApi:
         self._system_clock = str(data[16])
 
     def _send_api_request(self, url: str) -> HTTPResponse:
-        conn = http.client.HTTPConnection(host="192.168.42.10", port=8081, timeout=3)
+        conn = http.client.HTTPConnection(host="192.168.42.10", port=8081, timeout=5)
         timestamp = self._get_current_milli_time()
         url = ("/admin/%s?query=%d" % (url, timestamp))
         conn.request(method="GET", url=url, headers={'X-TOKEN': self.get_api_key()})
