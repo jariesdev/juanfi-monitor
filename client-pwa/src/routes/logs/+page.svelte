@@ -1,13 +1,15 @@
 <script lang="ts">
     import LogTable from "./LogTable.svelte";
+    import {apiUrl} from "$lib/store";
 
     let isReloading: boolean = false
     let reloadData: Function
+    let baseApiUrl: string = ''
 
     function refreshLogs(): void {
         isReloading = true
 
-        const request = new Request("http://192.46.225.21:8000/log/refresh", {method: "POST"});
+        const request = new Request(`${baseApiUrl}/log/refresh`, {method: "POST"});
         fetch(request)
             .then(() => {
                 reloadData()
@@ -16,6 +18,10 @@
                 isReloading = false
             })
     }
+
+    apiUrl.subscribe(function(value) {
+        baseApiUrl = value
+    })
 </script>
 
 
