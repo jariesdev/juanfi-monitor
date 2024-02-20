@@ -1,5 +1,5 @@
 import time
-from collections import deque
+from typing import Union
 from datetime import datetime
 import http.client
 from http.client import HTTPResponse
@@ -126,10 +126,15 @@ class JuanfiApi:
     def get_api_key(self) -> str:
         return "55eav610vk"
 
-    def compute_log_time(self, timeSinceStartup: int) -> str:
+    def compute_log_time(self, time_since_startup: int, precision: Union[str, None] = None) -> str:
+        __format = "%Y-%m-%d %H:%M:%S"
+        if precision is not None and precision == "M":
+            __format = "%Y-%m-%d %H:%M:00"
+
         uptime = self._system_uptime_ms
-        dt = datetime.fromtimestamp(((time.time() * 1000 - int(uptime)) + timeSinceStartup) / 1000)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+        dt = datetime.fromtimestamp(((time.time() * 1000 - int(uptime)) + time_since_startup) / 1000)
+
+        return dt.strftime(__format)
 
     def _format_log_message(self, log_type: int, params: list) -> str:
         types = self._get_log_types()

@@ -33,7 +33,7 @@ class JuanfiLogger():
         for _log in sale_logs:
             self._db_conn.execute(
                 "INSERT OR IGNORE INTO juanfi_sales(`sale_time`, `mac_address`, `voucher`, `amount`, `created_at`) VALUES ('{0}', '{1}', '{2}', '{3}', DATETIME('now', 'localtime'))".format(
-                    self._juanfi.compute_log_time(_log.get("time")),
+                    self._juanfi.compute_log_time(_log.get("time"), "M"),
                     _log.get("log_params")[0],
                     _log.get("log_params")[1],
                     _log.get("log_params")[2]
