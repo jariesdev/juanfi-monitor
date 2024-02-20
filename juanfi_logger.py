@@ -31,14 +31,27 @@ class JuanfiLogger():
     def store_sales(self, logs: list):
         sale_logs = filter(lambda log: log.get("log_type_index") == 14, logs)
         for _log in sale_logs:
-            self._db_conn.execute(
-                "INSERT OR IGNORE INTO juanfi_sales(`sale_time`, `mac_address`, `voucher`, `amount`, `created_at`) VALUES ('{0}', '{1}', '{2}', '{3}', DATETIME('now', 'localtime'))".format(
-                    self._juanfi.compute_log_time(_log.get("time"), "M"),
-                    _log.get("log_params")[0],
+            rows = self._db_conn.cursor().execute(
+                "SELECT * FROM juanfi_sales "
+                "WHERE sale_time BETWEEN DATETIME(?, '-10 seconds') AND DATETIME(?, '+10 seconds')"
+                "AND mac_address = ?",
+                [
+                    self._juanfi.compute_log_time(_log.get("time")),
+                    self._juanfi.compute_log_time(_log.get("time")),
                     _log.get("log_params")[1],
-                    _log.get("log_params")[2]
+                ]
+            ).fetchall()
+
+            if len(rows) == 0:
+                self._db_conn.execute(
+                    "INSERT OR IGNORE INTO juanfi_sales(`sale_time`, `mac_address`, `voucher`, `amount`, `created_at`) VALUES ('{0}', '{1}', '{2}', '{3}', DATETIME('now', 'localtime'))".format(
+                        self._juanfi.compute_log_time(_log.get("time")),
+                        _log.get("log_params")[0],
+                        _log.get("log_params")[1],
+                        _log.get("log_params")[2]
+                    )
                 )
-            )
+
             self._db_conn.commit()
         print("%s: logs inserted" % datetime.datetime.now())
 
