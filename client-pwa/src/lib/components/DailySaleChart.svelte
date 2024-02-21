@@ -58,7 +58,8 @@
                     chart.data.datasets = [{
                         label: 'Sales',
                         data: saleData,
-                        borderWidth: 1
+                        borderWidth: 1,
+                        tension: 0.4,
                     }]
                     chart.update();
                 }
