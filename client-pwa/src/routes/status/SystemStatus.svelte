@@ -58,7 +58,21 @@
     }
 
     function toRelativeTime(time: number): string {
-        return moment(Date.now() - time).fromNow()
+        const d = moment().diff(Date.now() - time, 'days')
+        const h = moment().diff(Date.now() - time, 'hours') % 24
+        const m = moment().diff(Date.now() - time, 'minutes') % 60
+        const s = moment().diff(Date.now() - time, 'seconds') % 60
+        const mf = String(m).padStart(2, '0')
+        const sf = String(s).padStart(2, '0')
+
+        if (d > 0) {
+            return `${d}d ${h}:${mf}:${sf}`
+        } else if (h > 0) {
+            return `${h}:${mf}:${sf}`
+        } else if (m > 0) {
+            return `${mf}:${sf}`
+        }
+        return `${sf}`
     }
 
     $: serverTimeString = (): string => {
