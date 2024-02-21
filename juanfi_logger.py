@@ -33,12 +33,12 @@ class JuanfiLogger():
         for _log in sale_logs:
             rows = self._db_conn.cursor().execute(
                 "SELECT * FROM juanfi_sales "
-                "WHERE sale_time BETWEEN DATETIME(?, '-10 seconds') AND DATETIME(?, '+10 seconds')"
+                "WHERE sale_time BETWEEN DATETIME(?, '-10 seconds') AND DATETIME(?, '+10 seconds') "
                 "AND mac_address = ?",
                 [
                     self._juanfi.compute_log_time(_log.get("time")),
                     self._juanfi.compute_log_time(_log.get("time")),
-                    _log.get("log_params")[1],
+                    _log.get("log_params")[0],
                 ]
             ).fetchall()
 
