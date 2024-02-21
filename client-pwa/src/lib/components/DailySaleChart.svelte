@@ -10,8 +10,7 @@
     let intervalId: number
     let isLoading: boolean = false
     let chart: Chart
-    const controller = new AbortController()
-    const signal = controller.signal
+    let controller: AbortController | undefined = undefined
 
     interface iDailySale {
         date: string
@@ -36,6 +35,8 @@
     }
 
     function loadChartData(): void {
+        controller = new AbortController()
+        const signal = controller.signal
         const request = new Request(`${baseApiUrl}/daily-sales`, {method: "GET", signal: signal})
         fetch(request)
             .then((response) => {
@@ -83,7 +84,7 @@
     })
 
     onDestroy(() => {
-        controller.abort('component destroyed')
+        controller && controller.abort('component destroyed')
         if (intervalId) {
             clearInterval(intervalId)
         }

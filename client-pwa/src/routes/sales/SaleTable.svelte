@@ -16,8 +16,7 @@
     let searchInput: string = ''
     let isLoading: boolean = false
     let baseApiUrl: string = ''
-    const controller = new AbortController()
-    const signal = controller.signal
+    let controller: AbortController | undefined = undefined
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -26,6 +25,8 @@
         if (!!searchInput) {
             url = `${url}?q=${searchInput}`
         }
+        controller = new AbortController()
+        const signal = controller.signal
         const request = new Request(url, {method: "GET", signal: signal});
 
         fetch(request)
@@ -54,7 +55,7 @@
 
     $: searchInput, loadData();
 
-    apiUrl.subscribe(function(value) {
+    apiUrl.subscribe(function (value) {
         baseApiUrl = value
     })
 
@@ -62,7 +63,7 @@
         loadData()
     })
     onDestroy(() => {
-        controller.abort('component destroyed')
+        controller && controller.abort('component destroyed')
     })
 </script>
 

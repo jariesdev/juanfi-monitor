@@ -13,11 +13,12 @@
     let systemUptime: number = 0
     let serverTime: number = 0
     let baseApiUrl: string = ''
-    const controller = new AbortController()
-    const signal = controller.signal
+    let controller: AbortController | undefined = undefined
     const intervalId: number = 0
 
     function loadStatuses(): void {
+        controller = new AbortController()
+        const signal = controller.signal
         const request = new Request(`${baseApiUrl}/vendo_status`, {method: "GET", signal: signal})
         fetch(request)
             .then((response) => {
@@ -92,8 +93,8 @@
         setInterval(() => loadStatuses(), 30 * 1000)
     })
     onDestroy(() => {
-        controller.abort('component destroyed')
-        if(intervalId) {
+        controller && controller.abort('component destroyed')
+        if (intervalId) {
             clearInterval(intervalId)
         }
     })
