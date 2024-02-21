@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {onMount} from "svelte";
+    import {onMount, onDestroy} from "svelte";
     import debounce from 'lodash/debounce'
     import {apiUrl} from "$lib/store";
 
@@ -14,6 +14,8 @@
     let searchInput: string = ''
     let isLoading: boolean = false
     let baseApiUrl: string = ''
+    const controller = new AbortController()
+    const signal = controller.signal
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -22,7 +24,7 @@
         if (!!searchInput) {
             url = `${url}?q=${searchInput}`
         }
-        const request = new Request(url, {method: "GET"});
+        const request = new Request(url, {method: "GET", signal:signal});
 
         fetch(request)
             .then((response) => {
@@ -56,6 +58,9 @@
 
     onMount(() => {
         loadData()
+    })
+    onDestroy(() => {
+        controller.abort()
     })
 
 </script>

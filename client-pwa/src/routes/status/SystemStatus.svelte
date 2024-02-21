@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {onMount} from "svelte";
+    import {onMount, onDestroy} from "svelte";
     import moment from 'moment'
     import {apiUrl} from "$lib/store";
 
@@ -13,9 +13,12 @@
     let systemUptime: number = 0
     let serverTime: number = 0
     let baseApiUrl: string = ''
+    const controller = new AbortController()
+    const signal = controller.signal
+    const intervalId: number = 0
 
     function loadStatuses(): void {
-        const request = new Request(`${baseApiUrl}/vendo_status`, {method: "GET"})
+        const request = new Request(`${baseApiUrl}/vendo_status`, {method: "GET", signal: signal})
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
@@ -85,6 +88,14 @@
 
     onMount(() => {
         loadStatuses()
+        // refresh status
+        setInterval(() => loadStatuses(), 30 * 1000)
+    })
+    onDestroy(() => {
+        controller.abort()
+        if(intervalId) {
+            clearInterval(intervalId)
+        }
     })
 </script>
 
