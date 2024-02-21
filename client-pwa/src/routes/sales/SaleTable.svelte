@@ -62,7 +62,7 @@
         loadData()
     })
     onDestroy(() => {
-        controller.abort()
+        controller.abort('component destroyed')
     })
 </script>
 

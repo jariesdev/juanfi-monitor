@@ -92,7 +92,7 @@
         setInterval(() => loadStatuses(), 30 * 1000)
     })
     onDestroy(() => {
-        controller.abort()
+        controller.abort('component destroyed')
         if(intervalId) {
             clearInterval(intervalId)
         }
