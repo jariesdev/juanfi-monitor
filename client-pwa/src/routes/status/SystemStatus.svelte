@@ -56,6 +56,7 @@
     }
 
     function startTimer(): void {
+        if(intervalId) return;
         setInterval(() => {
             systemUptime += 1000
         }, 1000)
