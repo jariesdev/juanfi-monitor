@@ -34,6 +34,12 @@ self.addEventListener('fetch', (event) => {
 	// ignore POST requests etc
 	if (event.request.method !== 'GET') return;
 
+	// check & ignore if query params has nosw
+	if ( event.request.url.match( '^.*(nosw=1).*$' ) ) {
+		console.log(event.request.url)
+		return false;
+	}
+
 	async function respond() {
 		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);

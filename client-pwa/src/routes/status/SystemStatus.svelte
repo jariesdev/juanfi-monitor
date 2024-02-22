@@ -19,7 +19,7 @@
     function loadStatuses(): void {
         controller = new AbortController()
         const signal = controller.signal
-        const request = new Request(`${baseApiUrl}/vendo_status`, {method: "GET", signal: signal})
+        const request = new Request(`${baseApiUrl}/vendo_status?nosw=1`, {method: "GET", signal: signal})
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
