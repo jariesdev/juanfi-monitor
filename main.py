@@ -49,9 +49,9 @@ def read_user(user_id: int, q: Union[str, None] = None):
 
 
 @app.get("/logs")
-async def read_logs(q: Union[str, None] = None):
+async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None):
     log_repository = LogRepository()
-    logs = log_repository.search(q)
+    logs = log_repository.search(q, date)
 
     def addition(d: list) -> dict:
         return {
@@ -77,9 +77,10 @@ async def read_logs():
 
 
 @app.get("/sales")
-def read_sales(q: Union[str, None] = None):
+def read_sales(q: Union[str, None] = None, date: Union[str, None] = None):
     sale_controller = SaleController()
-    return sale_controller.all(q)
+    print(date)
+    return sale_controller.all(q, date)
 
 @app.get("/daily-sales")
 def read_daily_sales():

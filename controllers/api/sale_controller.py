@@ -11,8 +11,8 @@ class SaleController():
     def __init__(self):
         self._repository = SaleRepository()
 
-    def all(self, q: Union[str, None] = None) -> JSONResponse:
-        sales = self._repository.search(q)
+    def all(self, q: Union[str, None] = None, date: Union[str, None] = None) -> JSONResponse:
+        sales = self._repository.search(q, date)
 
         return JSONResponse({
             "data": self._map_list_to_dict(sales)

@@ -8,23 +8,23 @@ class SaleRepository:
     def __init__(self):
         self._db = Database()
 
-    def search(self, q: Union[str, None] = None) -> list:
+    def search(self, q: Union[str, None] = None, date: Union[str, None] = None) -> list:
         conn = self._db.get_connection()
+        conn.set_trace_callback(print)
         cur = conn.cursor()
+
+        query = ("SELECT id, sale_time, mac_address, voucher, amount, DATETIME(created_at, 'localtime') "
+                 "FROM juanfi_sales WHERE 1=1 ")
+
         if q is not None:
-            cur.execute(
-                "SELECT id, sale_time, mac_address, voucher, amount, DATETIME(created_at, 'localtime') "
-                "FROM juanfi_sales "
-                "WHERE juanfi_sales.mac_address LIKE ? "
-                "OR juanfi_sales.voucher LIKE ? "
-                "ORDER BY sale_time DESC",
-                [
-                    "%{}%".format(q),
-                    "%{}%".format(q),
-                ]
-            )
-        else:
-            cur.execute("SELECT * FROM juanfi_sales ORDER BY sale_time DESC")
+            query = query + ("AND (juanfi_sales.mac_address LIKE '%{0}%' "
+                             "OR juanfi_sales.voucher LIKE '%{0}%') ").format(q)
+
+        if date is not None:
+            query = query + "AND DATE(juanfi_logs.sale_time) = '{}' ".format(date)
+
+        query = query + "ORDER BY sale_time DESC "
+        cur.execute(query)
 
         rows = cur.fetchall()
         conn.close()
