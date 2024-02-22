@@ -2,6 +2,7 @@
     import {onMount, onDestroy} from "svelte";
     import debounce from 'lodash/debounce'
     import {apiUrl} from "$lib/store";
+    import moment from "moment/moment";
 
     interface iVendoLog {
         id: number
@@ -12,16 +13,34 @@
 
     let logs: iVendoLog[] = []
     let searchInput: string = ''
+    let date: string = moment().format('Y-MM-DD')
     let isLoading: boolean = false
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
+    let showFilter: boolean = true
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
 
+        const queryParams = []
+
         let url = `${baseApiUrl}/logs`
         if (!!searchInput) {
-            url = `${url}?q=${searchInput}`
+            queryParams.push({
+                name: 'q',
+                value: searchInput
+            })
+        }
+
+        if (date) {
+            queryParams.push({
+                name: 'date',
+                value: date
+            })
+        }
+
+        if (queryParams.length > 0) {
+            url = url + '?' + queryParams.map((o) => `${o.name}=${o.value}`).join('&')
         }
 
         controller = new AbortController()
@@ -71,10 +90,22 @@
     <div class="uk-column-1-2@s">
         <h3 class="uk-card-title">System Logs</h3>
         <div class="uk-text-right">
-            <input bind:value={searchInput} class="uk-input uk-form-width-medium uk-form-small" type="search"
-                   placeholder="Search" aria-label="Input">
+            <div class="uk-inline">
+                <a class="uk-form-icon uk-form-icon-flip" uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
+                   on:click|preventDefault={() => showFilter=!showFilter} title="Show filters"></a>
+                <input bind:value={searchInput} class="uk-input uk-form-small" type="search"
+                       placeholder="Search" aria-label="Input">
+            </div>
         </div>
     </div>
+    {#if showFilter}
+        <div class="uk-margin-small-top">
+            <div class="uk-column-1-2@s uk-column-1-3@m">
+                <input bind:value={date} type="date" name="date" id="date"
+                       class="uk-input uk-form-small" on:change={loadData}>
+            </div>
+        </div>
+    {/if}
     <div class="uk-overflow-auto">
         <table class="uk-table uk-table-divider">
             <thead>
