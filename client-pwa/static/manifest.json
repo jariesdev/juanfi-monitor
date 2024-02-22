@@ -1,0 +1,11 @@
+{
+  "short_name": "PWiFi",
+  "name": "Piso WiFi",
+  "start_url": "/",
+  "icons": [],
+  "background-color": "#3367D6",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#3367D6",
+  "description": "Piso WiFi app"
+}
