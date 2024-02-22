@@ -91,8 +91,8 @@
         <h3 class="uk-card-title">System Logs</h3>
         <div class="uk-text-right">
             <div class="uk-inline">
-                <a class="uk-form-icon uk-form-icon-flip" uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
-                   on:click|preventDefault={() => showFilter=!showFilter} title="Show filters"></a>
+                <button class="uk-form-icon uk-form-icon-flip" uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
+                   on:click|preventDefault={() => showFilter=!showFilter} title="Show filters"></button>
                 <input bind:value={searchInput} class="uk-input uk-form-small" type="search"
                        placeholder="Search" aria-label="Input">
             </div>
