@@ -36,7 +36,6 @@ self.addEventListener('fetch', (event) => {
 
 	// check & ignore if query params has nosw
 	if ( event.request.url.match( '^.*(nosw=1).*$' ) ) {
-		console.log(event.request.url)
 		return false;
 	}
 
