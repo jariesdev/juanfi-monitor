@@ -2,7 +2,9 @@
   "short_name": "PWiFi",
   "name": "Piso WiFi",
   "start_url": "/",
-  "icons": [],
+  "icons": [
+    "/logo.png"
+  ],
   "background-color": "#3367D6",
   "display": "standalone",
   "scope": "/",
