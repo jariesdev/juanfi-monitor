@@ -14,7 +14,7 @@
     let serverTime: number = 0
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
-    const intervalId: number = 0
+    let intervalId: number = 0
 
     function loadStatuses(): void {
         controller = new AbortController()
@@ -57,7 +57,7 @@
 
     function startTimer(): void {
         if(intervalId) return;
-        setInterval(() => {
+        intervalId = setInterval(() => {
             systemUptime += 1000
         }, 1000)
     }
