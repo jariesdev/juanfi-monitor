@@ -4,6 +4,7 @@
 	import '$lib/css/uikit.css'
 	import '$lib/js/uikit.min.js'
 	import '$lib/js/uikit-icons.min.js'
+	import OfflineAlert from "$lib/components/OfflineAlert.svelte";
 </script>
 
 <div class="app">
@@ -18,6 +19,7 @@
 			Vendo Reports
 		</p>
 	</footer>
+	<OfflineAlert />
 </div>
 
 <style>
