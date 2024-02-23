@@ -53,7 +53,7 @@ class JuanfiLogger():
                 )
 
             self._db_conn.commit()
-        print("%s: logs inserted" % datetime.datetime.now())
+        print("%s: sales inserted" % datetime.datetime.now())
 
 
 if __name__ == "__main__":
