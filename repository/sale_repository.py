@@ -21,7 +21,7 @@ class SaleRepository:
         db = SessionLocal()
 
         query = (db.query(VendoSale).options(joinedload(VendoSale.vendo))
-                 .order_by(VendoSale.sale_time))
+                 .order_by(VendoSale.sale_time.desc()))
 
         if q is not None:
             query = (query.where(VendoSale.mac_address.like("%{}%".format(q)))
