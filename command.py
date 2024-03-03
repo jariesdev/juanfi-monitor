@@ -4,6 +4,7 @@ import sql_app.models
 from juanfi_logger import JuanfiLogger
 from sql_app.database import SessionLocal, engine
 from commands import vendo_add as vendor_adder
+
 app = typer.Typer()
 
 
@@ -30,8 +31,13 @@ def vendo_logger():
 
     for vendo in vendos:
         typer.echo("Pulling latest from " + vendo.name)
-        logger = JuanfiLogger(vendo)
-        logger.run()
+        try:
+            logger = JuanfiLogger(vendo)
+            logger.run()
+        except Exception as e:
+            typer.echo(e)
+
+
 @app.command()
 def vendo_add():
     vendor_adder.main()

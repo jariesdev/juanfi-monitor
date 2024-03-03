@@ -8,6 +8,7 @@
         text: string
     }
 
+    export let vendoId: number
     let statuses: iStatus[] = []
     let isLoading: boolean = false
     let systemUptime: number = 0
@@ -19,7 +20,7 @@
     function loadStatuses(): void {
         controller = new AbortController()
         const signal = controller.signal
-        const request = new Request(`${baseApiUrl}/vendo_status?nosw=1`, {method: "GET", signal: signal})
+        const request = new Request(`${baseApiUrl}/vendo-machines/${vendoId}/status?nosw=1`, {method: "GET", signal: signal})
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {

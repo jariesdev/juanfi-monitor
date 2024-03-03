@@ -83,3 +83,7 @@ class VendoRepository:
 
     def all(self, db: Session = Depends(get_db)) -> list:
         return db.query(models.Vendo).all()
+
+    def get(self, id: int) -> models.Vendo:
+        db = SessionLocal()
+        return db.query(models.Vendo).filter(models.Vendo.id == id).first()

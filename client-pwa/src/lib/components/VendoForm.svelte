@@ -32,7 +32,6 @@
                 }
             })
             .then((data) => {
-                console.log(data)
                 form = {
                     name: '',
                     api_url: '',

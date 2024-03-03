@@ -5,6 +5,7 @@ import http.client
 from http.client import HTTPResponse
 
 from sql_app.models import Vendo
+from urllib.parse import urlparse
 
 
 class JuanfiApi():
@@ -120,7 +121,8 @@ class JuanfiApi():
 
     def _send_api_request(self, url: str) -> HTTPResponse:
         try:
-            conn = http.client.HTTPConnection(host="192.168.42.10", port=8081, timeout=5)
+            p = urlparse(self._base_url)
+            conn = http.client.HTTPConnection(host=p.hostname, port=p.port, timeout=5)
             timestamp = self._get_current_milli_time()
             url = ("/admin/%s?query=%d" % (url, timestamp))
             conn.request(method="GET", url=url, headers={'X-TOKEN': self.get_api_key()})
@@ -188,6 +190,29 @@ class JuanfiApi():
         log_types.append('{0} Purchase Eload failed {1}')
         log_types.append('Unusual coinslot pulse detected, please check coinslot')
         return log_types
+
+    def get_vendo_status(self, id: int):
+        self._load_system_status()
+        return {
+            "system_uptime_ms": self._system_uptime_ms,
+            "total_coin_count": self._total_coin_count,
+            "current_coin_count": self._current_coin_count,
+            "customer_count": self._customer_count,
+            "internet_status": self._internet_status,
+            "mikrotik_status": self._mikrotik_status,
+            "mac_address": self._mac_address,
+            "ip_address": self._ip_address,
+            "hardware_type": self._hardware_type,
+            "version": self._version,
+            "interface_type": self._interface_type,
+            "wireless_signal_strength": self._wireless_signal_strength,
+            "free_heap": self._free_heap,
+            "auth_type": self._auth_type,
+            "night_light_status": self._night_light_status,
+            "active_user_count": self._active_user_count,
+            "system_clock": self._system_clock,
+            "server_time": time.time() * 1000,
+        }
 
 
 if __name__ == '__main__':

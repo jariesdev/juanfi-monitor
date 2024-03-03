@@ -2,6 +2,7 @@ from typing import Union, List
 
 from starlette.responses import JSONResponse
 
+from juanfi_api import JuanfiApi
 from models import vendo
 from models.vendo import VendoMachine
 from repository.vendo_repository import VendoRepository
@@ -50,3 +51,8 @@ class VendoController():
         return {
             "data": None
         }
+
+    def vendo_status(self, id:int):
+        vendo = self._repository.get(id)
+        status = JuanfiApi(vendo).get_system_status()
+        return JSONResponse(status)

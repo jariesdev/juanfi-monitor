@@ -104,6 +104,9 @@
                     <td>{vendo.current_sales}</td>
                     <td>{vendo.total_sales}</td>
                     <td class="uk-text-nowrap">
+                        <a href="{`/vendo/${vendo.id}/status`}" class="uk-margin-small-right">
+                            <span class="uk-text-info" uk-icon="icon: info"></span>
+                        </a>
                         <a href="#delete" on:click={withdrawCurrentSales} class="uk-margin-small-right">
                             <span class="uk-text-info" uk-icon="icon: pencil"></span>
                         </a>

@@ -99,8 +99,13 @@ async def read_logs():
 
 @app.get("/vendo-machines")
 async def read_logs(q: Union[str, None] = None):
-    sale_controller = VendoController()
-    return sale_controller.all(q)
+    controller = VendoController()
+    return controller.all(q)
+
+@app.get("/vendo-machines/{id}/status")
+async def read_vendo_status(id: int):
+    controller = VendoController()
+    return controller.vendo_status(id)
 
 
 @app.post("/vendo-machines")
