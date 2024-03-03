@@ -1,5 +1,8 @@
+import os
+import sys
 from typing import Union
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,6 +17,10 @@ from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse
 from user_repository import UserRepository
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+sys.path.append(BASE_DIR)
 
 app = FastAPI()
 
