@@ -35,6 +35,7 @@ class VendoCreate(VendoBase):
 
 
 class Vendo(BaseModel):
+    id: int
     mac_address: str | None = None
     is_online: bool = False
     total_sales: float = 0
