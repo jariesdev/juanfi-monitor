@@ -3,6 +3,7 @@
     import {onMount, onDestroy} from "svelte";
     import {apiUrl} from "$lib/store";
     import map from "lodash/map";
+    import groupBy from "lodash/groupBy";
 
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
@@ -15,22 +16,33 @@
     interface iDailySale {
         date: string
         total: number
+        vendo_id: number
+        vendo_name: string
     }
 
     function renderChart(): void {
         chartData = {
-            labels: [],
-            datasets: [{
-                label: 'Daily Sales',
-                data: [],
-                fill: false,
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
+            datasets: []
         };
         chart = new Chart(canvas, {
             type: 'line',
-            data: chartData
+            data: chartData,
+            options: {
+                parsing: {
+                    xAxisKey: 'date',
+                    yAxisKey: 'total'
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function (value: string) {
+                                console.log(value)
+                                return 'PHP ' + value;
+                            }
+                        }
+                    }
+                }
+            }
         });
     }
 
@@ -47,21 +59,30 @@
                 }
             })
             .then(({data}) => {
-                const labels = map(data, (d: iDailySale) => {
-                    const dt = new Date(Date.parse(d.date))
-                    const m = dt.getMonth() + 1
-                    const dy = dt.getDate()
-                    return `${m}-${dy}`
-                });
-                const saleData = map(data, (d: iDailySale) => d.total);
                 if (chart) {
-                    chart.data.labels = labels
-                    chart.data.datasets = [{
-                        label: 'Sales',
-                        data: saleData,
-                        borderWidth: 1,
-                        tension: 0.4,
-                    }]
+                    const byVendo = groupBy(data, "vendo_id")
+                    const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
+                        const data = map(vendoSales, (d: iDailySale) => {
+                            const dt = new Date(Date.parse(d.date))
+                            const m = dt.getMonth() + 1
+                            const dy = dt.getDate()
+                            const df = String(dy).padStart(2, '0')
+                            const mf = String(m).padStart(2, '0')
+                            return {
+                                date: `${mf}-${df}`,
+                                total: d.total
+                            }
+                        });
+                        const vendoName = vendoSales[0].vendo_name;
+                        return {
+                            label: vendoName,
+                            data: data,
+                            borderWidth: 1,
+                            tension: 0.4,
+                        }
+                    })
+
+                    chart.data.datasets = datasets
                     chart.update();
                 }
             })

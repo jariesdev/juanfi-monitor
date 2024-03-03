@@ -32,8 +32,8 @@ class SaleController():
 
         return list(map(addition, sales))
 
-    def daily_sales(self) -> JSONResponse:
-        sales = self._repository.get_daily_sales()
+    def daily_sales(self):
+        result = self._repository.get_daily_sales()
         return JSONResponse({
-            "data": list(sales)
+            "data": [dict(r._mapping) for r in result]
         })

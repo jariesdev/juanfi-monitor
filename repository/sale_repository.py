@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload
 
 from database import Database
 from sql_app.database import SessionLocal
-from sql_app.models import VendoSale
+from sql_app.models import VendoSale, Vendo
 
 
 class SaleRepository:
@@ -36,20 +36,10 @@ class SaleRepository:
         return query.all()
 
     def get_daily_sales(self) -> list[dict]:
-        conn = self._db.get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT DATE(sale_time) AS date, SUM(amount) AS total "
-                    "FROM vendo_sales "
-                    "WHERE sale_time > DATE('now', '-3 months')"
-                    "GROUP BY DATE(sale_time) "
-                    "ORDER BY sale_time ASC")
-        rows = cur.fetchall()
-        conn.close()
-
-        def mapper(d: list) -> dict:
-            return {
-                "date": d[0],
-                "total": d[1],
-            }
-
-        return list(map(mapper, rows))
+        db = SessionLocal()
+        query = (db.query(func.date(VendoSale.sale_time).label("date"), func.sum(VendoSale.amount).label("total"), VendoSale.vendo_id, Vendo.name.label("vendo_name"))
+                 .join(VendoSale.vendo)
+                 .where(VendoSale.sale_time > func.date("now", "-3 months"))
+                 .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
+                 .order_by(VendoSale.sale_time))
+        return query.all()

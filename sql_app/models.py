@@ -60,7 +60,7 @@ class VendoSale(Base):
     amount = Column(Float)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
-    UniqueConstraint("vendo_id", "sale_time")
+    UniqueConstraint("vendo_id")
 
 
 class VendoStatus(Base):
