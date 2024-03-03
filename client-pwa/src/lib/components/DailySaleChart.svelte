@@ -36,7 +36,6 @@
                     y: {
                         ticks: {
                             callback: function (value: string) {
-                                console.log(value)
                                 return 'PHP ' + value;
                             }
                         }
