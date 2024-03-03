@@ -30,6 +30,7 @@ class Vendo(Base):
     current_sales = Column(Float)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
+    vendo_logs = relationship("VendoLog", back_populates='vendo')
 
 
 class VendoLog(Base):
@@ -39,7 +40,7 @@ class VendoLog(Base):
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
     log_time = Column(DateTime)
     description = Column(String)
-    # vendo = relationship(Vendo, back_populates="vendos")
+    vendo = relationship("Vendo", back_populates='vendo_logs')
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
     UniqueConstraint("vendo_id", "log_time")

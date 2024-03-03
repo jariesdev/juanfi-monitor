@@ -1,6 +1,6 @@
 from typing import Union, List
 
-from starlette.responses import JSONResponse
+from fastapi.responses import JSONResponse
 
 from repository.sale_repository import SaleRepository
 

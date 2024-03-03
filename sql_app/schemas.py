@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Relationship
 
 
 class UserBase(BaseModel):
@@ -40,3 +41,22 @@ class Vendo(BaseModel):
     current_sales: float = 0
     created_at: datetime
     updated_at: datetime | None = None
+
+
+class LogListItem(BaseModel):
+    id: int | None = None
+    name: str
+
+
+class VendoLog(BaseModel):
+    id: int | None = None
+    vendo_id: int
+    log_time: datetime
+    description: str
+    created_at: datetime
+    updated_at: datetime | None = None
+    vendo: Vendo = Relationship()
+
+
+class VendoLogResponse(BaseModel):
+    data: list[VendoLog]

@@ -4,12 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from controllers.api.log_controller import LogController
 from controllers.api.sale_controller import SaleController
 from controllers.api.vendo_controller import VendoController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
-from log_repository import LogRepository
+from repository.log_repository import LogRepository
 from models.vendo import VendoMachine
+from sql_app.schemas import VendoLogResponse
 from user_repository import UserRepository
 
 app = FastAPI()
@@ -51,22 +53,11 @@ def read_user(user_id: int, q: Union[str, None] = None):
     return JSONResponse({"item_id": user_id, "q": q})
 
 
-@app.get("/logs")
-async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None):
-    log_repository = LogRepository()
-    logs = log_repository.search(q, date)
-
-    def addition(d: list) -> dict:
-        return {
-            "id": d[0],
-            "log_time": d[1],
-            "description": d[2],
-            "created_at": d[3],
-        }
-
-    return JSONResponse({
-        "data": list(map(addition, logs))
-    })
+@app.get("/logs", response_model=VendoLogResponse)
+async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
+    controller = LogController()
+    response = controller.search(q, date, vendo_id)
+    return response
 
 
 @app.post("/log/refresh")
@@ -101,6 +92,7 @@ async def read_logs():
 async def read_logs(q: Union[str, None] = None):
     controller = VendoController()
     return controller.all(q)
+
 
 @app.get("/vendo-machines/{id}/status")
 async def read_vendo_status(id: int):
