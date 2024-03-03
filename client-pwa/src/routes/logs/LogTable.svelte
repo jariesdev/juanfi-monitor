@@ -115,7 +115,7 @@
             <h3 class="uk-card-title">System Logs</h3>
         </div>
         <div class="uk-width-1-3@s">
-            <div class="">
+            <div class="uk-position-relative">
                 <button class="uk-form-icon uk-form-icon-flip"
                         uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
                         on:click|preventDefault={() => showFilter=!showFilter} title="Show filters"></button>
