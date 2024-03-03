@@ -9,9 +9,8 @@ from controllers.api.sale_controller import SaleController
 from controllers.api.vendo_controller import VendoController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
-from repository.log_repository import LogRepository
 from models.vendo import VendoMachine
-from sql_app.schemas import VendoLogResponse
+from sql_app.schemas import VendoLogResponse, VendoSaleResponse
 from user_repository import UserRepository
 
 app = FastAPI()
@@ -36,7 +35,7 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return JSONResponse({"Hello": "World"})
+    return "Ok"
 
 
 @app.get("/users")
@@ -70,7 +69,7 @@ async def read_logs():
     })
 
 
-@app.get("/sales")
+@app.get("/sales", response_model=VendoSaleResponse)
 def read_sales(q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
     sale_controller = SaleController()
     return sale_controller.search(q, date, vendo_id)
