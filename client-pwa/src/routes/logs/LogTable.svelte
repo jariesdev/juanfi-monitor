@@ -110,10 +110,12 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body">
-    <div class="uk-column-1-2@s">
-        <h3 class="uk-card-title">System Logs</h3>
-        <div class="uk-text-right">
-            <div class="uk-inline">
+    <div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
+        <div class="uk-width-2-3@s">
+            <h3 class="uk-card-title">System Logs</h3>
+        </div>
+        <div class="uk-width-1-3@s">
+            <div class="">
                 <button class="uk-form-icon uk-form-icon-flip"
                         uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
                         on:click|preventDefault={() => showFilter=!showFilter} title="Show filters"></button>
