@@ -18,3 +18,13 @@ export interface iVendoLog {
     created_at: string
     vendo: iVendo
 }
+
+export interface iSale {
+    id: number
+    sale_time: string
+    mac_address: string
+    voucher: string
+    amount: number
+    created_at: string
+    vendo: iVendo
+}

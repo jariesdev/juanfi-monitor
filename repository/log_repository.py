@@ -17,7 +17,8 @@ class LogRepository:
         db = SessionLocal()
 
         query = (db.query(models.VendoLog)
-                 .join(models.VendoLog.vendo).options(joinedload(models.VendoLog.vendo))
+                 .join(models.VendoLog.vendo)
+                 .options(joinedload(models.VendoLog.vendo))
                  .order_by(models.VendoLog.log_time.desc()))
 
         # query = "SELECT id, log_time, description, DATETIME(created_at, 'localtime') FROM vendo_logs WHERE 1=1 ";
@@ -31,4 +32,4 @@ class LogRepository:
         if vendo_id is not None:
             query = query.filter(models.VendoLog.vendo_id == vendo_id)
 
-        return query.all()
+        return query.search()

@@ -1,5 +1,5 @@
 from typing import Union, List
-
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from repository.sale_repository import SaleRepository
@@ -11,11 +11,12 @@ class SaleController():
     def __init__(self):
         self._repository = SaleRepository()
 
-    def all(self, q: Union[str, None] = None, date: Union[str, None] = None) -> JSONResponse:
-        sales = self._repository.search(q, date)
+    def search(self, q: Union[str, None] = None, date: Union[str, None] = None,
+               vendo_id: Union[int, None] = None) -> JSONResponse:
+        result = self._repository.search(q, date, vendo_id)
 
         return JSONResponse({
-            "data": self._map_list_to_dict(sales)
+            "data": jsonable_encoder(result)
         })
 
     def _map_list_to_dict(self, sales: list) -> list[dict]:

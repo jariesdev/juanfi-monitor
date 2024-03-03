@@ -156,7 +156,7 @@
             {#each logs as log}
                 <tr>
                     <td title="{humanizeTime(log.log_time)}">{log.log_time}</td>
-                    <td>{log.vendo.name}</td>
+                    <td>{log.vendo?.name}</td>
                     <td>{log.description}</td>
                     <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
                 </tr>

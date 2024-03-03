@@ -1,5 +1,11 @@
 from typing import Union
+
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
+
 from database import Database
+from sql_app.database import SessionLocal
+from sql_app.models import VendoSale
 
 
 class SaleRepository:
@@ -8,27 +14,26 @@ class SaleRepository:
     def __init__(self):
         self._db = Database()
 
-    def search(self, q: Union[str, None] = None, date: Union[str, None] = None) -> list:
-        conn = self._db.get_connection()
-        conn.set_trace_callback(print)
-        cur = conn.cursor()
+    def search(self,
+               q: Union[str, None] = None,
+               date: Union[str, None] = None,
+               vendo_id: Union[int, None] = None) -> list:
+        db = SessionLocal()
 
-        query = ("SELECT id, sale_time, mac_address, voucher, amount, DATETIME(created_at, 'localtime') "
-                 "FROM vendo_sales WHERE 1=1 ")
+        query = (db.query(VendoSale).options(joinedload(VendoSale.vendo))
+                 .order_by(VendoSale.sale_time))
 
         if q is not None:
-            query = query + ("AND (vendo_sales.mac_address LIKE '%{0}%' "
-                             "OR vendo_sales.voucher LIKE '%{0}%') ").format(q)
+            query = (query.where(VendoSale.mac_address.like("%{}%".format(q)))
+                     .where(VendoSale.voucher.like("%{}%".format(q))))
 
         if date is not None:
-            query = query + "AND DATE(vendo_logs.sale_time) = '{}' ".format(date)
+            query = (query.where(func.date(VendoSale.sale_time) == date))
 
-        query = query + "ORDER BY sale_time DESC "
-        cur.execute(query)
+        if vendo_id is not None:
+            query = (query.where(VendoSale.vendo_id == vendo_id))
 
-        rows = cur.fetchall()
-        conn.close()
-        return rows
+        return query.all()
 
     def get_daily_sales(self) -> list[dict]:
         conn = self._db.get_connection()

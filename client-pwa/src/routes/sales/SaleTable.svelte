@@ -2,15 +2,8 @@
     import {onMount, onDestroy} from "svelte";
     import debounce from 'lodash/debounce'
     import {apiUrl} from "$lib/store";
+    import type {iSale} from "$lib/interfaces";
 
-    interface iSale {
-        id: number
-        sale_time: string
-        mac_address: string
-        voucher: string
-        amount: number
-        created_at: string
-    }
 
     let sales: iSale[] = []
     let searchInput: string = ''
@@ -80,6 +73,7 @@
             <thead>
             <tr>
                 <th>Time</th>
+                <th>Vendo</th>
                 <th>Mac Address</th>
                 <th>Voucher</th>
                 <th>Amount</th>
@@ -90,6 +84,7 @@
             {#each sales as log}
                 <tr>
                     <td title="{humanizeTime(log.sale_time)}">{log.sale_time}</td>
+                    <td>{log.vendo?.name}</td>
                     <td>{log.mac_address}</td>
                     <td>{log.voucher}</td>
                     <td>{log.amount}</td>

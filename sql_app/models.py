@@ -31,6 +31,8 @@ class Vendo(Base):
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
     vendo_logs = relationship("VendoLog", back_populates='vendo')
+    vendo_sales = relationship("VendoSale", back_populates='vendo')
+    vendo_status = relationship("VendoStatus", back_populates='vendo')
 
 
 class VendoLog(Base):
@@ -51,7 +53,7 @@ class VendoSale(Base):
 
     id = Column(Integer, primary_key=True)
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
-    # vendo = relationship(Vendo, back_populates="vendos")
+    vendo = relationship("Vendo", back_populates="vendo_sales")
     sale_time = Column(DateTime)
     mac_address = Column(String)
     voucher = Column(String)
@@ -66,7 +68,7 @@ class VendoStatus(Base):
 
     id = Column(Integer, primary_key=True)
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
-    # vendo = relationship(Vendo, back_populates="vendos")
+    vendo = relationship("Vendo", back_populates="vendo_status")
     is_online = Column(Boolean, default=False)
     active_users = Column(Integer)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)

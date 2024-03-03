@@ -37,7 +37,7 @@ class VendoRepository:
         if q is not None:
             query = query.where(models.Vendo.name.like("%{0}%".format(q)))
 
-        return query.all()
+        return query.search()
 
     def add(self, name: str, url: str, api_key: str) -> None:
         self._db.execute("INSERT INTO vendos (name, url, api_key)"

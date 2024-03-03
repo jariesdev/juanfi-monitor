@@ -71,9 +71,9 @@ async def read_logs():
 
 
 @app.get("/sales")
-def read_sales(q: Union[str, None] = None, date: Union[str, None] = None):
+def read_sales(q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
     sale_controller = SaleController()
-    return sale_controller.all(q, date)
+    return sale_controller.search(q, date, vendo_id)
 
 
 @app.get("/daily-sales")
