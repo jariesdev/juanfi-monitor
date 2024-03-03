@@ -41,5 +41,5 @@ class SaleRepository:
                  .join(VendoSale.vendo)
                  .where(VendoSale.sale_time > func.date("now", "-3 months"))
                  .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
-                 .order_by(VendoSale.sale_time.desc()))
+                 .order_by(VendoSale.sale_time))
         return query.all()
