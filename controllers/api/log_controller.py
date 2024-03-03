@@ -1,9 +1,9 @@
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from repository.log_repository import LogRepository
 from typing import Union
 
-from sql_app.schemas import LogListItem
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+
+from repository.log_repository import LogRepository
 
 
 class LogController:

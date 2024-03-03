@@ -43,12 +43,6 @@ class Vendo(BaseModel):
     created_at: datetime
     updated_at: datetime | None = None
 
-
-class LogListItem(BaseModel):
-    id: int | None = None
-    name: str
-
-
 class VendoLog(BaseModel):
     id: int | None = None
     vendo_id: int
