@@ -13,13 +13,13 @@ class LogRepository:
         conn.set_trace_callback(print)
         cur = conn.cursor()
 
-        query = "SELECT id, log_time, description, DATETIME(created_at, 'localtime') FROM juanfi_logs WHERE 1=1 ";
+        query = "SELECT id, log_time, description, DATETIME(created_at, 'localtime') FROM vendo_logs WHERE 1=1 ";
 
         if q is not None:
-            query = query + "AND juanfi_logs.description LIKE '%{}%' ".format(q)
+            query = query + "AND vendo_logs.description LIKE '%{}%' ".format(q)
 
         if date is not None:
-            query = query + "AND DATE(juanfi_logs.log_time) = '{}'".format(date)
+            query = query + "AND DATE(vendo_logs.log_time) = '{}'".format(date)
 
         query = query + "ORDER BY log_time DESC "
         cur.execute(query)

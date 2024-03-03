@@ -4,12 +4,19 @@ from datetime import datetime
 import http.client
 from http.client import HTTPResponse
 
+from sql_app.models import Vendo
 
-class JuanfiApi:
+
+class JuanfiApi():
     _system_uptime_ms: int = 0
-    _baseUrl = "http://192.168.42.10:8081"
+    _base_url = "http://192.168.42.10:8081"
+    _api_key = ""
     _row_separator = "|"
     system_logs = []
+
+    def __init__(self, vendo: Vendo):
+        self._base_url = vendo.api_url
+        self._api_key = vendo.api_key
 
     def run(self):
         self.load_system_logs()
@@ -127,7 +134,7 @@ class JuanfiApi:
         return round(time.time() * 1000)
 
     def get_api_key(self) -> str:
-        return "55eav610vk"
+        return self._api_key
 
     def compute_log_time(self, time_since_startup: int, precision: Union[str, None] = None) -> str:
         __format = "%Y-%m-%d %H:%M:%S"

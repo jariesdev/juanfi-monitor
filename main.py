@@ -1,12 +1,15 @@
 from typing import Union
+
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from controllers.api.sale_controller import SaleController
+from controllers.api.vendo_controller import VendoController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
 from log_repository import LogRepository
+from models.vendo import VendoMachine
 from user_repository import UserRepository
 
 app = FastAPI()
@@ -79,8 +82,8 @@ async def read_logs():
 @app.get("/sales")
 def read_sales(q: Union[str, None] = None, date: Union[str, None] = None):
     sale_controller = SaleController()
-    print(date)
     return sale_controller.all(q, date)
+
 
 @app.get("/daily-sales")
 def read_daily_sales():
@@ -92,3 +95,21 @@ def read_daily_sales():
 async def read_logs():
     status = JuanfiApi().get_system_status()
     return JSONResponse(status)
+
+
+@app.get("/vendo-machines")
+async def read_logs(q: Union[str, None] = None):
+    sale_controller = VendoController()
+    return sale_controller.all(q)
+
+
+@app.post("/vendo-machines")
+async def read_logs(vendo: VendoMachine):
+    sale_controller = VendoController()
+    return sale_controller.store(vendo)
+
+
+@app.delete("/vendo-machines/{id}")
+async def read_logs(id: int):
+    sale_controller = VendoController()
+    return sale_controller.delete(id)

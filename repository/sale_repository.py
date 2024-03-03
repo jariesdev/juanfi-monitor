@@ -14,14 +14,14 @@ class SaleRepository:
         cur = conn.cursor()
 
         query = ("SELECT id, sale_time, mac_address, voucher, amount, DATETIME(created_at, 'localtime') "
-                 "FROM juanfi_sales WHERE 1=1 ")
+                 "FROM vendo_sales WHERE 1=1 ")
 
         if q is not None:
-            query = query + ("AND (juanfi_sales.mac_address LIKE '%{0}%' "
-                             "OR juanfi_sales.voucher LIKE '%{0}%') ").format(q)
+            query = query + ("AND (vendo_sales.mac_address LIKE '%{0}%' "
+                             "OR vendo_sales.voucher LIKE '%{0}%') ").format(q)
 
         if date is not None:
-            query = query + "AND DATE(juanfi_logs.sale_time) = '{}' ".format(date)
+            query = query + "AND DATE(vendo_logs.sale_time) = '{}' ".format(date)
 
         query = query + "ORDER BY sale_time DESC "
         cur.execute(query)
@@ -34,7 +34,7 @@ class SaleRepository:
         conn = self._db.get_connection()
         cur = conn.cursor()
         cur.execute("SELECT DATE(sale_time) AS date, SUM(amount) AS total "
-                    "FROM juanfi_sales "
+                    "FROM vendo_sales "
                     "WHERE sale_time > DATE('now', '-3 months')"
                     "GROUP BY DATE(sale_time) "
                     "ORDER BY sale_time ASC")

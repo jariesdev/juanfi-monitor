@@ -1,0 +1,52 @@
+from typing import Union, List
+
+from starlette.responses import JSONResponse
+
+from models import vendo
+from models.vendo import VendoMachine
+from repository.vendo_repository import VendoRepository
+
+
+class VendoController():
+    _repository: VendoRepository
+
+    def __init__(self):
+        self._repository = VendoRepository()
+
+    def all(self, q: Union[str, None] = None) -> JSONResponse:
+        vendo_machines = self._repository.search(q)
+
+        return JSONResponse({
+            "data": vendo_machines
+        })
+
+    def _map_list_to_dict(self, sales: list) -> list[dict]:
+        def addition(d: list) -> dict:
+            return {
+                "id": d[0],
+                "sale_time": d[1],
+                "mac_address": d[2],
+                "voucher": d[3],
+                "amount": d[4],
+                "created_at": d[5],
+            }
+
+        return list(map(addition, sales))
+
+    def daily_sales(self) -> JSONResponse:
+        sales = self._repository.get_daily_sales()
+        return JSONResponse({
+            "data": list(sales)
+        })
+
+    def store(self, vendo: VendoMachine):
+        vendo = self._repository.add_vendo(vendo)
+        return {
+            "data": vendo
+        }
+
+    def delete(self, id: int):
+        self._repository.delete_vendo(id)
+        return {
+            "data": None
+        }
