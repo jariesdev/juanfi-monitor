@@ -39,25 +39,25 @@ class VendoLog(Base):
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
     log_time = Column(DateTime)
     description = Column(String)
-    vendo = relationship(Vendo, back_populates="vendos")
+    # vendo = relationship(Vendo, back_populates="vendos")
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
-    UniqueConstraint("log_time")
+    UniqueConstraint("vendo_id", "log_time")
 
 
-class VendoLog(Base):
+class VendoSale(Base):
     __tablename__ = "vendo_sales"
 
     id = Column(Integer, primary_key=True)
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
-    vendo = relationship(Vendo, back_populates="vendos")
+    # vendo = relationship(Vendo, back_populates="vendos")
     sale_time = Column(DateTime)
     mac_address = Column(String)
     voucher = Column(String)
     amount = Column(Float)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
-    UniqueConstraint("sale_time")
+    UniqueConstraint("vendo_id", "sale_time")
 
 
 class VendoStatus(Base):
@@ -65,7 +65,7 @@ class VendoStatus(Base):
 
     id = Column(Integer, primary_key=True)
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
-    vendo = relationship(Vendo, back_populates="vendos")
+    # vendo = relationship(Vendo, back_populates="vendos")
     is_online = Column(Boolean, default=False)
     active_users = Column(Integer)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
