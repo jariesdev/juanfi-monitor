@@ -4,12 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import sql_app
 from controllers.api.log_controller import LogController
 from controllers.api.sale_controller import SaleController
 from controllers.api.vendo_controller import VendoController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
+from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse
 from user_repository import UserRepository
 
@@ -61,8 +63,21 @@ async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None, v
 
 @app.post("/log/refresh")
 async def read_logs():
-    juanfi_logger = JuanfiLogger()
-    juanfi_logger.run()
+    db = SessionLocal()
+    vendos = db.query(sql_app.models.Vendo).all()
+    if len(vendos) == 0:
+        return JSONResponse({
+            "data": None,
+            "message": "No registered vendo. Please add first."
+        })
+
+    for vendo in vendos:
+        try:
+            logger = JuanfiLogger(vendo)
+            logger.run()
+        finally:
+            pass
+
     return JSONResponse({
         "data": None,
         "status": "ok"
