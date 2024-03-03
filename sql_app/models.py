@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, UniqueConstraint, TIMESTAMP, func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, deferred
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
 
@@ -24,7 +24,7 @@ class Vendo(Base):
     name = Column(String, unique=True, nullable=False)
     mac_address = Column(String)
     api_url = Column(String)
-    api_key = Column(String)
+    api_key = deferred(Column(String))
     is_online = Column(Boolean, default=False)
     total_sales = Column(Float)
     current_sales = Column(Float)

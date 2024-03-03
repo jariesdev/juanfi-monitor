@@ -1,9 +1,9 @@
-from typing import Union, List
+from typing import Union
 
+from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
 
 from juanfi_api import JuanfiApi
-from models import vendo
 from models.vendo import VendoMachine
 from repository.vendo_repository import VendoRepository
 
@@ -16,9 +16,8 @@ class VendoController():
 
     def all(self, q: Union[str, None] = None) -> JSONResponse:
         vendo_machines = self._repository.search(q)
-
         return JSONResponse({
-            "data": vendo_machines
+            "data": jsonable_encoder(vendo_machines)
         })
 
     def _map_list_to_dict(self, sales: list) -> list[dict]:
