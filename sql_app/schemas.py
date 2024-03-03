@@ -55,8 +55,27 @@ class VendoLog(BaseModel):
     description: str
     created_at: datetime
     updated_at: datetime | None = None
-    vendo: Vendo = Relationship()
+    vendo: Vendo
 
 
-class VendoLogResponse(BaseModel):
+class VendoSale(BaseModel):
+    id: int | None = None
+    vendo_id: int
+    sale_time: datetime
+    mac_address: str
+    voucher: str
+    amount: float
+    created_at: datetime
+    updated_at: datetime | None = None
+    vendo: Vendo
+
+
+class SuccessResponse(BaseModel):
+    success: bool
+    pass
+
+class VendoLogResponse(SuccessResponse):
     data: list[VendoLog]
+
+class VendoSaleResponse(SuccessResponse):
+    data: list[VendoSale]
