@@ -2,8 +2,9 @@ from typing import Union
 
 import sql_app.models
 from database import Database
+from dependencies import get_db
 from models.vendo import VendoMachine
-from sql_app import models, schemas
+from sql_app import models
 from sql_app.database import SessionLocal, engine
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -11,23 +12,16 @@ from fastapi import Depends
 models.Vendo.metadata.create_all(bind=engine)
 
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 class VendoRepository:
+    _db_session: Session
     _db: Database
 
-    def __init__(self):
+    def __init__(self, db: Session = Depends(get_db)):
         self._db = Database()
+        self._db_session = db
 
     def search(self, q: Union[str, None] = None) -> list:
-        db = SessionLocal()
+        db = self._db_session
         conn = self._db.get_connection()
         conn.set_trace_callback(print)
 

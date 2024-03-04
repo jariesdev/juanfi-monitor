@@ -1,5 +1,6 @@
 from typing import Union
 
+from fastapi import Depends
 from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
 
@@ -8,11 +9,15 @@ from models.vendo import VendoMachine
 from repository.vendo_repository import VendoRepository
 
 
+def get_repo():
+    return VendoRepository()
+
+
 class VendoController():
     _repository: VendoRepository
 
-    def __init__(self):
-        self._repository = VendoRepository()
+    def __init__(self, repository: VendoRepository = Depends(VendoRepository)):
+        self._repository = repository
 
     def all(self, q: Union[str, None] = None) -> JSONResponse:
         vendo_machines = self._repository.search(q)

@@ -147,8 +147,7 @@ async def read_logs():
 
 
 @app.get("/vendo-machines")
-async def read_logs(q: Union[str, None] = None):
-    controller = VendoController()
+async def read_logs(controller: VendoController = Depends(VendoController), q: Union[str, None] = None):
     return controller.all(q)
 
 
