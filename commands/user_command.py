@@ -14,6 +14,5 @@ class UserCommand:
         user = User(username=username, password=password, is_active=True)
         db.add(user)
         db.commit()
-        db.close()
 
         typer.echo(f"User {username} was added")

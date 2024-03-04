@@ -26,7 +26,6 @@ def goodbye(name: str, formal: bool = False):
 def vendo_logger():
     db = SessionLocal()
     vendos = db.query(sql_app.models.Vendo).where(sql_app.models.Vendo.is_active == 1).all()
-    db.close()
     if (len(vendos) == 0):
         typer.echo("No registered vendo. Please add first.")
         return

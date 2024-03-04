@@ -33,10 +33,7 @@ class SaleRepository:
         if vendo_id is not None:
             query = (query.where(VendoSale.vendo_id == vendo_id))
 
-        rows = query.all()
-        db.close()
-
-        return rows
+        return query.all()
 
     def get_daily_sales(self) -> list[dict]:
         db = SessionLocal()
@@ -45,7 +42,4 @@ class SaleRepository:
                  .where(VendoSale.sale_time > func.date("now", "-3 months"))
                  .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
                  .order_by(VendoSale.sale_time))
-        rows = query.all()
-        db.close()
-
-        return rows
+        return query.all()

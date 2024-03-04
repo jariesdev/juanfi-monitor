@@ -37,10 +37,7 @@ class VendoRepository:
         if q is not None:
             query = query.where(models.Vendo.name.like("%{0}%".format(q)))
 
-        rows = query.all()
-        db.close()
-
-        return rows
+        return query.all()
 
     def add(self, name: str, url: str, api_key: str) -> None:
         self._db.execute("INSERT INTO vendos (name, url, api_key)"
@@ -78,6 +75,4 @@ class VendoRepository:
 
     def get(self, id: int) -> models.Vendo:
         db = SessionLocal()
-        vendo = db.query(models.Vendo).filter(models.Vendo.id == id).first()
-        db.close()
-        return vendo
+        return db.query(models.Vendo).filter(models.Vendo.id == id).first()

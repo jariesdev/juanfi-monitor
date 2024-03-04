@@ -109,7 +109,6 @@ async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None, v
 async def read_logs():
     db = SessionLocal()
     vendos = db.query(sql_app.models.Vendo).all()
-    db.close()
     if len(vendos) == 0:
         return JSONResponse({
             "data": None,

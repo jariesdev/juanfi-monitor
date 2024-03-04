@@ -32,7 +32,4 @@ class LogRepository:
         if vendo_id is not None:
             query = query.filter(models.VendoLog.vendo_id == vendo_id)
 
-        rows = query.all()
-        db.close()
-
-        return rows
+        return query.all()
