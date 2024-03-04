@@ -8,7 +8,7 @@
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
     let baseApiUrl: string = ''
-    let intervalId: number
+    let intervalId: any
     let isLoading: boolean = false
     let chart: Chart
     let controller: AbortController | undefined = undefined
@@ -100,7 +100,7 @@
     onMount(() => {
         renderChart()
         loadChartData()
-        setInterval(() => loadChartData(), 30 * 1000)
+        intervalId = setInterval(() => loadChartData(), 30 * 1000)
     })
 
     onDestroy(() => {

@@ -3,7 +3,7 @@
     import {onDestroy, onMount} from "svelte";
 
     let isOnline: boolean = false
-    let intervalId: number = 0
+    let intervalId: any = null
 
     function setOnline(): void {
         isOnline = true

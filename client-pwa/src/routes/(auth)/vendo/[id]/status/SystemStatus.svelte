@@ -16,7 +16,8 @@
     let serverTime: number = 0
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
-    let intervalId: any = null
+    let intervalId: any
+    let timeIntervalId: any
     let isWithdrawing: boolean = false
 
     function loadStatuses(): void {
@@ -63,8 +64,8 @@
     }
 
     function startTimer(): void {
-        if (intervalId) return;
-        intervalId = setInterval(() => {
+        if (timeIntervalId) return;
+        timeIntervalId = setInterval(() => {
             systemUptime += 1000
         }, 1000)
     }
@@ -123,13 +124,15 @@
     onMount(() => {
         loadStatuses()
         // refresh status
-        setInterval(() => loadStatuses(), 30 * 1000)
+       intervalId = setInterval(() => loadStatuses(), 30 * 1000)
     })
     onDestroy(() => {
         controller && controller.abort('component destroyed')
-        console.log(intervalId)
         if (intervalId) {
             clearInterval(intervalId)
+        }
+        if (timeIntervalId) {
+            clearInterval(timeIntervalId)
         }
     })
 </script>
