@@ -24,6 +24,13 @@
 			<li aria-current={$page.url.pathname === '/logs' ? 'page' : undefined}>
 				<a href="/logs">Logs</a>
 			</li>
+			<li aria-current={$page.url.pathname === '/logout' ? 'page' : undefined} class="uk-flex uk-align-center">
+				<form action="/logout" method="POST">
+				  <button type="submit" class="uk-button-link" style="border: none; cursor: pointer">
+					  <i uk-icon="icon: sign-out"></i>
+				  </button>
+				</form>
+			</li>
 		</ul>
 		<div class="right-wing">
 			<svg viewBox="0 0 2 3" aria-hidden="true">
@@ -92,7 +99,8 @@
 		border-top: var(--size) solid var(--color-theme-1);
 	}
 
-	nav a {
+	nav a,
+	nav form button {
 		display: flex;
 		height: 100%;
 		align-items: center;
