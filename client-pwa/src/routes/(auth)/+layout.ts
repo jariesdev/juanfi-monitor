@@ -3,7 +3,7 @@
 import {redirect} from "@sveltejs/kit";
 import {browser} from "$app/environment"
 
-export const prerender = true;
+export const prerender = false;
 
 /** @type {import('./$types').PageLoad} */
 export async function load(): Promise<void> {
