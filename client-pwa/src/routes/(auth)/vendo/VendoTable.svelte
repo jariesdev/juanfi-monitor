@@ -61,10 +61,12 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body">
-    <div class="uk-column-1-2@s">
-        <h3 class="uk-card-title">Vendo Machines</h3>
-        <div class="uk-text-right">
-            <input bind:value={searchInput} class="uk-input uk-form-width-medium uk-form-small" type="search"
+    <div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
+        <div class="uk-width-2-3@s">
+            <h3 class="uk-card-title">Vendo Machines</h3>
+        </div>
+        <div class="uk-width-1-3@s">
+            <input bind:value={searchInput} class="uk-input uk-form-small" type="search"
                    placeholder="Search" aria-label="Input">
         </div>
     </div>
