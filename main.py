@@ -101,8 +101,12 @@ def read_user(user_id: int, q: Union[str, None] = None):
 
 
 @app.get("/logs", response_model=VendoLogResponse)
-async def read_logs(q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
-    controller = LogController()
+async def read_logs(
+        controller: LogController = Depends(LogController),
+        q: Union[str, None] = None,
+        date: Union[str, None] = None,
+        vendo_id: Union[int, None] = None
+):
     response = controller.search(q, date, vendo_id)
     return response
 

@@ -3,18 +3,26 @@ from typing import Union
 from sqlalchemy.orm import joinedload
 
 from database import Database
-from sql_app.database import SessionLocal
+from dependencies import get_db
 from sql_app import models
 from sqlalchemy import func
+from fastapi import Depends
+from sqlalchemy.orm import Session
+
 
 class LogRepository:
     _db: Database
 
-    def __init__(self):
-        self._db = Database()
+    def __init__(self, db: Session = Depends(get_db)) -> None:
+        self._db = db
 
-    def search(self, q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None) -> list:
-        db = SessionLocal()
+    def search(
+            self,
+            q: Union[str, None] = None,
+            date: Union[str, None] = None,
+            vendo_id: Union[int, None] = None
+    ) -> list:
+        db = self._db
 
         query = (db.query(models.VendoLog)
                  .join(models.VendoLog.vendo)
