@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from repository.user_repository import UserRepository
 import base64
 
+
 class LoginController:
     _repository: UserRepository
 
@@ -20,7 +21,9 @@ class LoginController:
 
         # TODO change to actual token
         expiry = datetime.now() + timedelta(hours=1)
-        token = base64.b64encode(str({"username": user.username, "expiry": expiry.timestamp()}).encode("ascii")).decode("ascii")
+        token = (base64
+                 .b64encode(str({"username": user.username, "expiry": expiry.timestamp()}).encode("ascii"))
+                 .decode("ascii"))
         # base64_bytes = token.encode("ascii")
         # sample_string_bytes = base64.b64decode(base64_bytes)
         # sample_string = sample_string_bytes.decode("ascii")
