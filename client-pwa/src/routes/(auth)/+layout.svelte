@@ -7,48 +7,11 @@
 	import Header from "$lib/components/Header.svelte";
 </script>
 
-<div class="app">
+<div class="app-main">
 	<Header />
 
-	<main>
+	<div class="app-content">
 		<slot />
-	</main>
+	</div>
 
-	<footer>
-		<p class="uk-text-italic uk-text-muted uk-text-small uk-text-light">
-			Vendo Reports
-		</p>
-	</footer>
-	<OfflineAlert />
 </div>
-
-<style>
-	.app {
-		display: flex;
-		flex-direction: column;
-		min-height: 100vh;
-	}
-
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		margin: 0 auto;
-		box-sizing: border-box;
-	}
-
-	footer {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		padding: 12px;
-	}
-
-	@media (min-width: 480px) {
-		footer {
-			padding: 12px 0;
-		}
-	}
-</style>
