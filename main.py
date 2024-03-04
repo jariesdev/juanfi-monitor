@@ -60,24 +60,26 @@ async def login(
     return controller.login(form_data)
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    controller = LoginController()
+async def get_current_user(
+        token: Annotated[str, Depends(oauth2_scheme)],
+        controller: LoginController = Depends(LoginController)
+):
     user = controller.get_user_by_token(token)
     return user
 
 
 async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)]
+        current_user: Annotated[User, Depends(get_current_user)]
 ):
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+
 def fake_decode_token(token):
     return User(
         username=token + "fakedecoded", password="1234", is_active=True
     )
-
 
 
 @app.get("/users/me")
@@ -135,15 +137,15 @@ async def read_logs():
 
 
 @app.get("/sales", response_model=VendoSaleResponse)
-def read_sales(controller: SaleController = Depends(SaleController), q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
+def read_sales(controller: SaleController = Depends(SaleController), q: Union[str, None] = None,
+               date: Union[str, None] = None, vendo_id: Union[int, None] = None):
     return controller.search(q, date, vendo_id)
     return sale_controller.search(q, date, vendo_id)
 
 
 @app.get("/daily-sales")
-def read_daily_sales():
-    sale_controller = SaleController()
-    return sale_controller.daily_sales()
+def read_daily_sales(controller: SaleController = Depends(SaleController)):
+    return controller.daily_sales()
 
 
 @app.get("/vendo_status")
@@ -157,21 +159,19 @@ async def read_logs(controller: VendoController = Depends(VendoController), q: U
     return controller.all(q)
 
 
-@app.get("/vendo-machines/{id}/status")
-async def read_vendo_status(id: int, controller: VendoController = Depends(VendoController)):
-    return controller.vendo_status(id)
+@app.get("/vendo-machines/{vendo_id}/status")
+async def read_vendo_status(vendo_id: int, controller: VendoController = Depends(VendoController)):
+    return controller.vendo_status(vendo_id)
 
 
 @app.post("/vendo-machines")
-async def read_logs(vendo: VendoMachine):
-    sale_controller = VendoController()
-    return sale_controller.store(vendo)
+async def read_logs(vendo: VendoMachine, controller: VendoController = Depends(VendoController)):
+    return controller.store(vendo)
 
 
-@app.delete("/vendo-machines/{id}")
-async def read_logs(id: int):
-    sale_controller = VendoController()
-    return sale_controller.delete(id)
+@app.delete("/vendo-machines/{vendo_id}")
+async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoController)):
+    return controller.delete(vendo_id)
 
 
 if __name__ == "__main__":
