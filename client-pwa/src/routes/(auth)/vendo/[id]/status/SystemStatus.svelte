@@ -4,6 +4,7 @@
     import {apiUrl} from "$lib/store";
 
     interface iStatus {
+        key: string
         label: string
         text: string
     }
@@ -15,12 +16,16 @@
     let serverTime: number = 0
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
-    let intervalId: number = 0
+    let intervalId: any = null
+    let isWithdrawing: boolean = false
 
     function loadStatuses(): void {
         controller = new AbortController()
         const signal = controller.signal
-        const request = new Request(`${baseApiUrl}/vendo-machines/${vendoId}/status?nosw=1`, {method: "GET", signal: signal})
+        const request = new Request(`${baseApiUrl}/vendo-machines/${vendoId}/status?nosw=1`, {
+            method: "GET",
+            signal: signal
+        })
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
@@ -36,6 +41,7 @@
                 Object.keys(response).forEach((key): void => {
                     if (!['system_uptime_ms', 'server_time'].includes(key)) {
                         list.push({
+                            key: key,
                             label: titleCase(key),
                             text: response[key]
                         })
@@ -57,10 +63,35 @@
     }
 
     function startTimer(): void {
-        if(intervalId) return;
+        if (intervalId) return;
         intervalId = setInterval(() => {
             systemUptime += 1000
         }, 1000)
+    }
+
+    function withdrawCurrenSale(): void {
+
+        const confirmed = confirm('This will reset the current sales counter to 0. Proceed?')
+
+        if (!confirmed) {
+            return
+        }
+
+        isWithdrawing = true
+        let url = `${baseApiUrl}/vendo-machines/${vendoId}/withdraw-current-sales`;
+        controller = new AbortController()
+        const signal = controller.signal
+        const request: Request = new Request(url, {method: 'POST', signal})
+        fetch(request)
+            .then((response) => {
+                if (response.ok) {
+                    return response.json()
+                }
+                throw new Error(response.statusText)
+            })
+            .finally(() => {
+                isWithdrawing = false
+            })
     }
 
     function toRelativeTime(time: number): string {
@@ -96,6 +127,7 @@
     })
     onDestroy(() => {
         controller && controller.abort('component destroyed')
+        console.log(intervalId)
         if (intervalId) {
             clearInterval(intervalId)
         }
@@ -116,7 +148,18 @@
             {#each statuses as status}
                 <li class="uk-flex uk-flex-between">
                     <span>{status.label}</span>
-                    <span>{status.text}</span>
+                    <div>
+                        {#if status.key === 'current_coin_count'}
+                            <button disabled="{isWithdrawing || parseFloat(status.text || '0') === 0}"
+                                    class="uk-button uk-button-primary uk-button-small uk-border-rounded uk-margin-small-right"
+                                    type="button"
+                                    on:click={withdrawCurrenSale}>
+                                <i uk-icon="icon: credit-card" class="uk-margin-small-right"></i>
+                                Withdraw
+                            </button>
+                        {/if}
+                        <span>{status.text}</span>
+                    </div>
                 </li>
             {/each}
         </ul>

@@ -174,5 +174,10 @@ async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoCo
     return controller.delete(vendo_id)
 
 
+@app.post("/vendo-machines/{vendo_id}/withdraw-current-sales")
+async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoController)):
+    return controller.withdraw_current_sales(vendo_id)
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

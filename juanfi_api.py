@@ -7,6 +7,8 @@ from http.client import HTTPResponse
 from sql_app.models import Vendo
 from urllib.parse import urlparse
 
+STATS_TYPE_COIN_COUNT = "coinCount"
+
 
 class JuanfiApi():
     _system_uptime_ms: int = 0
@@ -119,13 +121,13 @@ class JuanfiApi():
         self._active_user_count = int(data[15])
         self._system_clock = str(data[16])
 
-    def _send_api_request(self, url: str) -> HTTPResponse:
+    def _send_api_request(self, url: str, method: str = "GET") -> HTTPResponse:
         try:
             p = urlparse(self._base_url)
             conn = http.client.HTTPConnection(host=p.hostname, port=p.port, timeout=5)
             timestamp = self._get_current_milli_time()
             url = ("/admin/%s?query=%d" % (url, timestamp))
-            conn.request(method="GET", url=url, headers={'X-TOKEN': self.get_api_key()})
+            conn.request(method=method, url=url, headers={'X-TOKEN': self.get_api_key()})
             response = conn.getresponse()
             conn.close()
             return response
@@ -191,7 +193,7 @@ class JuanfiApi():
         log_types.append('Unusual coinslot pulse detected, please check coinslot')
         return log_types
 
-    def get_vendo_status(self, id: int):
+    def get_vendo_status(self) -> dict:
         self._load_system_status()
         return {
             "system_uptime_ms": self._system_uptime_ms,
@@ -213,6 +215,13 @@ class JuanfiApi():
             "system_clock": self._system_clock,
             "server_time": time.time() * 1000,
         }
+
+    def reset_current_sales(self) -> None:
+        type = STATS_TYPE_COIN_COUNT
+        r = self._send_api_request(url="api/resetStatistic?type={0}".format(type))
+        _body = r.read().decode()
+        if r.status != 200:
+            raise Exception("Unable to reset current sales. Error code: {}".format(r.status))
 
 
 if __name__ == '__main__':

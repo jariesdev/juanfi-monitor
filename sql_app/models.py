@@ -34,6 +34,7 @@ class Vendo(Base):
     vendo_logs = relationship("VendoLog", back_populates='vendo')
     vendo_sales = relationship("VendoSale", back_populates='vendo')
     vendo_status = relationship("VendoStatus", back_populates='vendo')
+    withdrawals = relationship("Withdrawal", back_populates='vendo')
 
 
 class VendoLog(Base):
@@ -74,3 +75,16 @@ class VendoStatus(Base):
     active_users = Column(Integer)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
+
+
+class Withdrawal(Base):
+    __tablename__ = "withdrawals"
+
+    id = Column(Integer, primary_key=True)
+    vendo_id = Column(Integer, ForeignKey("vendos.id"))
+    vendo = relationship("Vendo", back_populates="withdrawals")
+    user_id = Column(Integer, ForeignKey("users.id"))
+    amount = Column(Float)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP)
+

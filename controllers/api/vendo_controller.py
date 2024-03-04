@@ -7,7 +7,8 @@ from starlette.responses import JSONResponse
 from juanfi_api import JuanfiApi
 from models.vendo import VendoMachine
 from repository.vendo_repository import VendoRepository
-
+from repository.withdrawal_repository import WithdrawalRepository
+from repository.user_repository import UserRepository
 
 def get_repo():
     return VendoRepository()
@@ -16,8 +17,13 @@ def get_repo():
 class VendoController():
     _repository: VendoRepository
 
-    def __init__(self, repository: VendoRepository = Depends(VendoRepository)):
+    def __init__(
+            self,
+            repository: VendoRepository = Depends(VendoRepository),
+            withdrawal_repository: WithdrawalRepository = Depends(WithdrawalRepository)
+    ):
         self._repository = repository
+        self._withdrawal_repository = withdrawal_repository
 
     def all(self, q: Union[str, None] = None) -> JSONResponse:
         vendo_machines = self._repository.search(q)
@@ -50,13 +56,27 @@ class VendoController():
             "data": vendo
         }
 
-    def delete(self, id: int):
-        self._repository.delete_vendo(id)
+    def delete(self, vendo_id: int):
+        self._repository.delete_vendo(vendo_id)
         return {
             "data": None
         }
 
-    def vendo_status(self, id:int):
-        vendo = self._repository.get(id)
+    def vendo_status(self, vendo_id: int):
+        vendo = self._repository.get(vendo_id)
         status = JuanfiApi(vendo).get_system_status()
         return JSONResponse(status)
+
+    def withdraw_current_sales(self, vendo_id: int):
+        vendo = self._repository.get(vendo_id)
+        status = JuanfiApi(vendo).get_system_status()
+        JuanfiApi(vendo).reset_current_sales()
+
+        withdrawal = self._withdrawal_repository.add(
+            vendo_id=vendo.id,
+            amount=float(status.get('current_coin_count'))
+        )
+
+        return JSONResponse({
+            "message": jsonable_encoder(withdrawal)
+        })
