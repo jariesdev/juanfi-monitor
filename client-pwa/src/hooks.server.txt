@@ -1,0 +1,44 @@
+import {fail, type Handle} from '@sveltejs/kit'
+
+export const handle: Handle = async ({event, resolve}) => {
+    // get cookies from browser
+    const token = event.cookies.get('auth_token')
+    const expiry = event.cookies.get('auth_token_expiry')
+    const baseApiUrl: string = import.meta.env.VITE_API_URL
+
+    if (!expiry || !token) {
+        // if there is no session load page as normal
+        return resolve(event);
+    }
+
+    let user: any
+    try {
+        // try login to API
+        const headers: Headers = new Headers()
+        headers.set('authorization', `Bearer ${token}`)
+        const request: Request = new Request(`${baseApiUrl}/users/me`, {method: 'GET'})
+        user = await fetch(request)
+            .then((response) => {
+                if (response.ok) {
+                    return response.json()
+                }
+
+                throw new Error(response.statusText)
+            })
+            .then(({data}) => data)
+    } catch (e) {
+        return fail(400, {message: e.message})
+    }
+
+    // if `user` exists set `events.local`
+    if (user) {
+        event.locals.user = {
+            id: user.id,
+            name: user.username,
+            role: null,
+        }
+    }
+
+    // load page as normal
+    return resolve(event)
+}
