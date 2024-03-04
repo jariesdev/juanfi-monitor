@@ -28,3 +28,8 @@ export interface iSale {
     created_at: string
     vendo: iVendo
 }
+
+export  interface iUser {
+    username: string
+    is_active: boolean
+}

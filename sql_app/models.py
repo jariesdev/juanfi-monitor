@@ -11,7 +11,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)
+    password = deferred(Column(String, nullable=False))
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)

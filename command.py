@@ -1,6 +1,7 @@
 import typer
 
 import sql_app.models
+from commands.user_command import UserCommand
 from juanfi_logger import JuanfiLogger
 from sql_app.database import SessionLocal, engine
 from commands import vendo_add as vendor_adder
@@ -41,6 +42,12 @@ def vendo_logger():
 @app.command()
 def vendo_add():
     vendor_adder.main()
+
+
+@app.command()
+def user_add():
+    command = UserCommand()
+    command.add_user()
 
 
 if __name__ == "__main__":
