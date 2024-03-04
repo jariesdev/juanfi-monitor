@@ -9,7 +9,7 @@ from fastapi import Depends
 class LogController:
     _repository: LogRepository
 
-    def __init__(self, repository: Depends(LogRepository)):
+    def __init__(self, repository: LogRepository = Depends(LogRepository)):
         self._repository = repository
 
     def search(self, q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
