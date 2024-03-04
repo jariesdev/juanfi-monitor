@@ -1,19 +1,17 @@
 import time
 
-from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
+from fastapi import HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import datetime, timedelta
 from repository.user_repository import UserRepository
 import base64
-import json
 
 class LoginController:
     _repository: UserRepository
 
-    def __init__(self):
-        self._repository = UserRepository()
+    def __init__(self, repository: UserRepository = Depends(UserRepository)):
+        self._repository = repository
 
     def login(self, form_data: OAuth2PasswordRequestForm):
         user = self._repository.check_user(form_data.username, form_data.password)
@@ -31,7 +29,7 @@ class LoginController:
         return JSONResponse(status_code=200, content={
             "access_token": token,
             "token_type": "bearer",
-            "user": jsonable_encoder(user)
+            # "user": jsonable_encoder(user)
         })
 
     def get_user_by_token(self, token: str):

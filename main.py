@@ -49,12 +49,14 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return "Ok"
+    return JSONResponse(content={"message": "Ok"})
 
 
 @app.post("/token")
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    controller = LoginController()
+async def login(
+        form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+        controller: LoginController = Depends(LoginController)
+):
     return controller.login(form_data)
 
 
@@ -152,8 +154,7 @@ async def read_logs(controller: VendoController = Depends(VendoController), q: U
 
 
 @app.get("/vendo-machines/{id}/status")
-async def read_vendo_status(id: int):
-    controller = VendoController()
+async def read_vendo_status(id: int, controller: VendoController = Depends(VendoController)):
     return controller.vendo_status(id)
 
 
