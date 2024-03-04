@@ -1,6 +1,6 @@
 from typing import Union
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 
 from dependencies import get_db
@@ -23,8 +23,7 @@ class SaleRepository:
                  .order_by(VendoSale.sale_time.desc()))
 
         if q is not None:
-            query = (query.where(VendoSale.mac_address.like("%{}%".format(q)))
-                     .where(VendoSale.voucher.like("%{}%".format(q))))
+            query = (query.filter(or_(VendoSale.mac_address.like("%{}%".format(q)), VendoSale.voucher.like("%{}%".format(q)))))
 
         if date is not None:
             query = (query.where(func.date(VendoSale.sale_time) == date))
