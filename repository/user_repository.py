@@ -15,13 +15,14 @@ class UserRepository:
                       .where(models.User.username == username)
                       .where(models.User.password == password)
                       .first())
-
+        db.close()
         return user_model
 
     def get_user_by_token(self, token: str) -> Union[models.User, None]:
         db = SessionLocal()
         # TODO add more secure way of authenticating token
-        return (db.query(models.User)
+        user = (db.query(models.User)
                 .where(models.User.username == token)
                 .first())
-        pass
+        db.close()
+        return user
