@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from repository.log_repository import LogRepository
-from fastapi.security import Depends
+from fastapi import Depends
 
 class LogController:
     _repository: LogRepository
