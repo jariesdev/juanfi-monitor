@@ -129,8 +129,8 @@ async def read_logs():
 
 
 @app.get("/sales", response_model=VendoSaleResponse)
-def read_sales(q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
-    sale_controller = SaleController()
+def read_sales(controller: SaleController = Depends(SaleController), q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
+    return controller.search(q, date, vendo_id)
     return sale_controller.search(q, date, vendo_id)
 
 

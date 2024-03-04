@@ -1,6 +1,7 @@
 from typing import Union, List
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from fastapi import Depends
 
 from repository.sale_repository import SaleRepository
 
@@ -8,8 +9,8 @@ from repository.sale_repository import SaleRepository
 class SaleController():
     _repository: SaleRepository
 
-    def __init__(self):
-        self._repository = SaleRepository()
+    def __init__(self, repository: SaleRepository = Depends(SaleRepository)):
+        self._repository = repository
 
     def search(self, q: Union[str, None] = None, date: Union[str, None] = None,
                vendo_id: Union[int, None] = None) -> JSONResponse:
