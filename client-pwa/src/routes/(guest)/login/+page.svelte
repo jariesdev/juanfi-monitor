@@ -21,7 +21,7 @@
     }
 
     function handleSuccess(): void {
-        goto('/')
+        goto('/home')
     }
 
     apiUrl.subscribe(function (value) {
@@ -32,7 +32,8 @@
 
 <div class="uk-section">
     <div class="uk-container">
-        <div class="uk-grid uk-grid-small uk-child-width-1-2 uk-flex-center">
+        <h3 class="uk-text-center">App Login</h3>
+        <div class="uk-grid uk-grid-small uk-child-width-1-2@s uk-flex-center">
             <LoginForm on:success={handleSuccess}></LoginForm>
         </div>
     </div>

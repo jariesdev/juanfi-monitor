@@ -47,7 +47,7 @@
 </script>
 
 <form on:submit|preventDefault={submit}>
-    <div class="uk-grid uk-grid-small uk-child-width-1-1" style="row-gap: 30px">
+    <div class="uk-grid uk-grid-small uk-child-width-1-1" style="row-gap: 20px">
         <div>
             <input bind:value={username} type="text" class="uk-input" name="username" placeholder="Username"
                    disabled="{isProcessing}">
