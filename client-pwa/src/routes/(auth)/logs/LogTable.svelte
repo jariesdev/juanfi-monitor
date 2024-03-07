@@ -4,6 +4,7 @@
     import {apiUrl} from "$lib/store";
     import moment from "moment/moment";
     import type {iVendo, iVendoLog} from "$lib/interfaces.js";
+    import DateTime from "$lib/components/DateTime.svelte";
 
     let logs: iVendoLog[] = []
     let searchInput: string = ''
@@ -14,6 +15,7 @@
     let controller: AbortController | undefined = undefined
     let showFilter: boolean = true
     let vendos: iVendo[] = []
+    let isHumanizeDate: boolean = true
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -69,10 +71,6 @@
                 isLoading = false
             })
     }, 250, {maxWait: 1000})
-
-    function humanizeTime(time: string): string {
-        return new Date(Date.parse(time)).toLocaleString()
-    }
 
     function loadOptions(): void {
         let url = `${baseApiUrl}/vendo-machines`
@@ -157,10 +155,14 @@
             <tbody>
             {#each logs as log}
                 <tr>
-                    <td title="{humanizeTime(log.log_time)}">{log.log_time}</td>
+                    <td>
+                        <DateTime bind:humanized={isHumanizeDate} date="{log.log_time}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                    </td>
                     <td>{log.vendo?.name}</td>
                     <td>{log.description}</td>
-                    <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
+                    <td>
+                        <DateTime bind:humanized={isHumanizeDate} date="{log.created_at}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                    </td>
                 </tr>
             {/each}
             </tbody>

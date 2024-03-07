@@ -3,6 +3,7 @@
     import debounce from 'lodash/debounce'
     import {apiUrl} from "$lib/store";
     import type {iSale} from "$lib/interfaces";
+    import DateTime from "$lib/components/DateTime.svelte";
 
 
     let sales: iSale[] = []
@@ -10,6 +11,7 @@
     let isLoading: boolean = false
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
+    let isHumanizeDate: boolean = false
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -41,10 +43,6 @@
                 isLoading = false
             })
     }, 250, {maxWait: 1000})
-
-    function humanizeTime(time: string): string {
-        return new Date(Date.parse(time)).toLocaleString()
-    }
 
     $: searchInput, loadData();
 
@@ -85,12 +83,16 @@
             <tbody>
             {#each sales as log}
                 <tr>
-                    <td title="{humanizeTime(log.sale_time)}">{log.sale_time}</td>
+                    <td>
+                        <DateTime bind:humanized={isHumanizeDate} date="{log.sale_time}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                    </td>
                     <td>{log.vendo?.name}</td>
                     <td>{log.mac_address}</td>
                     <td>{log.voucher}</td>
                     <td>{log.amount}</td>
-                    <td title="{humanizeTime(log.created_at)}">{log.created_at}</td>
+                    <td>
+                        <DateTime bind:humanized={isHumanizeDate} date="{log.created_at}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                    </td>
                 </tr>
             {/each}
             </tbody>
