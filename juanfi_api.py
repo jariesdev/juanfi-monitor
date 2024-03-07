@@ -121,12 +121,19 @@ class JuanfiApi():
         self._active_user_count = int(data[15])
         self._system_clock = str(data[16])
 
-    def _send_api_request(self, url: str, method: str = "GET") -> HTTPResponse:
+    def _send_api_request(self, url: str, method: str = "GET", query: Union[dict, None] = None) -> HTTPResponse:
         try:
             p = urlparse(self._base_url)
             conn = http.client.HTTPConnection(host=p.hostname, port=p.port, timeout=5)
             timestamp = self._get_current_milli_time()
-            url = ("/admin/%s?query=%d" % (url, timestamp))
+
+            query_params = query if query is not None else {}
+            query_params['query'] = timestamp
+            url_params = []
+            for key, value in query_params.items():
+                url_params.append(f"{key}={value}")
+
+            url = ("/admin/%s?%s" % (url, '&'.join(url_params)))
             conn.request(method=method, url=url, headers={'X-TOKEN': self.get_api_key()})
             response = conn.getresponse()
             conn.close()
@@ -217,8 +224,9 @@ class JuanfiApi():
         }
 
     def reset_current_sales(self) -> None:
-        type = STATS_TYPE_COIN_COUNT
-        r = self._send_api_request(url="api/resetStatistic?type={0}".format(type))
+        stat_type = STATS_TYPE_COIN_COUNT
+        query = {'type': stat_type}
+        r = self._send_api_request(url="api/resetStatistic", query=query)
         _body = r.read().decode()
         if r.status != 200:
             raise Exception("Unable to reset current sales. Error code: {}".format(r.status))
