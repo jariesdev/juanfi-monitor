@@ -150,18 +150,21 @@
             </li>
             {#each statuses as status}
                 <li class="uk-flex uk-flex-between">
-                    <span>{status.label}</span>
-                    <div>
+                    <div>{status.label}</div>
+                    <div class="uk-flex uk-flex-center uk-flex-right uk-flex-wrap">
                         {#if status.key === 'current_coin_count'}
                             <button disabled="{isWithdrawing || parseFloat(status.text || '0') === 0}"
-                                    class="uk-button uk-button-primary uk-button-small uk-border-rounded uk-margin-small-right"
+                                    class="uk-button uk-button-primary uk-button-small uk-border-rounded"
                                     type="button"
                                     on:click={withdrawCurrenSale}>
                                 <i uk-icon="icon: credit-card" class="uk-margin-small-right"></i>
                                 Withdraw
                             </button>
+                            <span class="uk-margin-small-left">{status.text}</span>
+                        {:else}
+                            <span>{status.text}</span>
                         {/if}
-                        <span>{status.text}</span>
+
                     </div>
                 </li>
             {/each}
