@@ -1,6 +1,6 @@
 <script lang="ts">
-    import LogTable from "./SaleTable.svelte";
     import {apiUrl} from "$lib/store";
+    import WithdrawalTable from "./WithdrawalTable.svelte";
 
     let isReloading: boolean = false
     let reloadData: Function
@@ -9,7 +9,7 @@
     function refreshLogs(): void {
         isReloading = true
 
-        const request = new Request(`${baseApiUrl}/log/refresh`, {method: "POST"});
+        const request = new Request(`${baseApiUrl}/withdrawals`, {method: "GET"});
         fetch(request)
             .then(() => {
                 reloadData()
@@ -27,12 +27,7 @@
 
 <div class="uk-section">
     <div class="uk-container">
-        <div class="uk-margin-bottom">
-            <button class="uk-button uk-button-primary" disabled={isReloading} on:click={refreshLogs}>Refresh</button>
-            <a href="/withdrawals" class="uk-button uk-button-primary">Withdrawals</a>
-        </div>
-
-        <LogTable bind:loadData={reloadData}></LogTable>
+        <WithdrawalTable bind:loadData={reloadData}></WithdrawalTable>
     </div>
 </div>
 

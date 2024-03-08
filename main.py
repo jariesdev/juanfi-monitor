@@ -14,6 +14,7 @@ from controllers.api.log_controller import LogController
 from controllers.api.login_controller import LoginController
 from controllers.api.sale_controller import SaleController
 from controllers.api.vendo_controller import VendoController
+from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
@@ -177,6 +178,11 @@ async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoCo
 @app.post("/vendo-machines/{vendo_id}/withdraw-current-sales")
 async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.withdraw_current_sales(vendo_id)
+
+
+@app.get("/withdrawals")
+async def read_logs(controller: WithdrawalController = Depends(WithdrawalController)):
+    return controller.search()
 
 
 if __name__ == "__main__":
