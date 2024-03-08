@@ -15,7 +15,6 @@
     let controller: AbortController | undefined = undefined
     let showFilter: boolean = true
     let vendos: iVendo[] = []
-    let isHumanizeDate: boolean = true
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -156,12 +155,12 @@
             {#each logs as log}
                 <tr>
                     <td>
-                        <DateTime bind:humanized={isHumanizeDate} date="{log.log_time}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                        <DateTime date="{log.log_time}" class="uk-text-nowrap" />
                     </td>
                     <td>{log.vendo?.name}</td>
                     <td>{log.description}</td>
                     <td>
-                        <DateTime bind:humanized={isHumanizeDate} date="{log.created_at}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                        <DateTime date="{log.created_at}" class="uk-text-nowrap" />
                     </td>
                 </tr>
             {/each}

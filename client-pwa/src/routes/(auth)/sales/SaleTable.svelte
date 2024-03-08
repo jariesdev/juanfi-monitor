@@ -11,7 +11,6 @@
     let isLoading: boolean = false
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
-    let isHumanizeDate: boolean = false
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -84,14 +83,14 @@
             {#each sales as log}
                 <tr>
                     <td>
-                        <DateTime bind:humanized={isHumanizeDate} date="{log.sale_time}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                        <DateTime date="{log.sale_time}" class="uk-text-nowrap" />
                     </td>
                     <td>{log.vendo?.name}</td>
                     <td>{log.mac_address}</td>
                     <td>{log.voucher}</td>
                     <td>{log.amount}</td>
                     <td>
-                        <DateTime bind:humanized={isHumanizeDate} date="{log.created_at}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                        <DateTime date="{log.created_at}" class="uk-text-nowrap" />
                     </td>
                 </tr>
             {/each}

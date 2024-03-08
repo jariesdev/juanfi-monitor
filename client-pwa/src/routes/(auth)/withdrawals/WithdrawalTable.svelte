@@ -10,7 +10,6 @@
     let isLoading: boolean = false
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
-    let isHumanizeDate: boolean = false
 
     export const loadData: Function = debounce(async (): Promise<void> => {
         isLoading = false
@@ -73,7 +72,7 @@
                     <td>{item.vendo?.name}</td>
                     <td>{item.amount}</td>
                     <td>
-                        <DateTime bind:humanized={isHumanizeDate} date="{item.created_at}" on:click={() => { isHumanizeDate = !isHumanizeDate }} class="uk-text-nowrap" />
+                        <DateTime date="{item.created_at}" class="uk-text-nowrap" />
                     </td>
                 </tr>
             {/each}
