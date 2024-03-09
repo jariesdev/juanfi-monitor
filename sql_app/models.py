@@ -71,7 +71,11 @@ class VendoStatus(Base):
     id = Column(Integer, primary_key=True)
     vendo_id = Column(Integer, ForeignKey("vendos.id"))
     vendo = relationship("Vendo", back_populates="vendo_status")
-    is_online = Column(Boolean, default=False)
+    total_sales = Column(Float)
+    current_sales = Column(Float)
+    customer_count = Column(Integer)
+    free_heap = Column(Integer)
+    wireless_strength = Column(Float)
     active_users = Column(Integer)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
@@ -87,4 +91,5 @@ class Withdrawal(Base):
     amount = Column(Float)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
+
 

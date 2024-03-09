@@ -139,7 +139,7 @@ class JuanfiApi():
             conn.close()
             return response
         except Exception as e:
-            raise Exception("Error while connecting to API")
+            raise Exception("Error while connecting to API. {0}".format(repr(e)))
 
     def _get_current_milli_time(self) -> int:
         return round(time.time() * 1000)

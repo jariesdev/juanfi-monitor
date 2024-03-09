@@ -2,8 +2,9 @@ import typer
 
 import sql_app.models
 from commands.user_command import UserCommand
+from commands.vendo_status_log import VendoStatusLog
 from juanfi_logger import JuanfiLogger
-from sql_app.database import SessionLocal, engine
+from sql_app.database import SessionLocal
 from commands import vendo_add as vendor_adder
 
 app = typer.Typer()
@@ -42,6 +43,11 @@ def vendo_logger():
 @app.command()
 def vendo_add():
     vendor_adder.main()
+
+
+@app.command()
+def vendo_status_log():
+    VendoStatusLog().run()
 
 
 @app.command()
