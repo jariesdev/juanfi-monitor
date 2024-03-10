@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 import os
 import sys
@@ -10,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 import sql_app
+from commands.vendo_status_log import VendoStatusLog
 from controllers.api.log_controller import LogController
 from controllers.api.login_controller import LoginController
 from controllers.api.sale_controller import SaleController
@@ -21,12 +24,22 @@ from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User
 from user_repository import UserRepository
+from apscheduler.schedulers.background import BackgroundScheduler
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 sys.path.append(BASE_DIR)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(VendoStatusLog().run, "interval", minutes=1)
+    scheduler.start()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
