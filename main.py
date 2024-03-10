@@ -34,7 +34,7 @@ sys.path.append(BASE_DIR)
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     scheduler = BackgroundScheduler()
-    scheduler.add_job(VendoStatusLog().run, "interval", minutes=1)
+    scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
     scheduler.start()
     yield
 
