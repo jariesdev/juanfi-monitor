@@ -30,10 +30,10 @@ class VendoStatusRepository:
             query = query.filter(VendoStatus.vendo_id == vendo_id)
 
         if from_date is not None:
-            query = query.filter(VendoStatus.created_at >= from_date)
+            query = query.filter(func.date(VendoStatus.created_at) >= from_date)
 
         if to_date is not None:
-            query = query.filter(VendoStatus.created_at <= to_date)
+            query = query.filter(func.date(VendoStatus.created_at) <= to_date)
 
         rows = query.all()
         db.close()
