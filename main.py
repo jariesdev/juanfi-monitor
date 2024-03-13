@@ -1,10 +1,10 @@
-from contextlib import asynccontextmanager
-
-import uvicorn
 import os
 import sys
+from contextlib import asynccontextmanager
 from typing import Union, Annotated
 
+import uvicorn
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,14 +17,13 @@ from controllers.api.log_controller import LogController
 from controllers.api.login_controller import LoginController
 from controllers.api.sale_controller import SaleController
 from controllers.api.vendo_controller import VendoController
+from controllers.api.vendo_status_controller import VendoStatusController
 from controllers.api.withdrawal_controller import WithdrawalController
-from juanfi_api import JuanfiApi
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User
 from user_repository import UserRepository
-from apscheduler.schedulers.background import BackgroundScheduler
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -32,7 +31,7 @@ sys.path.append(BASE_DIR)
 
 
 @asynccontextmanager
-async def lifespan(app:FastAPI):
+async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
     scheduler.start()
@@ -128,7 +127,7 @@ async def read_logs(
 
 
 @app.post("/log/refresh")
-async def read_logs():
+async def refresh_logs():
     db = SessionLocal()
     vendos = db.query(sql_app.models.Vendo).all()
     if len(vendos) == 0:
@@ -162,39 +161,43 @@ def read_daily_sales(controller: SaleController = Depends(SaleController)):
     return controller.daily_sales()
 
 
-@app.get("/vendo_status")
-async def read_logs():
-    status = JuanfiApi().get_system_status()
-    return JSONResponse(status)
+@app.get("/vendo-status-history")
+async def read_vendo_status(
+        controller: VendoStatusController = Depends(VendoStatusController),
+        vendo_id: Union[int, None] = None,
+        from_date: Union[str, None] = None,
+        to_date: Union[str, None] = None
+):
+    return controller.search(from_date, to_date, vendo_id)
 
 
 @app.get("/vendo-machines")
-async def read_logs(controller: VendoController = Depends(VendoController), q: Union[str, None] = None):
+async def read_vendos(controller: VendoController = Depends(VendoController), q: Union[str, None] = None):
     return controller.all(q)
 
 
 @app.get("/vendo-machines/{vendo_id}/status")
-async def read_vendo_status(vendo_id: int, controller: VendoController = Depends(VendoController)):
+async def read_vendo_status2(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.vendo_status(vendo_id)
 
 
 @app.post("/vendo-machines")
-async def read_logs(vendo: VendoMachine, controller: VendoController = Depends(VendoController)):
+async def store_vendo(vendo: VendoMachine, controller: VendoController = Depends(VendoController)):
     return controller.store(vendo)
 
 
 @app.delete("/vendo-machines/{vendo_id}")
-async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoController)):
+async def delete_vendo(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.delete(vendo_id)
 
 
 @app.post("/vendo-machines/{vendo_id}/withdraw-current-sales")
-async def read_logs(vendo_id: int, controller: VendoController = Depends(VendoController)):
+async def read_vendo_sales(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.withdraw_current_sales(vendo_id)
 
 
 @app.get("/withdrawals")
-async def read_logs(controller: WithdrawalController = Depends(WithdrawalController)):
+async def read_withdrawals(controller: WithdrawalController = Depends(WithdrawalController)):
     return controller.search()
 
 
