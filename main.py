@@ -168,7 +168,7 @@ async def read_vendo_status(
         from_date: Union[str, None] = None,
         to_date: Union[str, None] = None
 ):
-    return controller.search(from_date, to_date, vendo_id)
+    return controller.search(vendo_id=vendo_id, from_date=from_date, to_date=to_date)
 
 
 @app.get("/vendo-machines")

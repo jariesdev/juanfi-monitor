@@ -2,6 +2,7 @@
 	import welcome from '$lib/images/svelte-welcome.webp';
 	import welcome_fallback from '$lib/images/svelte-welcome.png';
 	import DailySaleChart from "$lib/components/DailySaleChart.svelte";
+	import VendoMonthlyUserChart from "$lib/components/VendoMonthlyUserChart.svelte";
 </script>
 
 <svelte:head>
@@ -17,12 +18,15 @@
 				<img src={welcome_fallback} alt="Welcome" />
 			</picture>
 		</span>
-
-		<p class="uk-text-light">
-			It's your dashboard!
-		</p>
 	</h1>
 
-	<DailySaleChart></DailySaleChart>
 
+	<h3 class="uk-text-light uk-text-center">
+		Real-time Sales
+	</h3>
+	<DailySaleChart></DailySaleChart>
+	<h3 class="uk-text-light uk-text-center">
+		Active User History
+	</h3>
+	<VendoMonthlyUserChart></VendoMonthlyUserChart>
 </section>
