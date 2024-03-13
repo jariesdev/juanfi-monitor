@@ -16,8 +16,9 @@ class VendoStatusRepository:
     def get_hourly_status(self, vendo_id: Union[int, None] = None, from_date: Union[str, None] = None,
                           to_date: Union[str, None] = None) -> list:
         db = SessionLocal()
-        query = (db.query(func.ceil(func.max(VendoStatus.active_users)).label('average_active_users'),
-                                func.avg(VendoStatus.free_heap).label('average_free_heap'),
+        query = (db.query(func.strftime('%Y-%m-%d %H:00', VendoStatus.created_at),
+                          func.ceil(func.max(VendoStatus.active_users)).label('average_active_users'),
+                          func.avg(VendoStatus.free_heap).label('average_free_heap'),
                           Vendo.name)
                  .join(Vendo, VendoStatus.vendo_id == Vendo.id)
                  .order_by(VendoStatus.created_at.desc())
@@ -37,9 +38,10 @@ class VendoStatusRepository:
 
         def mapper(row) -> dict:
             return {
-                "average_active_users": row[0],
-                "average_free_heap": row[1],
-                "vendo_name": row[2],
+                "time": row[0],
+                "average_active_users": row[1],
+                "average_free_heap": row[2],
+                "vendo_name": row[3],
             }
 
         return list(map(mapper, rows))
