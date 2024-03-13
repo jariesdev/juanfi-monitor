@@ -57,15 +57,8 @@
                     const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
                         const data = map(vendoSales, (d:any) => {
                             const dt = new Date(Date.parse(d.time))
-                                const m = dt.getMonth() + 1
-                                const dy = dt.getDate()
-                                const h = dt.getHours()
-                                const df = String(dy).padStart(2, '0')
-                                const mf = String(m).padStart(2, '0')
-                                const time = `${mf}-${df} ${h}:00`
-
                             return {
-                                time: time,
+                                time: moment(dt).format('MM-DD ha'),
                                 users: d.average_active_users
                             }
                         });

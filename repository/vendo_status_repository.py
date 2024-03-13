@@ -17,12 +17,14 @@ class VendoStatusRepository:
                           to_date: Union[str, None] = None) -> list:
         db = SessionLocal()
         query = (db.query(func.strftime('%Y-%m-%d %H:00', VendoStatus.created_at),
-                          func.ceil(func.max(VendoStatus.active_users)).label('average_active_users'),
+                          func.max(VendoStatus.active_users).label('average_active_users'),
                           func.avg(VendoStatus.free_heap).label('average_free_heap'),
                           Vendo.name)
                  .join(Vendo, VendoStatus.vendo_id == Vendo.id)
-                 .order_by(VendoStatus.created_at.desc())
-                 .group_by(func.strftime('%Y%m%d%H', VendoStatus.created_at)))
+                 .order_by(VendoStatus.created_at)
+                 .group_by(func.strftime('%Y%m%d%H', VendoStatus.created_at))
+                 .group_by(VendoStatus.vendo_id))
+
 
         if vendo_id is not None:
             query = query.filter(VendoStatus.vendo_id == vendo_id)
@@ -44,4 +46,5 @@ class VendoStatusRepository:
                 "vendo_name": row[3],
             }
 
-        return list(map(mapper, rows))
+        items = list(map(mapper, rows))
+        return items
