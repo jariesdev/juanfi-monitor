@@ -45,19 +45,6 @@
                             }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false
-                    }
-                },
-                hover: {
-                    mode: 'nearest',
-                    intersect: false
                 }
             }
         });
