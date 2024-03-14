@@ -32,6 +32,11 @@
                     xAxisKey: 'date',
                     yAxisKey: 'total'
                 },
+                elements: {
+                    point:{
+                        radius: 2.5
+                    }
+                },
                 scales: {
                     y: {
                         ticks: {
@@ -40,6 +45,19 @@
                             }
                         }
                     }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: false
                 }
             }
         });

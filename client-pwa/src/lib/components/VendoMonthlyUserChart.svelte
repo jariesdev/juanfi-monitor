@@ -32,6 +32,24 @@
                 parsing: {
                     xAxisKey: 'time',
                     yAxisKey: 'users'
+                },
+                elements: {
+                    point:{
+                        radius: 0
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: false
                 }
             }
         });
@@ -42,7 +60,10 @@
         const signal = controller.signal
         const from = moment().subtract(1, 'month').format('Y-MM-DD')
         const to = moment().format('Y-MM-DD')
-        const request = new Request(`${baseApiUrl}/vendo-status-history?from_date=${from}&to_date=${to}`, {method: "GET", signal: signal})
+        const request = new Request(`${baseApiUrl}/vendo-status-history?from_date=${from}&to_date=${to}`, {
+            method: "GET",
+            signal: signal
+        })
         fetch(request)
             .then((response) => {
                 if (response.status === 200) {
@@ -55,7 +76,7 @@
                 if (chart) {
                     const byVendo = groupBy(data, "vendo_name")
                     const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
-                        const data = map(vendoSales, (d:any) => {
+                        const data = map(vendoSales, (d: any) => {
                             const dt = new Date(Date.parse(d.time))
                             return {
                                 time: moment(dt).format('MM-DD ha'),
