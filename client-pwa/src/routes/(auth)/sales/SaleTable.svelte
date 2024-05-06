@@ -2,7 +2,7 @@
     import {onMount, onDestroy} from "svelte";
     import debounce from 'lodash/debounce'
     import {apiUrl} from "$lib/store";
-    import type {iSale} from "$lib/interfaces";
+    import type {iSale, iVendo} from "$lib/interfaces";
     import DateTime from "$lib/components/DateTime.svelte";
 
 
@@ -11,14 +11,32 @@
     let isLoading: boolean = false
     let baseApiUrl: string = ''
     let controller: AbortController | undefined = undefined
+    let vendoId: number
+    let vendos: iVendo[] = []
 
     export const loadData: Function = debounce(async (): Promise<void> => {
+        const queryParams = []
         isLoading = false
 
         let url = `${baseApiUrl}/sales`
         if (!!searchInput) {
-            url = `${url}?q=${searchInput}`
+            queryParams.push({
+                name: 'q',
+                value: searchInput
+            })
         }
+
+        if (!!vendoId) {
+            queryParams.push({
+                name: 'vendo_id',
+                value: vendoId
+            })
+        }
+
+        if (queryParams.length > 0) {
+            url = url + '?' + queryParams.map((o) => `${o.name}=${o.value}`).join('&')
+        }
+
         controller = new AbortController()
         const signal = controller.signal
         const request = new Request(url, {method: "GET", signal: signal});
@@ -43,6 +61,25 @@
             })
     }, 250, {maxWait: 1000})
 
+    function loadOptions(): void {
+        let url = `${baseApiUrl}/vendo-machines`
+        const request = new Request(url, {method: 'GET'});
+        fetch(request)
+            .then((response) => {
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    throw new Error("Something went wrong on API server!");
+                }
+            })
+            .then((response) => {
+                vendos = response.data
+            })
+            .catch(() => {
+                vendos = []
+            })
+    }
+
     $: searchInput, loadData();
 
     apiUrl.subscribe(function (value) {
@@ -50,6 +87,7 @@
     })
 
     onMount(() => {
+        loadOptions()
         loadData()
     })
     onDestroy(() => {
@@ -65,6 +103,20 @@
         <div class="uk-width-1-3@s">
             <input bind:value={searchInput} class="uk-input uk-form-small" type="search"
                    placeholder="Search" aria-label="Input">
+        </div>
+    </div>
+    <div class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m" style="row-gap: 15px">
+        <div>
+            <select bind:value={vendoId}
+                    name="vendo_id"
+                    id="vendo_id"
+                    class="uk-select uk-form-small uk-child-width-1-1"
+                    on:change={loadData}>
+                <option value="{undefined}">All</option>
+                {#each vendos as vendo}
+                    <option value="{vendo.id}">{vendo.name}</option>
+                {/each}
+            </select>
         </div>
     </div>
     <div class="uk-overflow-auto">
