@@ -3,7 +3,10 @@
     import {onMount, onDestroy} from "svelte";
     import {apiUrl} from "$lib/store";
     import map from "lodash/map";
+    import minBy from "lodash/minBy";
+    import maxBy from "lodash/maxBy";
     import groupBy from "lodash/groupBy";
+    import keyBy from "lodash/keyBy";
 
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
@@ -64,19 +67,47 @@
             })
             .then(({data}) => {
                 if (chart) {
+                    const minDate = minBy(data, (o:any) => o.date)?.date
+                    const maxDate = maxBy(data, (o:any) => o.date)?.date
                     const byVendo = groupBy(data, "vendo_id")
                     const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
-                        const data = map(vendoSales, (d: iDailySale) => {
-                            const dt = new Date(Date.parse(d.date))
+                        const data = []
+                        const vendoSales2 = keyBy(vendoSales, (o:iDailySale) => o.date)
+                        const sDate = new Date(Date.parse(minDate))
+                        const eDate = new Date(Date.parse(maxDate))
+                        while(sDate.getTime() <= eDate.getTime()) {
+                            const dKey = sDate.toISOString().split('T')[0]
+                            const dt = sDate
                             const m = dt.getMonth() + 1
                             const dy = dt.getDate()
                             const df = String(dy).padStart(2, '0')
                             const mf = String(m).padStart(2, '0')
-                            return {
-                                date: `${mf}-${df}`,
-                                total: d.total
+
+                            if (vendoSales2[dKey]) {
+                                data.push({
+                                    date: `${mf}-${df}`,
+                                    total: vendoSales2[dKey].total
+                                })
+                            } else {
+                                data.push({
+                                    date: `${mf}-${df}`,
+                                    total: null
+                                })
                             }
-                        });
+                            sDate.setDate(sDate.getDate() + 1);
+                        }
+
+                        // const data = map(vendoSales, (d: iDailySale) => {
+                        //     const dt = new Date(Date.parse(d.date))
+                        //     const m = dt.getMonth() + 1
+                        //     const dy = dt.getDate()
+                        //     const df = String(dy).padStart(2, '0')
+                        //     const mf = String(m).padStart(2, '0')
+                        //     return {
+                        //         date: d.date,
+                        //         total: d.total
+                        //     }
+                        // });
                         const vendoName = vendoSales[0].vendo_name;
                         return {
                             label: vendoName,

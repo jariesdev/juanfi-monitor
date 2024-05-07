@@ -5,6 +5,9 @@
     import map from "lodash/map";
     import groupBy from "lodash/groupBy";
     import moment from "moment";
+    import minBy from "lodash/minBy";
+    import maxBy from "lodash/maxBy";
+    import keyBy from "lodash/keyBy";
 
     let chartData: any[] = []
     let canvas: HTMLCanvasElement
@@ -61,15 +64,39 @@
             })
             .then(({data}) => {
                 if (chart) {
+                    const minTime = minBy(data, (o:any) => o.time)?.time
+                    const maxTime = maxBy(data, (o:any) => o.time)?.time
                     const byVendo = groupBy(data, "vendo_name")
                     const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
-                        const data = map(vendoSales, (d: any) => {
-                            const dt = new Date(Date.parse(d.time))
-                            return {
-                                time: moment(dt).format('MM-DD ha'),
-                                users: d.average_active_users
+                        const data = []
+
+                        const vendoSales2 = keyBy(vendoSales, (o:iDailySale) => o.time)
+                        const sTime = new Date(Date.parse(minTime))
+                        const eTime = new Date(Date.parse(maxTime))
+                        while(sTime.getTime() <= eTime.getTime()) {
+                            const dKey = sTime.toISOString().substring(0, 16).replace('T', ' ')
+                            const dt = sTime
+                            if (vendoSales2[dKey]) {
+                                data.push({
+                                    time: moment(dt).format('MM-DD ha'),
+                                    users: vendoSales2[dKey].average_active_users
+                                })
+                            } else {
+                                data.push({
+                                    time: moment(dt).format('MM-DD ha'),
+                                    users: null
+                                })
                             }
-                        });
+                            sTime.setHours(sTime.getHours() + 1);
+                        }
+
+                        // const data = map(vendoSales, (d: any) => {
+                        //     const dt = new Date(Date.parse(d.time))
+                        //     return {
+                        //         time: moment(dt).format('MM-DD ha'),
+                        //         users: d.average_active_users
+                        //     }
+                        // });
                         const vendoName = vendoSales[0].vendo_name;
                         return {
                             label: vendoName,
