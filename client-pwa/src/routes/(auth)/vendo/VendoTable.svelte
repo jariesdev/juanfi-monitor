@@ -4,6 +4,8 @@
     import {apiUrl} from "$lib/store";
     import VendoForm from "$lib/components/VendoForm.svelte";
     import type {iVendo} from "$lib/interfaces.js";
+    import DateTime from "$lib/components/DateTime.svelte";
+    import NumberFormat from "$lib/components/NumberFormat.svelte";
 
     let vendoMachines: iVendo[] = []
     let searchInput: string = ''
@@ -70,14 +72,16 @@
                    placeholder="Search" aria-label="Input">
         </div>
     </div>
-    <div class="uk-overflow-auto">
+    <div class="uk-overflow-auto uk-margin-bottom">
         <table class="uk-table uk-table-divider">
             <thead>
             <tr>
                 <th>Name</th>
                 <th>API URL</th>
-                <th>Current Sales</th>
                 <th>Total Sales</th>
+                <th>Current Sales</th>
+                <th>Users</th>
+                <th>Last Seen</th>
             </tr>
             </thead>
             <tbody>
@@ -92,18 +96,28 @@
                 <tr>
                     <td>{vendo.name}</td>
                     <td>{vendo.api_url}</td>
-                    <td>{vendo.current_sales}</td>
-                    <td>{vendo.total_sales}</td>
+                    <td>
+                        <NumberFormat value={vendo.recent_status?.total_sales}></NumberFormat>
+                    </td>
+                    <td>
+                        <NumberFormat value={vendo.recent_status?.current_sales}></NumberFormat>
+                    </td>
+                    <td>
+                        <NumberFormat value={vendo.recent_status?.active_users || 0}></NumberFormat>
+                    </td>
+                    <td>
+                        <DateTime date={vendo.recent_status?.created_at}></DateTime>
+                    </td>
                     <td class="uk-text-nowrap">
                         <a href="{`/vendo/${vendo.id}/status`}" class="uk-margin-small-right">
                             <span class="uk-text-info" uk-icon="icon: info"></span>
                         </a>
-                        <a href="#delete" on:click={withdrawCurrentSales} class="uk-margin-small-right">
+                        <!--<a href="#delete" on:click={withdrawCurrentSales} class="uk-margin-small-right">
                             <span class="uk-text-info" uk-icon="icon: pencil"></span>
                         </a>
                         <a href="#delete" on:click={withdrawCurrentSales}>
                             <span class="uk-text-danger" uk-icon="icon: trash"></span>
-                        </a>
+                        </a>-->
                     </td>
                 </tr>
             {/each}

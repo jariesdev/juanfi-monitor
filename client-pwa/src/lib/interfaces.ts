@@ -1,3 +1,15 @@
+export interface iVendoStatus {
+    total_sales: number
+    vendo_id: number
+    customer_count: number
+    wireless_strength: number
+    created_at: string
+    id: number
+    current_sales: number
+    free_heap: number
+    active_users: number
+}
+
 export interface iVendo {
     id: number
     name: string
@@ -8,6 +20,7 @@ export interface iVendo {
     total_sales: number
     current_sales: number
     created_at: string
+    recent_status?: iVendoStatus
 }
 
 
@@ -29,7 +42,7 @@ export interface iSale {
     vendo: iVendo
 }
 
-export  interface iUser {
+export interface iUser {
     username: string
     is_active: boolean
 }
