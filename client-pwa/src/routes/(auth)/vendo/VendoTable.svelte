@@ -81,7 +81,7 @@
                 <th>Total Sales</th>
                 <th>Current Sales</th>
                 <th>Users</th>
-                <th>Last Seen</th>
+                <th>Last Reported</th>
             </tr>
             </thead>
             <tbody>
