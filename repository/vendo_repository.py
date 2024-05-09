@@ -6,7 +6,7 @@ from dependencies import get_db
 from models.vendo import VendoMachine
 from sql_app import models
 from sql_app.database import SessionLocal, engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends
 
 models.Vendo.metadata.create_all(bind=engine)
@@ -22,10 +22,9 @@ class VendoRepository:
 
     def search(self, q: Union[str, None] = None) -> list:
         db = self._db_session
-        conn = self._db.get_connection()
-        conn.set_trace_callback(print)
 
         query = (db.query(sql_app.models.Vendo)
+                 .options(joinedload(sql_app.models.Vendo.recent_status))
                  .order_by(models.Vendo.name))
 
         if q is not None:
@@ -34,7 +33,7 @@ class VendoRepository:
         return query.all()
 
     def add(self, name: str, url: str, api_key: str) -> None:
-        self._db.execute("INSERT INTO vendos (name, url, api_key)"
+        self._db.execute("INSERT INTO vendos (name, api_url, api_key)"
                          "VALUES (?,?,?)", [name, url, api_key])
 
     def delete(self, id: int) -> None:

@@ -1,7 +1,7 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, UniqueConstraint, TIMESTAMP, func
-from sqlalchemy.orm import relationship, deferred
+from sqlalchemy import *
+from sqlalchemy import orm
+from sqlalchemy.orm import *
 from sqlalchemy.ext.declarative import declarative_base
-import datetime
 
 Base = declarative_base()
 
@@ -13,6 +13,22 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     password = deferred(Column(String, nullable=False))
     is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP)
+
+
+class VendoStatus(Base):
+    __tablename__ = "vendo_status"
+
+    id = Column(Integer, primary_key=True)
+    vendo_id = Column(Integer, ForeignKey("vendos.id"))
+    vendo = relationship("Vendo", back_populates="vendo_status")
+    total_sales = Column(Float)
+    current_sales = Column(Float)
+    customer_count = Column(Integer)
+    free_heap = Column(Integer)
+    wireless_strength = Column(Float)
+    active_users = Column(Integer)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
 
@@ -35,6 +51,28 @@ class Vendo(Base):
     vendo_sales = relationship("VendoSale", back_populates='vendo')
     vendo_status = relationship("VendoStatus", back_populates='vendo')
     withdrawals = relationship("Withdrawal", back_populates='vendo')
+
+    @orm.declared_attr
+    def __mapper_args__(vendo):
+        children = VendoStatus
+        most_recent_child = (
+            select(children.id)
+            .where(children.vendo_id == vendo.id)
+            .order_by(VendoStatus.id.desc())
+            .limit(1)
+            .correlate(vendo.__table__)
+            .scalar_subquery()
+        )
+
+        rel = orm.relationship(
+            VendoStatus,
+            primaryjoin=and_(
+                VendoStatus.id == most_recent_child, VendoStatus.vendo_id == vendo.id
+            ),
+            uselist=False,
+            viewonly=True,
+        )
+        return {'properties': {'recent_status': rel}}
 
 
 class VendoLog(Base):
@@ -63,22 +101,6 @@ class VendoSale(Base):
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP)
     UniqueConstraint("vendo_id")
-
-
-class VendoStatus(Base):
-    __tablename__ = "vendo_status"
-
-    id = Column(Integer, primary_key=True)
-    vendo_id = Column(Integer, ForeignKey("vendos.id"))
-    vendo = relationship("Vendo", back_populates="vendo_status")
-    total_sales = Column(Float)
-    current_sales = Column(Float)
-    customer_count = Column(Integer)
-    free_heap = Column(Integer)
-    wireless_strength = Column(Float)
-    active_users = Column(Integer)
-    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at = Column(TIMESTAMP)
 
 
 class Withdrawal(Base):
