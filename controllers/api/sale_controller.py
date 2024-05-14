@@ -15,9 +15,13 @@ class SaleController():
         self._repository = repository
 
     def search(self, request: SalesSearchRequest) -> Page:
+        date = None
+        if request.date is not None:
+            date = request.date.strftime("%Y-%m-%d")
+
         result = self._repository.search(
             search=request.q,
-            date=request.date,
+            date=date,
             vendo_id=request.vendo_id
         )
         return result

@@ -1,11 +1,10 @@
 <script lang="ts">
-    import {apiUrl} from "$lib/store";
     import DataTable from "$lib/components/DataTable.svelte";
     import DateTime from "$lib/components/DateTime.svelte";
     import type {iVendo} from "$lib/interfaces";
     import {onMount} from "svelte";
 
-    let baseApiUrl: string = ''
+    let baseApiUrl: string = import.meta.env.VITE_API_URL
 
     let headers = [
         {label: 'Time', field: 'sale_time'},
@@ -15,10 +14,12 @@
         {label: 'Voucher', field: 'voucher'}
     ];
     let vendoId: number
+    let saleTime: string
     let vendos: iVendo[] = []
     $: ({filters} = {
         filters: {
-            vendo_id: vendoId
+            vendo_id: vendoId,
+            date: saleTime
         }
     })
 
@@ -41,10 +42,6 @@
             })
     }
 
-    apiUrl.subscribe(function (value) {
-        baseApiUrl = value
-    })
-
     onMount(() => {
         loadOptions()
     })
@@ -64,6 +61,12 @@
                         <option value="{vendo.id}">{vendo.name}</option>
                     {/each}
                 </select>
+            </div>
+            <div>
+                <input type="date"
+                       bind:value={saleTime}
+                       class="uk-input uk-form-small"
+                       max={new Date().toISOString().split("T")[0]}>
             </div>
         </div>
     </div>

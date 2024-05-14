@@ -28,7 +28,7 @@
     export let headers: TableHeader[] = []
     export let filters: Filter = {}
     export let title: string = "Table Records";
-    export let perPage: number = 10;
+    export let perPage: number = 15;
     export let infiniteScroll: boolean = false;
 
     // variables
@@ -41,21 +41,12 @@
     let controller: AbortController | undefined = undefined
     let infiniteScrollEl: HTMLDivElement
 
-    // reset when search
-    $: if(searchInput) {
-        currentPage = 1
-        tableItems = []
-    }
-    $: if(filters) {
-        currentPage = 1
-        tableItems = []
-    }
     // computed property queryParams
     $: ({queryParams} = ((): { queryParams: QueryParameters } => {
         let params: Filter = {}
         // remove empty params
         Object.keys(filters).forEach(k => {
-            if (filters[k] != undefined && filters[k] != null) {
+            if (filters[k] != undefined && filters[k] != null && filters[k] != '') {
                 params[k] = filters[k]
             }
         })
@@ -109,6 +100,15 @@
         return get(item, header.field, '')
     }
 
+    // reset when search
+    $: if(searchInput) {
+        currentPage = 1
+        tableItems = []
+    }
+    $: if(filters) {
+        currentPage = 1
+        tableItems = []
+    }
     // watch params then reload data
     $: queryParams, loadData();
 
@@ -182,7 +182,7 @@
                 </tr>
             {/if}
             {#each tableItems as item}
-                <slot {item}>
+                <slot name="item" {item}>
                     <tr>
                         {#each headers as header}
                             <td>

@@ -24,7 +24,7 @@ class SaleRepository:
         query = (select(VendoSale).options(joinedload(VendoSale.vendo))
                  .order_by(VendoSale.sale_time.desc()))
 
-        if search is not None:
+        if search is not None and search != "":
             query = (query.filter(
                 or_(VendoSale.mac_address.like("%{}%".format(search)), VendoSale.voucher.like("%{}%".format(search)))))
 
