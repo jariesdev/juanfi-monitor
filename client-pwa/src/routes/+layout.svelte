@@ -1,21 +1,18 @@
 <script>
 	import './styles.css';
-	import '$lib/css/uikit.css'
-	import '$lib/js/uikit.min.js'
-	import '$lib/js/uikit-icons.min.js'
-	import OfflineAlert from "$lib/components/OfflineAlert.svelte";
+	import '$lib/css/uikit.css';
+	import '$lib/js/uikit.min.js';
+	import '$lib/js/uikit-icons.min.js';
+	import OfflineAlert from '$lib/components/OfflineAlert.svelte';
 </script>
 
 <div class="app">
-
 	<main>
 		<slot />
 	</main>
 
 	<footer>
-		<p class="uk-text-italic uk-text-muted uk-text-small uk-text-light">
-			Vendo Reports
-		</p>
+		<p class="uk-text-italic uk-text-muted uk-text-small uk-text-light">Vendo Reports</p>
 	</footer>
 	<OfflineAlert />
 </div>

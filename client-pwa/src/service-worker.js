@@ -6,7 +6,7 @@ const CACHE = `cache-${version}`;
 
 const ASSETS = [
 	...build, // the app itself
-	...files  // everything in `static`
+	...files // everything in `static`
 ];
 
 self.addEventListener('install', (event) => {
@@ -35,7 +35,7 @@ self.addEventListener('fetch', (event) => {
 	if (event.request.method !== 'GET') return;
 
 	// check & ignore if query params has nosw
-	if ( event.request.url.match( '^.*(nosw=1).*$' ) ) {
+	if (event.request.url.match('^.*(nosw=1).*$')) {
 		return false;
 	}
 

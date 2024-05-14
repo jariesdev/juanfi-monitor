@@ -3,9 +3,7 @@
 </script>
 
 <header>
-	<div class="corner">
-
-	</div>
+	<div class="corner" />
 
 	<nav>
 		<div class="left-wing">
@@ -34,9 +32,7 @@
 		</div>
 	</nav>
 
-	<div class="corner">
-
-	</div>
+	<div class="corner" />
 </header>
 
 <style>
