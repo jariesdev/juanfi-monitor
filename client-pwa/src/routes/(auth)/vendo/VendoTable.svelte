@@ -3,7 +3,7 @@
 	import debounce from 'lodash/debounce';
 	import { apiUrl } from '$lib/store';
 	import VendoForm from '$lib/components/VendoForm.svelte';
-	import type { iVendo } from '$lib/interfaces.js';
+	import type { iVendo } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
 	import { baseApiUrl } from '$lib/env';

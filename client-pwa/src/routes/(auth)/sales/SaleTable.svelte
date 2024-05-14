@@ -1,7 +1,7 @@
 <script lang="ts">
 	import DataTable from '$lib/components/DataTable.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
-	import type { iVendo } from '$lib/interfaces';
+	import type { iVendo } from '$lib/types/models';
 	import { onMount } from 'svelte';
 	import { baseApiUrl } from '$lib/env';
 

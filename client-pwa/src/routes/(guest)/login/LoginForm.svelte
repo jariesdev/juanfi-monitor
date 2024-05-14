@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { apiUrl, currentUser } from '$lib/store';
-	import type { iUser } from '$lib/interfaces';
+	import type { iUser } from '$lib/types/models';
 	import { createEventDispatcher } from 'svelte';
 	import { baseApiUrl } from '$lib/env';
 

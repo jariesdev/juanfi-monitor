@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import debounce from 'lodash/debounce';
 	import { apiUrl } from '$lib/store';
-	import type { iSale } from '$lib/interfaces';
+	import type { iSale } from '$lib/types/models';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
 

@@ -3,7 +3,7 @@
 	import debounce from 'lodash/debounce';
 	import { apiUrl } from '$lib/store';
 	import moment from 'moment/moment';
-	import type { iVendo, iVendoLog } from '$lib/interfaces.js';
+	import type { iVendo, iVendoLog } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
 
