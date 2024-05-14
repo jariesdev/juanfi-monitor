@@ -29,8 +29,6 @@
     export let filters: Filter = {}
     export let title: string = "Table Records";
     export let perPage: number = 15;
-    export let infiniteScroll: boolean = false;
-
     // variables
     let currentPage: number = 1
     let maxPage: number = 1
