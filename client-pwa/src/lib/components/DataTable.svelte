@@ -1,7 +1,8 @@
 <script lang="ts">
     import { browser } from '$app/environment';
-    import debounce from "lodash/debounce";
     import {onDestroy, onMount} from "svelte";
+    import debounce from "lodash/debounce";
+    import get from "lodash/get";
 
     interface Filter {
         [key: string]: string | number | boolean | null | undefined
@@ -10,7 +11,7 @@
     interface QueryParameters extends Filter {
         q?: string
         page: number
-        perPage: number
+        size: number
     }
 
     interface TableHeader {
@@ -27,18 +28,28 @@
     export let headers: TableHeader[] = []
     export let filters: Filter = {}
     export let title: string = "Table Records";
-    export let perPage: number = 15;
+    export let perPage: number = 10;
     export let infiniteScroll: boolean = false;
 
     // variables
     let currentPage: number = 1
     let maxPage: number = 1
+    let totalItems: number = 0
     let isLoading: boolean = false
     let tableItems: RowItem[] = []
     let searchInput: string = ''
     let controller: AbortController | undefined = undefined
     let infiniteScrollEl: HTMLDivElement
 
+    // reset when search
+    $: if(searchInput) {
+        currentPage = 1
+        tableItems = []
+    }
+    $: if(filters) {
+        currentPage = 1
+        tableItems = []
+    }
     // computed property queryParams
     $: ({queryParams} = ((): { queryParams: QueryParameters } => {
         let params: Filter = {}
@@ -54,7 +65,7 @@
                 ...params,
                 q: searchInput,
                 page: currentPage,
-                perPage: perPage
+                size: perPage
             }
         }
     })())
@@ -62,7 +73,7 @@
     // load table data
     export const loadData: Function = debounce(async (): Promise<void> => {
         let localUrl = url
-        isLoading = false
+        isLoading = true
 
         if (Object.keys(queryParams).length > 0) {
             localUrl = localUrl + '?' + Object.keys(queryParams).map((k: string) => `${k}=${queryParams[k]}`).join('&')
@@ -80,8 +91,10 @@
                 }
             })
             .then((response) => {
-                maxPage = 1
-                tableItems = response.data || []
+                totalItems = response.total
+                maxPage = response.pages || 1
+                const items = response.items || []
+                tableItems = [...tableItems, ...items]
             })
             .catch((error) => {
                 console.error(error);
@@ -93,31 +106,24 @@
     }, 250, {maxWait: 1000})
 
     function getCellValue(item: RowItem, header: TableHeader) {
-        return item[header.field] || ''
+        return get(item, header.field, '')
     }
 
     // watch params then reload data
     $: queryParams, loadData();
-
-    // reset when search
-    $: searchInput, ()=>{
-        currentPage = 1
-    };
-    $: filters, ()=>{
-        currentPage = 1
-    };
 
     // watcher infinite scroll
     $: {
         if (browser && infiniteScrollEl) {
             let options = {
                 rootMargin: "0px",
-                threshold: 1.0,
+                threshold: 0,
             };
             let callback = (entries: any[]) => {
-                entries.forEach(() => {
-                    if(currentPage < maxPage) {
+                entries.forEach((e) => {
+                    if(currentPage < maxPage && !isLoading && e.isIntersecting) {
                         currentPage += 1
+                        isLoading = true
                         loadData()
                     }
                 });
@@ -181,7 +187,7 @@
                         {#each headers as header}
                             <td>
                                 <!-- svelte 4 does not support dynamic slot names -->
-                                <slot name="cell" {item} {header}>
+                                <slot name="cell" {item} {header} {getCellValue}>
                                     {getCellValue(item, header)}
                                 </slot>
                             </td>
@@ -194,6 +200,9 @@
     </div>
     <div>
         <slot name="after-table"/>
+    </div>
+    <div class="uk-text-muted">
+        Total items: {totalItems}
     </div>
     <div bind:this={infiniteScrollEl}></div>
 </div>

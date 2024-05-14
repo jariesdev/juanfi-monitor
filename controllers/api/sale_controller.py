@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from fastapi import Depends
 
 from repository.sale_repository import SaleRepository
+from sql_app.schemas import SalesSearchRequest
+from fastapi_pagination import Page
 
 
 class SaleController():
@@ -12,13 +14,13 @@ class SaleController():
     def __init__(self, repository: SaleRepository = Depends(SaleRepository)):
         self._repository = repository
 
-    def search(self, q: Union[str, None] = None, date: Union[str, None] = None,
-               vendo_id: Union[int, None] = None) -> JSONResponse:
-        result = self._repository.search(q, date, vendo_id)
-
-        return JSONResponse({
-            "data": jsonable_encoder(result)
-        })
+    def search(self, request: SalesSearchRequest) -> Page:
+        result = self._repository.search(
+            search=request.q,
+            date=request.date,
+            vendo_id=request.vendo_id
+        )
+        return result
 
     def _map_list_to_dict(self, sales: list) -> list[dict]:
         def addition(d: list) -> dict:

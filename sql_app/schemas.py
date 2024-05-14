@@ -1,7 +1,18 @@
 from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Optional
+from fastapi_pagination import Params
 
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy.orm import Relationship
+
+class SearchRequest(Params):
+    q: Optional[str] = Field(default=None, example="my search")
+    pass
+
+
+class SalesSearchRequest(SearchRequest):
+    date: Optional[datetime] = None
+    vendo_id: Optional[int] = None
+    pass
 
 
 class UserBase(BaseModel):
@@ -36,12 +47,14 @@ class VendoCreate(VendoBase):
 
 class Vendo(BaseModel):
     id: int
+    name: str
     mac_address: str | None = None
-    is_online: bool = False
-    total_sales: float = 0
-    current_sales: float = 0
+    is_online: bool | None = None
+    total_sales: float | None = None
+    current_sales: float | None = None
     created_at: datetime
     updated_at: datetime | None = None
+
 
 class VendoLog(BaseModel):
     id: int | None = None
@@ -69,8 +82,10 @@ class SuccessResponse(BaseModel):
     success: bool
     pass
 
+
 class VendoLogResponse(SuccessResponse):
     data: list[VendoLog]
+
 
 class VendoSaleResponse(SuccessResponse):
     data: list[VendoSale]

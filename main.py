@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
+import repository.sale_repository
 import sql_app
 from commands.vendo_status_log import VendoStatusLog
 from controllers.api.log_controller import LogController
@@ -22,8 +23,10 @@ from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
-from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User
+from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest
+from sql_app.models import VendoSale
 from user_repository import UserRepository
+from fastapi_pagination import Page, add_pagination
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -149,11 +152,9 @@ async def refresh_logs():
     })
 
 
-@app.get("/sales", response_model=VendoSaleResponse)
-def read_sales(controller: SaleController = Depends(SaleController), q: Union[str, None] = None,
-               date: Union[str, None] = None, vendo_id: Union[int, None] = None):
-    return controller.search(q, date, vendo_id)
-    return sale_controller.search(q, date, vendo_id)
+@app.get("/sales", response_model=Page[sql_app.schemas.VendoSale])
+def read_sales(request: SalesSearchRequest = Depends(), controller: SaleController = Depends(SaleController)):
+    return controller.search(request)
 
 
 @app.get("/daily-sales")
@@ -200,6 +201,8 @@ async def read_vendo_sales(vendo_id: int, controller: VendoController = Depends(
 async def read_withdrawals(controller: WithdrawalController = Depends(WithdrawalController)):
     return controller.search()
 
+
+add_pagination(app)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
