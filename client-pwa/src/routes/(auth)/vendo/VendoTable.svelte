@@ -114,8 +114,8 @@
 							<DateTime date={vendo.recent_status?.created_at} />
 						</td>
 						<td class="uk-text-nowrap">
-							<a href={`/vendo/${vendo.id}/status`} class="uk-margin-small-right">
-								<span class="uk-text-info" uk-icon="icon: info" />
+							<a href={`/vendo/${vendo.id}/status`} class="uk-margin-small-right uk-button uk-button-small uk-button-primary uk-border-rounded">
+								<span class="uk-text-info uk-text-small" uk-icon="icon: info" /> View
 							</a>
 							<!--<a href="#delete" on:click={withdrawCurrentSales} class="uk-margin-small-right">
                             <span class="uk-text-info" uk-icon="icon: pencil"></span>
