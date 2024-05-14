@@ -1,79 +1,26 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import debounce from 'lodash/debounce';
-	import { apiUrl } from '$lib/store';
+	import { onMount } from 'svelte';
 	import moment from 'moment/moment';
-	import type { iVendo, iVendoLog } from '$lib/types/models.js';
+	import type { iVendo } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
+	import DataTable from '$lib/components/DataTable.svelte';
+	import type { TableHeader } from '$lib/types/datatable';
 
-	let logs: iVendoLog[] = [];
-	let searchInput: string = '';
 	let date: string = moment().format('Y-MM-DD');
 	let vendoId: number;
-	let isLoading: boolean = false;
-	let controller: AbortController | undefined = undefined;
-	let showFilter: boolean = true;
 	let vendos: iVendo[] = [];
 
-	export const loadData: Function = debounce(
-		async (): Promise<void> => {
-			isLoading = false;
-
-			const queryParams = [];
-
-			let url = `${baseApiUrl}/logs`;
-			if (!!searchInput) {
-				queryParams.push({
-					name: 'q',
-					value: searchInput
-				});
-			}
-
-			if (date) {
-				queryParams.push({
-					name: 'date',
-					value: date
-				});
-			}
-
-			if (!!vendoId) {
-				queryParams.push({
-					name: 'vendo_id',
-					value: vendoId
-				});
-			}
-
-			if (queryParams.length > 0) {
-				url = url + '?' + queryParams.map((o) => `${o.name}=${o.value}`).join('&');
-			}
-
-			controller = new AbortController();
-			const signal = controller.signal;
-			const request = new Request(url, { method: 'GET', signal: signal });
-
-			fetch(request)
-				.then((response) => {
-					if (response.status === 200) {
-						return response.json();
-					} else {
-						throw new Error('Something went wrong on API server!');
-					}
-				})
-				.then((response) => {
-					logs = response.data;
-				})
-				.catch((error) => {
-					console.error(error);
-					logs = [];
-				})
-				.finally(() => {
-					isLoading = false;
-				});
-		},
-		250,
-		{ maxWait: 1000 }
-	);
+	const tableHeaders: TableHeader[] = [
+		{label: 'Time', field: 'log_time'},
+		{label: 'Vendo', field: 'vendo.name'},
+		{label: 'Description', field: 'description'},
+		{label: 'Created At', field: 'created_at'},
+	]
+	$: ({tableFilters} = {tableFilters: {
+		vendo_id: vendoId,
+		date: date,
+		}})
 
 	function loadOptions(): void {
 		let url = `${baseApiUrl}/vendo-machines`;
@@ -94,42 +41,14 @@
 			});
 	}
 
-	$: searchInput, loadData();
-
 	onMount(() => {
 		loadOptions();
-		loadData();
-	});
-	onDestroy(() => {
-		controller && controller.abort('component destroyed');
 	});
 </script>
 
-<div class="uk-card uk-card-default uk-card-body">
-	<div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
-		<div class="uk-width-2-3@s">
-			<h3 class="uk-card-title">System Logs</h3>
-		</div>
-		<div class="uk-width-1-3@s">
-			<div class="uk-position-relative">
-				<button
-					class="uk-form-icon uk-form-icon-flip"
-					uk-icon="icon: {showFilter ? 'chevron-up' : 'chevron-down'}"
-					on:click|preventDefault={() => (showFilter = !showFilter)}
-					title="Show filters"
-				/>
-				<input
-					bind:value={searchInput}
-					class="uk-input uk-form-small"
-					type="search"
-					placeholder="Search"
-					aria-label="Input"
-				/>
-			</div>
-		</div>
-	</div>
-	{#if showFilter}
-		<div
+<DataTable url={`${baseApiUrl}/logs`} headers={tableHeaders} bind:filters={tableFilters} title="System Logs">
+	<div
+		slot="before-table"
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
 			style="row-gap: 15px"
 		>
@@ -140,7 +59,6 @@
 					name="date"
 					id="date"
 					class="uk-input uk-form-small uk-width-1-1"
-					on:change={loadData}
 				/>
 			</div>
 			<div>
@@ -149,7 +67,6 @@
 					name="vendo_id"
 					id="vendo_id"
 					class="uk-select uk-form-small uk-child-width-1-1"
-					on:change={loadData}
 				>
 					<option value={undefined}>All</option>
 					{#each vendos as vendo}
@@ -158,31 +75,13 @@
 				</select>
 			</div>
 		</div>
-	{/if}
-	<div class="uk-overflow-auto">
-		<table class="uk-table uk-table-divider">
-			<thead>
-				<tr>
-					<th>Time</th>
-					<th>Vendo</th>
-					<th>Description</th>
-					<th>Created At</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each logs as log}
-					<tr>
-						<td>
-							<DateTime date={log.log_time} class="uk-text-nowrap" />
-						</td>
-						<td>{log.vendo?.name}</td>
-						<td>{log.description}</td>
-						<td>
-							<DateTime date={log.created_at} class="uk-text-nowrap" />
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
-</div>
+	<span slot="cell" let:item let:header let:getCellValue>
+		{#if header.field === 'log_time'}
+			<DateTime date={item.log_time}></DateTime>
+		{:else if header.field === 'created_at'}
+			<DateTime date={item.created_at}></DateTime>
+		{:else}
+			<span>{getCellValue(item, header)}</span>
+		{/if}
+	</span>
+</DataTable>

@@ -15,6 +15,11 @@ class SalesSearchRequest(SearchRequest):
     pass
 
 
+class LogsSearchRequest(SearchRequest):
+    date: Optional[datetime] = None
+    vendo_id: Optional[int] = None
+
+
 class UserBase(BaseModel):
     username: str
     password: str
@@ -54,7 +59,6 @@ class Vendo(BaseModel):
     current_sales: float | None = None
     created_at: datetime
     updated_at: datetime | None = None
-
 
 class VendoLog(BaseModel):
     id: int | None = None

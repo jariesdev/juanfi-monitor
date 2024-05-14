@@ -1,10 +1,8 @@
-from typing import Union
-
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-
 from repository.log_repository import LogRepository
 from fastapi import Depends
+from fastapi_pagination import Page
+from sql_app.schemas import LogsSearchRequest
+
 
 class LogController:
     _repository: LogRepository
@@ -12,8 +10,13 @@ class LogController:
     def __init__(self, repository: LogRepository = Depends(LogRepository)):
         self._repository = repository
 
-    def search(self, q: Union[str, None] = None, date: Union[str, None] = None, vendo_id: Union[int, None] = None):
-        result = self._repository.search(q, date, vendo_id)
-        return JSONResponse(content={
-            "data": jsonable_encoder(result)
-        })
+    def search(self, request: LogsSearchRequest) -> Page:
+        date = None
+        if request.date is not None:
+            date = request.date.strftime('%Y-%m-%d')
+
+        result = self._repository.search(
+            search=request.q,
+            date=date,
+            vendo_id=request.vendo_id)
+        return result

@@ -23,7 +23,7 @@ from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
-from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest
+from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest
 from sql_app.models import VendoSale
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
@@ -118,14 +118,12 @@ def read_user(user_id: int, q: Union[str, None] = None):
     return JSONResponse({"item_id": user_id, "q": q})
 
 
-@app.get("/logs", response_model=VendoLogResponse)
+@app.get("/logs", response_model=Page[sql_app.schemas.VendoLog])
 async def read_logs(
-        controller: LogController = Depends(LogController),
-        q: Union[str, None] = None,
-        date: Union[str, None] = None,
-        vendo_id: Union[int, None] = None
+        request: LogsSearchRequest = Depends(),
+        controller: LogController = Depends(LogController)
 ):
-    response = controller.search(q, date, vendo_id)
+    response = controller.search(request)
     return response
 
 
