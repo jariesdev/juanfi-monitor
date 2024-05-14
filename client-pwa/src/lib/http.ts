@@ -1,4 +1,3 @@
-import { apiUrl, currentUser } from '$lib/store';
 import { baseApiUrl } from '$lib/env';
 
 
@@ -25,7 +24,3 @@ export const post = (url: string, formData: FormData | any): Promise<Response> =
 	const request: Request = new Request(`${baseApiUrl}${url}`, { method: 'POST', body: formData });
 	return fetch(request);
 };
-
-apiUrl.subscribe(function (value): void {
-	baseApiUrl = value;
-});
