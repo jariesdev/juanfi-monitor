@@ -3,25 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import debounce from 'lodash/debounce';
 	import get from 'lodash/get';
-
-	interface Filter {
-		[key: string]: string | number | boolean | null | undefined;
-	}
-
-	interface QueryParameters extends Filter {
-		q?: string;
-		page: number;
-		size: number;
-	}
-
-	interface TableHeader {
-		label: string;
-		field: string;
-	}
-
-	interface RowItem {
-		[key: string]: any;
-	}
+	import type { Filter, QueryParameters, RowItem, TableHeader } from '$lib/types/datatable';
 
 	// props
 	export let url: string;
