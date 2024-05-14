@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { apiUrl } from '$lib/store';
 	import { createEventDispatcher } from 'svelte';
+	import { baseApiUrl } from '$lib/env';
 
 	const dispatcher = createEventDispatcher();
 	let isProcessing: boolean = false;
@@ -9,7 +10,6 @@
 		api_url: '',
 		api_key: ''
 	};
-	let baseApiUrl: string = '';
 
 	function submit(): void {
 		const formData = new FormData();
@@ -46,10 +46,6 @@
 				isProcessing = false;
 			});
 	}
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 </script>
 
 <div>

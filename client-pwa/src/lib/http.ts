@@ -1,6 +1,6 @@
 import { apiUrl, currentUser } from '$lib/store';
+import { baseApiUrl } from '$lib/env';
 
-let baseApiUrl: string;
 
 function getAuthToken(): string | null {
 	return localStorage.getItem('auth_token');

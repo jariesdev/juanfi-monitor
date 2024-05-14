@@ -1,10 +1,10 @@
 <script lang="ts">
 	import LogTable from './LogTable.svelte';
 	import { apiUrl } from '$lib/store';
+	import { baseApiUrl } from '$lib/env';
 
 	let isReloading: boolean = false;
 	let reloadData: Function;
-	let baseApiUrl: string = '';
 
 	function refreshLogs(): void {
 		isReloading = true;
@@ -18,10 +18,6 @@
 				isReloading = false;
 			});
 	}
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 </script>
 
 <div class="uk-section">

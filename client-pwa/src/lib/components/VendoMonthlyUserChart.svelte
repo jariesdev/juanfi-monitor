@@ -8,10 +8,10 @@
 	import minBy from 'lodash/minBy';
 	import maxBy from 'lodash/maxBy';
 	import keyBy from 'lodash/keyBy';
+	import { baseApiUrl } from '$lib/env';
 
 	let chartData: any[] = [];
 	let canvas: HTMLCanvasElement;
-	let baseApiUrl: string = '';
 	let intervalId: any;
 	let isLoading: boolean = false;
 	let chart: Chart;
@@ -120,10 +120,6 @@
 				isLoading = false;
 			});
 	}
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	onMount(() => {
 		renderChart();

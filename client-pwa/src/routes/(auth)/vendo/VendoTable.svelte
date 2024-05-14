@@ -6,11 +6,11 @@
 	import type { iVendo } from '$lib/interfaces.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import { baseApiUrl } from '$lib/env';
 
 	let vendoMachines: iVendo[] = [];
 	let searchInput: string = '';
 	let isLoading: boolean = false;
-	let baseApiUrl: string = '';
 	let controller: AbortController | undefined = undefined;
 
 	export const loadData: Function = debounce(
@@ -53,10 +53,6 @@
 	}
 
 	$: searchInput, loadData();
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	onMount(() => {
 		loadData();

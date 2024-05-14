@@ -5,13 +5,13 @@
 	import moment from 'moment/moment';
 	import type { iVendo, iVendoLog } from '$lib/interfaces.js';
 	import DateTime from '$lib/components/DateTime.svelte';
+	import { baseApiUrl } from '$lib/env';
 
 	let logs: iVendoLog[] = [];
 	let searchInput: string = '';
 	let date: string = moment().format('Y-MM-DD');
 	let vendoId: number;
 	let isLoading: boolean = false;
-	let baseApiUrl: string = '';
 	let controller: AbortController | undefined = undefined;
 	let showFilter: boolean = true;
 	let vendos: iVendo[] = [];
@@ -95,10 +95,6 @@
 	}
 
 	$: searchInput, loadData();
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	onMount(() => {
 		loadOptions();

@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
 	import { apiUrl } from '$lib/store';
+	import { baseApiUrl } from '$lib/env';
 
 	interface iStatus {
 		key: string;
@@ -14,7 +15,6 @@
 	let isLoading: boolean = false;
 	let systemUptime: number = 0;
 	let serverTime: number = 0;
-	let baseApiUrl: string = '';
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
@@ -117,10 +117,6 @@
 	$: serverTimeString = (): string => {
 		return moment(serverTime).format();
 	};
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	onMount(() => {
 		loadStatuses();

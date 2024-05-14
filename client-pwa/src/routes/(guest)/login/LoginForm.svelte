@@ -2,8 +2,8 @@
 	import { apiUrl, currentUser } from '$lib/store';
 	import type { iUser } from '$lib/interfaces';
 	import { createEventDispatcher } from 'svelte';
+	import { baseApiUrl } from '$lib/env';
 
-	let baseApiUrl: string = '';
 	let isProcessing: boolean = false;
 	let username: string = '';
 	let password: string = '';
@@ -36,10 +36,6 @@
 				isProcessing = false;
 			});
 	}
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	currentUser.subscribe(function (value) {
 		user = value;

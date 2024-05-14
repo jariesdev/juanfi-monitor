@@ -3,8 +3,7 @@
 	import DateTime from '$lib/components/DateTime.svelte';
 	import type { iVendo } from '$lib/interfaces';
 	import { onMount } from 'svelte';
-
-	let baseApiUrl: string = import.meta.env.VITE_API_URL;
+	import { baseApiUrl } from '$lib/env';
 
 	let headers = [
 		{ label: 'Time', field: 'sale_time' },

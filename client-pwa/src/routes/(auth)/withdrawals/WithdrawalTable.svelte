@@ -4,10 +4,10 @@
 	import { apiUrl } from '$lib/store';
 	import type { iSale } from '$lib/interfaces';
 	import DateTime from '$lib/components/DateTime.svelte';
+	import { baseApiUrl } from '$lib/env';
 
 	let withdrawals: iSale[] = [];
 	let isLoading: boolean = false;
-	let baseApiUrl: string = '';
 	let controller: AbortController | undefined = undefined;
 
 	export const loadData: Function = debounce(
@@ -41,10 +41,6 @@
 		250,
 		{ maxWait: 1000 }
 	);
-
-	apiUrl.subscribe(function (value) {
-		baseApiUrl = value;
-	});
 
 	onMount(() => {
 		loadData();
