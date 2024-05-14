@@ -46,7 +46,7 @@
 	});
 </script>
 
-<DataTable url={`${baseApiUrl}/sales`} {headers} bind:filters>
+<DataTable url={`${baseApiUrl}/sales`} {headers} bind:filters title="Sales">
 	<div slot="before-table">
 		<div
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
