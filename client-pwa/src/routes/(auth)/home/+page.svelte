@@ -22,7 +22,7 @@
 
 
 	<h3 class="uk-text-light uk-text-center">
-		Real-time Sales
+		Daily Sales
 	</h3>
 	<DailySaleChart></DailySaleChart>
 	<h3 class="uk-text-light uk-text-center">
