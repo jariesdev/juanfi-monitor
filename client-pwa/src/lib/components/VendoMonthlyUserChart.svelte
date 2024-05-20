@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Chart from 'chart.js/auto';
 	import { onMount, onDestroy } from 'svelte';
-	import { apiUrl } from '$lib/store';
 	import map from 'lodash/map';
 	import groupBy from 'lodash/groupBy';
 	import moment from 'moment';
@@ -9,6 +8,8 @@
 	import maxBy from 'lodash/maxBy';
 	import keyBy from 'lodash/keyBy';
 	import { baseApiUrl } from '$lib/env';
+	import type { ChartConfiguration } from 'chart.js';
+	import 'chartjs-adapter-moment';
 
 	let chartData: any[] = [];
 	let canvas: HTMLCanvasElement;
@@ -26,9 +27,10 @@
 
 	function renderChart(): void {
 		chartData = {
+			labels: [],
 			datasets: []
 		};
-		chart = new Chart(canvas, {
+		const chartConfig: ChartConfiguration = {
 			type: 'line',
 			data: chartData,
 			options: {
@@ -36,13 +38,35 @@
 					xAxisKey: 'time',
 					yAxisKey: 'users'
 				},
+				interaction: {
+					intersect: false,
+					mode: 'index'
+				},
 				elements: {
 					point: {
 						radius: 0
 					}
-				}
+				},
+				scales: {
+					x: {
+						type: 'time',
+					}
+				},
+				plugins: {
+					tooltip: {
+						enabled: true,
+						position: 'nearest',
+						callbacks: {
+							title: function(tooltipItems: TooltipItem[]) {
+								const { raw } = tooltipItems[0];
+								return moment(raw.time).format('MMMM DD, Y h:mm A');
+							},
+						}
+					}
+				},
 			}
-		});
+		}
+		chart = new Chart(canvas, chartConfig);
 	}
 
 	function loadChartData(): void {
@@ -81,12 +105,12 @@
 							const dt = sTime;
 							if (vendoSales2[dKey]) {
 								data.push({
-									time: moment(dt).format('MM-DD ha'),
+									time: moment(dt).startOf('hour').toDate(),
 									users: vendoSales2[dKey].average_active_users
 								});
 							} else {
 								data.push({
-									time: moment(dt).format('MM-DD ha'),
+									time: moment(dt).startOf('hour').toDate(),
 									users: null
 								});
 							}

@@ -48,8 +48,8 @@
 						position: 'nearest',
 						callbacks: {
 							title: function(tooltipItems: TooltipItem[]) {
-								const { label } = tooltipItems[0];
-								return moment(label).format('MMMM DD, Y');
+								const { raw } = tooltipItems[0];
+								return moment(raw.date).format('MMMM DD, Y');
 							},
 							footer: function(tooltipItems: TooltipItem[]) {
 								const total = tooltipItems.map(i => i.raw.total)
