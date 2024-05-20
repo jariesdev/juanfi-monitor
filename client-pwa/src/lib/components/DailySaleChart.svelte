@@ -1,13 +1,14 @@
 <script lang="ts">
-	import Chart from 'chart.js/auto';
+	import { Chart, type ChartConfiguration } from 'chart.js';
 	import { onMount, onDestroy } from 'svelte';
-	import { apiUrl } from '$lib/store';
 	import map from 'lodash/map';
 	import minBy from 'lodash/minBy';
 	import maxBy from 'lodash/maxBy';
 	import groupBy from 'lodash/groupBy';
 	import keyBy from 'lodash/keyBy';
 	import { baseApiUrl } from '$lib/env';
+	import moment from 'moment';
+	import 'chartjs-adapter-moment';
 
 	let chartData: any[] = [];
 	let canvas: HTMLCanvasElement;
@@ -23,11 +24,13 @@
 		vendo_name: string;
 	}
 
+
 	function renderChart(): void {
 		chartData = {
+			labels: [],
 			datasets: []
 		};
-		chart = new Chart(canvas, {
+		let chartConfig: ChartConfiguration = {
 			type: 'line',
 			data: chartData,
 			options: {
@@ -35,22 +38,49 @@
 					xAxisKey: 'date',
 					yAxisKey: 'total'
 				},
+				interaction: {
+					intersect: false,
+					mode: 'index'
+				},
+				plugins: {
+					tooltip: {
+						enabled: true,
+						position: 'nearest',
+						callbacks: {
+							title: function(tooltipItems: TooltipItem[]) {
+								const { label } = tooltipItems[0];
+								return moment(label).format('MMMM DD, Y');
+							},
+							footer: function(tooltipItems: TooltipItem[]) {
+								const total = tooltipItems.map(i => i.raw.total)
+									.reduce((carry: number, value: number) => carry + value, 0);
+								const formatTotal = new Intl.NumberFormat().format(total);
+								return `Total ${formatTotal}`;
+							}
+						}
+					}
+				},
 				elements: {
 					point: {
 						radius: 2.5
 					}
 				},
 				scales: {
+					x: {
+						type: 'time',
+					},
 					y: {
 						ticks: {
-							callback: function (value: string) {
+							callback: function(value: string) {
 								return 'PHP ' + value;
 							}
 						}
 					}
 				}
 			}
-		});
+		};
+
+		chart = new Chart(canvas, chartConfig);
 	}
 
 	function loadChartData(): void {
@@ -78,19 +108,16 @@
 						while (sDate.getTime() <= eDate.getTime()) {
 							const dKey = sDate.toISOString().split('T')[0];
 							const dt = sDate;
-							const m = dt.getMonth() + 1;
-							const dy = dt.getDate();
-							const df = String(dy).padStart(2, '0');
-							const mf = String(m).padStart(2, '0');
+							// dt.setTime(0)
 
 							if (vendoSales2[dKey]) {
 								data.push({
-									date: `${mf}-${df}`,
+									date: moment(dt).startOf('day').toDate(),
 									total: vendoSales2[dKey].total
 								});
 							} else {
 								data.push({
-									date: `${mf}-${df}`,
+									date: moment(dt).startOf('day').toDate(),
 									total: null
 								});
 							}
@@ -113,9 +140,17 @@
 							label: vendoName,
 							data: data,
 							borderWidth: 1,
-							tension: 0.4
+							tension: 0.4,
+							fill: false
 						};
 					});
+
+					const startDate = moment(minDate).startOf('day');
+					chart.data.labels = [];
+					while (startDate.isSameOrBefore(maxDate)) {
+						chart.data.labels.push(startDate.toDate());
+						startDate.add(1, 'day');
+					}
 
 					chart.data.datasets = datasets;
 					chart.update();
