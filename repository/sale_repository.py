@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Union
 
 from sqlalchemy import func, or_, select
@@ -36,12 +37,13 @@ class SaleRepository:
 
         return paginate(db, query)
 
-    def get_daily_sales(self) -> list[dict]:
+    def get_daily_sales(self, from_date: date, to_date: date) -> list[dict]:
         db = self._db
         query = (db.query(func.date(VendoSale.sale_time).label("date"), func.sum(VendoSale.amount).label("total"),
                           VendoSale.vendo_id, Vendo.name.label("vendo_name"))
                  .join(VendoSale.vendo)
-                 .where(VendoSale.sale_time > func.date("now", "-3 months"))
+                 .where(VendoSale.sale_time > from_date.strftime('%Y-%m-%d'))
+                 .where(VendoSale.sale_time < to_date.strftime('%Y-%m-%d'))
                  .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
                  .order_by(VendoSale.sale_time))
         return query.all()

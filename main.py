@@ -23,7 +23,8 @@ from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
-from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest
+from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
+    DailySaleRequest
 from sql_app.models import VendoSale
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
@@ -156,8 +157,8 @@ def read_sales(request: SalesSearchRequest = Depends(), controller: SaleControll
 
 
 @app.get("/daily-sales")
-def read_daily_sales(controller: SaleController = Depends(SaleController)):
-    return controller.daily_sales()
+def read_daily_sales(request: DailySaleRequest = Depends(), controller: SaleController = Depends(SaleController)):
+    return controller.daily_sales(request)
 
 
 @app.get("/vendo-status-history")

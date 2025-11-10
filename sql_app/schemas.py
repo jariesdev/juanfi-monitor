@@ -1,7 +1,16 @@
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from fastapi_pagination import Params
+
+
+class BaseRequest(BaseModel):
+    pass
+
+
+class DailySaleRequest(BaseRequest):
+    from_date: date = Field(default=None)
+    to_date: date = Field(default=None)
 
 
 class SearchRequest(Params):
