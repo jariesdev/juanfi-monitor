@@ -45,7 +45,7 @@ jobs:
         working-directory: ./client-pwa
 
       - name: Compress Build Artifacts
-        run: tar -czf build-artifacts.tar.gz .svelte-kit
+        run: tar -czf build-artifacts.tar.gz build package.json package-lock.json node_modules
         working-directory: ./client-pwa
 
       - name: Upload Build Artifacts
@@ -66,7 +66,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-          path: build
+          path: build # downloaded artifact will be stored here
 
       - name: Add Server to Known Hosts
         run: |
@@ -79,7 +79,6 @@ jobs:
           PRODUCTION_SERVER_URI: ${{ vars.PRODUCTION_SERVER_URI }}
         run: |
           echo "${SSH_PRIVATE_KEY}" > ssh_key
-          
           chmod 600 ssh_key
           scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:/opt/vendo_report
           ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd /opt/vendo_report && tar -xzf build-artifacts.tar.gz && pm2 restart pwifi"
