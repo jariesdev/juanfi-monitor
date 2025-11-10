@@ -39,18 +39,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: ./client-pwa
+
       - name: Build App
         run: node_modules/.bin/vite build
         working-directory: ./client-pwa
 
       - name: Compress Build Artifacts
-        run: tar -czf build-artifacts.tar.gz client-pwa/.svelte-kit
+        run: tar -czf build-artifacts.tar.gz .svelte-kit
+        working-directory: ./client-pwa
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
          name: build-artifacts
-         path: build-artifacts.tar.gz
+         path: ./client-pwa/build-artifacts.tar.gz
 
   deploy:
 
