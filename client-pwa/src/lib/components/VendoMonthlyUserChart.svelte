@@ -50,6 +50,11 @@
 				scales: {
 					x: {
 						type: 'time',
+					},
+					y: {
+						ticks: {
+							stepSize: 1
+						},
 					}
 				},
 				plugins: {
