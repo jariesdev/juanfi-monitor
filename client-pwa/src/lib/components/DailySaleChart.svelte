@@ -86,7 +86,14 @@
 	function loadChartData(): void {
 		controller = new AbortController();
 		const signal = controller.signal;
-		const request = new Request(`${baseApiUrl}/daily-sales`, { method: 'GET', signal: signal });
+
+		const now = new Date()
+		now.setMonth(now.getMonth() + 1)
+		const fromDate = new Date().toISOString().split('T')[0]
+		const toDate = now.toISOString().split('T')[0]
+		let url = `${baseApiUrl}/daily-sales?from_date=${fromDate}&to_date=${toDate}`
+
+		const request = new Request(url, { method: 'GET', signal: signal });
 		fetch(request)
 			.then((response) => {
 				if (response.status === 200) {
