@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
          name: build-artifacts
-         path: build-artifacts.tar.gz
+         path: build/build-artifacts.tar.gz
 
   deploy:
 
@@ -76,4 +76,4 @@ jobs:
           
           chmod 600 ssh_key
           scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:/opt/vendo_report
-          ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd /opt/vendo_report && tar -xzf build-artifacts.tar.gz && pm2 restart vendo_report"
+          ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd /opt/vendo_report && tar -xzf build-artifacts.tar.gz && pm2 restart pwifi"
