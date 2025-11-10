@@ -113,8 +113,8 @@
 					const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
 						const data = [];
 						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => o.date);
-						const sDate = fromDate;
-						const eDate = toDate;
+						const sDate = new Date(fromDate);
+						const eDate = new Date(toDate);
 						while (sDate <= eDate) {
 							const dKey = sDate.toISOString().split('T')[0];
 							const dt = sDate;
