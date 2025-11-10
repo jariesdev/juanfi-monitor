@@ -71,6 +71,8 @@
 					},
 					y: {
 						ticks: {
+							beginAtZero: true,
+							stepSize: 1,
 							callback: function(value: string) {
 								return 'PHP ' + value;
 							}
@@ -88,10 +90,13 @@
 		const signal = controller.signal;
 
 		const now = new Date()
-		now.setMonth(now.getMonth() + 1)
-		const fromDate = new Date().toISOString().split('T')[0]
-		const toDate = now.toISOString().split('T')[0]
-		let url = `${baseApiUrl}/daily-sales?from_date=${fromDate}&to_date=${toDate}`
+		now.setMonth(now.getMonth() - 1)
+		now.setDate(now.getDate() - 1)
+		const fromDate = now
+		const fromDateStr = fromDate.toISOString().split('T')[0]
+		const toDate = new Date()
+		const toDateStr = toDate.toISOString().split('T')[0]
+		let url = `${baseApiUrl}/daily-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
 
 		const request = new Request(url, { method: 'GET', signal: signal });
 		fetch(request)
@@ -104,19 +109,16 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
-					const minDate = minBy(data, (o: any) => o.date)?.date;
-					const maxDate = maxBy(data, (o: any) => o.date)?.date;
 					const byVendo = groupBy(data, 'vendo_id');
 					const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
 						const data = [];
 						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => o.date);
-						const sDate = new Date(Date.parse(minDate));
-						const eDate = new Date(Date.parse(maxDate));
-						while (sDate.getTime() <= eDate.getTime()) {
+						const sDate = fromDate;
+						const eDate = toDate;
+						while (sDate <= eDate) {
 							const dKey = sDate.toISOString().split('T')[0];
 							const dt = sDate;
 							// dt.setTime(0)
-
 							if (vendoSales2[dKey]) {
 								data.push({
 									date: moment(dt).startOf('day').toDate(),
@@ -152,9 +154,9 @@
 						};
 					});
 
-					const startDate = moment(minDate).startOf('day');
+					const startDate = moment(fromDate).startOf('day');
 					chart.data.labels = [];
-					while (startDate.isSameOrBefore(maxDate)) {
+					while (startDate.isSameOrBefore(toDate)) {
 						chart.data.labels.push(startDate.toDate());
 						startDate.add(1, 'day');
 					}
