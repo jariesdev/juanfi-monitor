@@ -36,8 +36,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-      - run: npm ci
-      - run: node_modules/.bin/vite build
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./client-pwa
+      - name: Build App
+        run: node_modules/.bin/vite build
+        working-directory: ./client-pwa
 
       - name: Compress Build Artifacts
         run: tar -czf build-artifacts.tar.gz .svelte-kit
@@ -46,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
          name: build-artifacts
-         path: build/build-artifacts.tar.gz
+         path: build-artifacts.tar.gz
 
   deploy:
 
