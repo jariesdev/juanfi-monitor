@@ -78,7 +78,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             }
         }
     } catch (e) {
-        return fail(400, {message: e.message})
+        return fail(400, {message: e.message, invalid: true})
     }
 
     // redirect the user

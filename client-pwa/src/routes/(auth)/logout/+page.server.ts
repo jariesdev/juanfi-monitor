@@ -10,8 +10,8 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
     default({cookies}) {
         // eat the cookie
-        cookies.delete('auth_token')
-        cookies.delete('auth_token_expiry')
+        cookies.delete('auth_token', { path: '/' })
+        cookies.delete('auth_token_expiry', { path: '/' })
 
         // redirect the user
         throw redirect(302, '/login')
