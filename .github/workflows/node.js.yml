@@ -10,7 +10,8 @@ on:
     branches: [ "main" ]
   create:
     tags: [ "*" ]
-
+# since we don't have UAT, staging. We do all in prod.
+# ideally, main and tags are productions, release (develop -> release) is UAT and develop (features -> develop or features -> integrations -> develop) is staging
 jobs:
   build:
 
