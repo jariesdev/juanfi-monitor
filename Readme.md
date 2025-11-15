@@ -19,4 +19,6 @@
 * Frontend
   * Build, `cd client-pwa && ./node_modules/.bin/vite build`
     * Use pm2 
-      * `PORT=8001 pm2 start build/index.js --interpreter node --watch --name pwifi`
+      * `PORT=8001 API_URL=http://localhost:8001 pm2 start build/index.js --interpreter node --watch --name pwifi`
+    * PORT: Backend API port
+    * API_URL: API URL to be use by Frontend

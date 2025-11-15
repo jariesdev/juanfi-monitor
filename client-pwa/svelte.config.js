@@ -8,8 +8,11 @@ const config = {
 	preprocess: sveltekit(),
 
 	kit: {
-		adapter: adapter()
-	}
+		adapter: adapter(),
+		env: {
+			dir: '../'
+		}
+	},
 };
 
 export default config;

@@ -1,5 +1,6 @@
 import {fail, redirect} from '@sveltejs/kit'
 import type {Action, Actions, PageServerLoad} from './$types'
+import { VITE_API_URL, NODE_ENV } from '$env/static/private';
 
 export const load: PageServerLoad = async ({cookies}) => {
     const token = cookies.get('auth_token')
@@ -13,7 +14,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
     const data = await request.formData()
     const username = data.get('username')
     const password = data.get('password')
-    const baseApiUrl: string = import.meta.env.VITE_API_URL
+    const baseApiUrl: string = VITE_API_URL
 // validation
     if (
         typeof username !== 'string' ||
@@ -50,7 +51,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             // https://developer.mozilla.org/en-US/docs/Glossary/CSRF
             sameSite: 'strict',
             // only sent over HTTPS in production
-            secure: process.env.NODE_ENV === 'production',
+            secure: NODE_ENV === 'production',
             // set cookie to expire after a month
             maxAge: 60 * 60 * 24 * 30,
         })
@@ -64,7 +65,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             // https://developer.mozilla.org/en-US/docs/Glossary/CSRF
             sameSite: 'strict',
             // only sent over HTTPS in production
-            secure: process.env.NODE_ENV === 'production',
+            secure: NODE_ENV === 'production',
             // set cookie to expire after a month
             maxAge: 60 * 60 * 24 * 30,
         })
@@ -78,7 +79,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             }
         }
     } catch (e) {
-        return fail(400, {message: e.message})
+        return fail(400, {message: e.message, invalid: true})
     }
 
     // redirect the user
