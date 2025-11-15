@@ -1,68 +1,60 @@
 <script lang="ts">
-	import { apiUrl, currentUser } from '$lib/store';
-	import type { iUser } from '$lib/types/models';
-	import { createEventDispatcher } from 'svelte';
-	import { baseApiUrl } from '$lib/env';
+	import {enhance} from '$app/forms';
+	import {currentUser} from '$lib/store';
+	import type {iUser} from '$lib/types/models';
+	import {page} from '$app/state';
 
-	let isProcessing: boolean = false;
-	let username: string = '';
-	let password: string = '';
-	let user: iUser;
-	const dispatcher = createEventDispatcher();
-
-	function submit(): void {
-		isProcessing = true;
-		const formData = new FormData();
-		formData.append('username', username);
-		formData.append('password', password);
-		const request = new Request(`${baseApiUrl}/token`, { method: 'POST', body: formData });
-		fetch(request)
-			.then(async (response) => {
-				if (!response.ok) {
-					throw new Error(response.statusText);
-				}
-
-				const data = await response.json();
-				localStorage.setItem('auth_token', data.access_token);
-				currentUser.set(data.user);
-				console.log(data);
-				dispatcher('success', { user });
-			})
-			.catch(() => {
-				localStorage.removeItem('auth_token');
-				currentUser.set(null);
-			})
-			.finally(() => {
-				isProcessing = false;
-			});
+	interface Props {
+		onSuccess: (user: object) => void,
+		onFailed: () => void
 	}
+
+	let isProcessing: boolean = $state(false);
+	let username: string = $state('');
+	let password: string = $state('');
+	let user: iUser;
+	// let {onSuccess, onFailed}: Props = $props();
 
 	currentUser.subscribe(function (value) {
 		user = value;
 	});
 </script>
 
-<form on:submit|preventDefault={submit}>
+<form method="POST" action="/login" use:enhance>
 	<div class="uk-grid uk-grid-small uk-child-width-1-1" style="row-gap: 20px">
 		<div>
-			<input
-				bind:value={username}
-				type="text"
-				class="uk-input"
-				name="username"
-				placeholder="Username"
-				disabled={isProcessing}
-			/>
+			<div class="uk-inline uk-display-block">
+				<span class="uk-form-icon" uk-icon="icon: user"></span>
+				<input
+					bind:value={username}
+					type="text"
+					class="uk-input"
+					name="username"
+					placeholder="Username"
+					disabled={isProcessing}
+					class:uk-form-danger={page.form?.invalid}
+				/>
+
+				<!-- Display the error message if the login failed -->
+				{#if page.form?.invalid}
+					<p class="error-message uk-text-small uk-hidden">{page.form.message}</p>
+				{/if}
+			</div>
 		</div>
+
 		<div>
-			<input
-				bind:value={password}
-				type="password"
-				class="uk-input"
-				name="password"
-				placeholder="Password"
-				disabled={isProcessing}
-			/>
+			<div class="uk-inline uk-display-block">
+				<span class="uk-form-icon" uk-icon="icon: lock"></span>
+				<input
+					bind:value={password}
+					type="password"
+					class="uk-input"
+					name="password"
+					placeholder="Password"
+					disabled={isProcessing}
+					class:uk-form-danger={page.form?.invalid}
+				/>
+			</div>
 		</div>
 
 		<div class="uk-text-center">
