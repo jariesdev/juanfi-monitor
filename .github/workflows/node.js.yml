@@ -30,7 +30,6 @@ jobs:
 
       - name: Environment Variables
         run: echo "${{ vars.ENV }}" >> .env
-        working-directory: ./client-pwa
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
