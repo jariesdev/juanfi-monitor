@@ -29,7 +29,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Environment Variables
-        run: echo "${{ vars.ENV }}" >> .env
+        run: |
+          echo "${{ vars.ENV }}" >> .env
+          pwd && ls -al
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
