@@ -1,7 +1,7 @@
 import {fail, redirect} from '@sveltejs/kit'
 import type {Action, Actions, PageServerLoad} from './$types'
 import { NODE_ENV } from '$env/static/private';
-import { API_URL } from '$env/dynamic/private';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({cookies}) => {
     const token = cookies.get('auth_token')
@@ -15,7 +15,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
     const data = await request.formData()
     const username = data.get('username')
     const password = data.get('password')
-    const baseApiUrl: string = API_URL
+    const baseApiUrl: string = env.API_URL || ''
 // validation
     if (
         typeof username !== 'string' ||
