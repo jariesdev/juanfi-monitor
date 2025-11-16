@@ -97,13 +97,15 @@
 		tableItems = [];
 	}
 	$effect(() => {
-		let a = filters
+		filters // allow to watch for changes
 		resetTableQuery()
 	})
-
-	// watch params then reload data
 	$effect(() => {
-		let a = filters
+		searchInput // allow to watch for changes
+		resetTableQuery()
+	})
+	$effect(() => {
+		queryParams // allow to watch for changes
 		loadData()
 	})
 
