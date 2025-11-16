@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
 	import { baseApiUrl } from '$lib/env';
-	import {changeVendoStatus, getVendoInfo} from "../../vendo.remote";
+	import {changeVendoStatus, getVendoInfo} from "$lib/remote/vendo.remote";
 	import type {iVendo} from "$lib/types/models";
 
 	interface iStatus {

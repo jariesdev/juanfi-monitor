@@ -50,7 +50,6 @@ export const changeVendoStatus = query(v.object({
 });
 
 export const getVendoInfo = query(v.number(), async (id) => {
-
 	try {
 		// try login to API
 		const baseApiUrl: string = VITE_API_URL
@@ -75,5 +74,31 @@ export const getVendoInfo = query(v.number(), async (id) => {
 		return data
 	} catch (e: unknown) {
 		return null
+	}
+});
+
+export const getVendos = query(async (): Promise<iVendo[]> => {
+	try {
+		// try login to API
+		const baseApiUrl: string = VITE_API_URL
+		const headers: Headers = new Headers()
+		headers.set('Accept', 'application/json')
+		headers.set('Content-Type', 'application/json')
+		headers.set('authorization', ``)
+		const request: Request = new Request(`${baseApiUrl}/vendo-machines`, {
+			method: 'GET',
+			headers
+		})
+		return await fetch(request)
+			.then((response) => {
+				if (response.ok) {
+					return response.json()
+				}
+
+				throw new Error(response.statusText)
+			})
+			.then(({data}) => data)
+	} catch (e: unknown) {
+		return []
 	}
 });

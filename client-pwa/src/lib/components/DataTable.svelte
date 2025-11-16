@@ -1,28 +1,32 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { onDestroy, onMount } from 'svelte';
+	import {browser} from '$app/environment';
+	import {onDestroy, onMount} from 'svelte';
 	import debounce from 'lodash/debounce';
 	import get from 'lodash/get';
-	import type { Filter, QueryParameters, RowItem, TableHeader } from '$lib/types/datatable';
+	import type {Filter, QueryParameters, RowItem, TableHeader} from '$lib/types/datatable';
 
 	// props
-	export let url: string;
-	export let headers: TableHeader[] = [];
-	export let filters: Filter = {};
-	export let title: string = 'Table Records';
-	export let perPage: number = 15;
-	// variables
-	let currentPage: number = 1;
-	let maxPage: number = 1;
-	let totalItems: number = 0;
-	let isLoading: boolean = false;
-	let tableItems: RowItem[] = [];
-	let searchInput: string = '';
+	interface Props {
+		url: string,
+		headers: TableHeader[],
+		filters: Filter,
+		title: string,
+		perPage?: number
+	}
+
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15}: Props = $props()
+
+	// states
+	let currentPage: number = $state(1);
+	let maxPage: number = $state(1);
+	let totalItems: number = $state(1);
+	let isLoading: boolean = $state(false);
+	let tableItems: RowItem[] = $state([]);
+	let searchInput: string = $state('');
 	let controller: AbortController | undefined = undefined;
 	let infiniteScrollEl: HTMLDivElement;
 
-	// computed property queryParams
-	$: ({ queryParams } = ((): { queryParams: QueryParameters } => {
+	const queryParams: Filter = $derived.by(() => {
 		let params: Filter = {};
 		// remove empty params
 		Object.keys(filters).forEach((k) => {
@@ -32,14 +36,12 @@
 		});
 
 		return {
-			queryParams: {
-				...params,
-				q: searchInput,
-				page: currentPage,
-				size: perPage
-			}
-		};
-	})());
+			...params,
+			q: searchInput,
+			page: currentPage,
+			size: perPage
+		}
+	})
 
 	// load table data
 	export const loadData: Function = debounce(
@@ -57,7 +59,7 @@
 			}
 			controller = new AbortController();
 			const signal = controller.signal;
-			const request = new Request(localUrl, { method: 'GET', signal: signal });
+			const request = new Request(localUrl, {method: 'GET', signal: signal});
 
 			fetch(request)
 				.then((response) => {
@@ -82,7 +84,7 @@
 				});
 		},
 		250,
-		{ maxWait: 1000 }
+		{maxWait: 1000}
 	);
 
 	function getCellValue(item: RowItem, header: TableHeader) {
@@ -90,19 +92,23 @@
 	}
 
 	// reset when search
-	$: if (searchInput) {
+	const resetTableQuery = () => {
 		currentPage = 1;
 		tableItems = [];
 	}
-	$: if (filters) {
-		currentPage = 1;
-		tableItems = [];
-	}
+	$effect(() => {
+		let a = filters
+		resetTableQuery()
+	})
+
 	// watch params then reload data
-	$: queryParams, loadData();
+	$effect(() => {
+		let a = filters
+		loadData()
+	})
 
 	// watcher infinite scroll
-	$: {
+	$effect(() => {
 		if (browser && infiniteScrollEl) {
 			let options = {
 				rootMargin: '0px',
@@ -121,7 +127,7 @@
 			let observer = new IntersectionObserver(callback, options);
 			observer.observe(infiniteScrollEl);
 		}
-	}
+	})
 
 	onMount(() => {
 		// load data from url
@@ -146,6 +152,7 @@
 				type="search"
 				placeholder="Search"
 				aria-label="Input"
+				onchange={()=>resetTableQuery()}
 			/>
 		</div>
 	</div>
@@ -155,34 +162,34 @@
 	<div class="uk-overflow-auto uk-margin-bottom">
 		<table class="uk-table uk-table-divider">
 			<thead>
-				<tr>
-					{#each headers as header}
-						<th>{header.label}</th>
-					{/each}
-				</tr>
+			<tr>
+				{#each headers as header}
+					<th>{header.label}</th>
+				{/each}
+			</tr>
 			</thead>
 			<tbody>
-				{#if tableItems.length === 0}
+			{#if tableItems.length === 0}
+				<tr>
+					<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
+						<slot name="empty">No record yet.</slot>
+					</td>
+				</tr>
+			{/if}
+			{#each tableItems as item}
+				<slot name="item" {item}>
 					<tr>
-						<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
-							<slot name="empty">No record yet.</slot>
-						</td>
+						{#each headers as header}
+							<td>
+								<!-- svelte 4 does not support dynamic slot names -->
+								<slot name="cell" {item} {header} {getCellValue}>
+									{getCellValue(item, header)}
+								</slot>
+							</td>
+						{/each}
 					</tr>
-				{/if}
-				{#each tableItems as item}
-					<slot name="item" {item}>
-						<tr>
-							{#each headers as header}
-								<td>
-									<!-- svelte 4 does not support dynamic slot names -->
-									<slot name="cell" {item} {header} {getCellValue}>
-										{getCellValue(item, header)}
-									</slot>
-								</td>
-							{/each}
-						</tr>
-					</slot>
-				{/each}
+				</slot>
+			{/each}
 			</tbody>
 		</table>
 	</div>
