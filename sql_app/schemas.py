@@ -23,6 +23,9 @@ class SalesSearchRequest(SearchRequest):
     vendo_id: Optional[int] = None
     pass
 
+class SetVendoStatusRequest(BaseRequest):
+    status: bool
+    pass
 
 class LogsSearchRequest(SearchRequest):
     date: Optional[datetime] = None

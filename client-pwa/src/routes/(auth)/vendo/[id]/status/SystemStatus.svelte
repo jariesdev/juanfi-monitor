@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
-	import { apiUrl } from '$lib/store';
 	import { baseApiUrl } from '$lib/env';
+	import {changeVendoStatus, getVendoInfo} from "$lib/remote/vendo.remote";
+	import type {iVendo} from "$lib/types/models";
 
 	interface iStatus {
 		key: string;
@@ -10,15 +11,18 @@
 		text: string;
 	}
 
-	export let vendoId: number;
-	let statuses: iStatus[] = [];
-	let isLoading: boolean = false;
-	let systemUptime: number = 0;
-	let serverTime: number = 0;
+	// export let vendoId: number;
+	const {vendoId} = $props()
+	let statuses: iStatus[] = $state([]);
+	let isLoading: boolean = $state(false);
+	let systemUptime: number = $state(0);
+	let serverTime: number = $state(0);
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
 	let isWithdrawing: boolean = false;
+
+	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
 
 	function loadStatuses(): void {
 		controller = new AbortController();
@@ -114,9 +118,10 @@
 		return `${sf}`;
 	}
 
-	$: serverTimeString = (): string => {
-		return moment(serverTime).format();
-	};
+	// $: serverTimeString = (): string => {
+	// 	return moment(serverTime).format();
+	// };
+	let serverTimeString = $derived(():string => moment(serverTime).format())
 
 	onMount(() => {
 		loadStatuses();
@@ -134,7 +139,7 @@
 	});
 </script>
 
-<div class="uk-card uk-card-default uk-card-body">
+<div class="uk-card uk-card-default uk-card-body uk-margin-small-bottom">
 	{#if statuses.length > 0}
 		<ul class="uk-list uk-list-divider">
 			<li class="uk-flex uk-flex-between">
@@ -154,7 +159,7 @@
 								disabled={isWithdrawing || parseFloat(status.text || '0') === 0}
 								class="uk-button uk-button-primary uk-button-small uk-border-rounded"
 								type="button"
-								on:click={withdrawCurrenSale}
+								onclick={withdrawCurrenSale}
 							>
 								<i uk-icon="icon: credit-card" class="uk-margin-small-right" />
 								Withdraw
@@ -169,5 +174,21 @@
 		</ul>
 	{:else}
 		<p class="uk-text-info">Status not available yet.</p>
+	{/if}
+</div>
+
+<div class="uk-card uk-card-default uk-card-body">
+	{#if vendo}
+		<button
+			class="uk-button uk-button-small uk-border-rounded"
+			class:uk-button-primary={!vendo.is_active}
+			class:uk-button-danger={vendo.is_active}
+			type="button"
+			onclick={async () => { changeVendoStatus({id: vendo.id, status: !vendo.is_active}).then(() => getVendoInfo(+vendoId).refresh())}}
+		>
+		<span>
+			{vendo.is_active ? 'Disable' : 'Enable'} {vendo?.name} Vendo
+		</span>
+		</button>
 	{/if}
 </div>

@@ -13,8 +13,11 @@ class VendoStatusRepository:
     def __init__(self):
         self._db = SessionLocal()
 
-    def get_hourly_status(self, vendo_id: Union[int, None] = None, from_date: Union[str, None] = None,
-                          to_date: Union[str, None] = None) -> list:
+    def get_hourly_status(self,
+                          vendo_id: Union[int, None] = None,
+                          from_date: Union[str, None] = None,
+                          to_date: Union[str, None] = None,
+                          active_only: bool = False) -> list:
         db = SessionLocal()
         query = (db.query(func.strftime('%Y-%m-%d %H:00', VendoStatus.created_at),
                           func.max(VendoStatus.active_users).label('average_active_users'),
@@ -34,6 +37,9 @@ class VendoStatusRepository:
 
         if to_date is not None:
             query = query.filter(func.date(VendoStatus.created_at) <= to_date)
+
+        if active_only:
+            query = query.filter(Vendo.is_active == True)
 
         rows = query.all()
         db.close()

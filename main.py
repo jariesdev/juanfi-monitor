@@ -24,7 +24,7 @@ from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
-    DailySaleRequest
+    DailySaleRequest, SetVendoStatusRequest
 from sql_app.models import VendoSale
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
@@ -166,14 +166,15 @@ async def read_vendo_status(
         controller: VendoStatusController = Depends(VendoStatusController),
         vendo_id: Union[int, None] = None,
         from_date: Union[str, None] = None,
-        to_date: Union[str, None] = None
+        to_date: Union[str, None] = None,
+        active_only: bool | None = False,
 ):
-    return controller.search(vendo_id=vendo_id, from_date=from_date, to_date=to_date)
+    return controller.search(vendo_id=vendo_id, from_date=from_date, to_date=to_date, active_only=active_only)
 
 
 @app.get("/vendo-machines")
-async def read_vendos(controller: VendoController = Depends(VendoController), q: Union[str, None] = None):
-    return controller.all(q)
+async def read_vendos(controller: VendoController = Depends(VendoController), q: Union[str, None] = None, is_active: bool | None = None):
+    return controller.all(q, is_active)
 
 
 @app.get("/vendo-machines/{vendo_id}/status")
@@ -186,6 +187,11 @@ async def store_vendo(vendo: VendoMachine, controller: VendoController = Depends
     return controller.store(vendo)
 
 
+@app.get("/vendo-machines/{vendo_id}")
+async def delete_vendo(vendo_id: int, controller: VendoController = Depends(VendoController)):
+    return controller.get(vendo_id)
+
+
 @app.delete("/vendo-machines/{vendo_id}")
 async def delete_vendo(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.delete(vendo_id)
@@ -194,6 +200,11 @@ async def delete_vendo(vendo_id: int, controller: VendoController = Depends(Vend
 @app.post("/vendo-machines/{vendo_id}/withdraw-current-sales")
 async def read_vendo_sales(vendo_id: int, controller: VendoController = Depends(VendoController)):
     return controller.withdraw_current_sales(vendo_id)
+
+
+@app.post("/vendo-machines/{vendo_id}/set-status")
+async def set_vendo_status(vendo_id: int, request: SetVendoStatusRequest, controller: VendoController = Depends(VendoController)):
+    return controller.set_status(vendo_id, request)
 
 
 @app.get("/withdrawals")

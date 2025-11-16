@@ -109,8 +109,9 @@
 	function loadChartData(): void {
 		controller = new AbortController();
 		const signal = controller.signal;
+
 		const request = new Request(
-			`${baseApiUrl}/vendo-machines`,
+			`${baseApiUrl}/vendo-machines?` + (new URLSearchParams({is_active: true}).toString()),
 			{
 				method: 'GET',
 				signal: signal

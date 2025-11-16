@@ -80,7 +80,7 @@
 		const from = moment().subtract(1, 'month').format('Y-MM-DD');
 		const to = moment().format('Y-MM-DD');
 		const request = new Request(
-			`${baseApiUrl}/vendo-status-history?from_date=${from}&to_date=${to}`,
+			`${baseApiUrl}/vendo-status-history?from_date=${from}&to_date=${to}&active_only=true`,
 			{
 				method: 'GET',
 				signal: signal

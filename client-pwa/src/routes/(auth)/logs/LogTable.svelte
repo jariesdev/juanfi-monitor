@@ -1,15 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import moment from 'moment/moment';
-	import type { iVendo } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
 	import DataTable from '$lib/components/DataTable.svelte';
 	import type { TableHeader } from '$lib/types/datatable';
+	import {getVendos} from "$lib/remote/vendo.remote";
 
-	let date: string = moment().format('Y-MM-DD');
-	let vendoId: number;
-	let vendos: iVendo[] = [];
+	let date: string = $state(moment().format('Y-MM-DD'));
+	let vendoId: number|undefined = $state(undefined);
 
 	const tableHeaders: TableHeader[] = [
 		{label: 'Time', field: 'log_time'},
@@ -17,36 +15,15 @@
 		{label: 'Description', field: 'description'},
 		{label: 'Created At', field: 'created_at'},
 	]
-	$: ({tableFilters} = {tableFilters: {
+
+	let tableFilters = $derived({
 		vendo_id: vendoId,
 		date: date,
-		}})
+	})
 
-	function loadOptions(): void {
-		let url = `${baseApiUrl}/vendo-machines`;
-		const request = new Request(url, { method: 'GET' });
-		fetch(request)
-			.then((response) => {
-				if (response.status === 200) {
-					return response.json();
-				} else {
-					throw new Error('Something went wrong on API server!');
-				}
-			})
-			.then((response) => {
-				vendos = response.data;
-			})
-			.catch(() => {
-				vendos = [];
-			});
-	}
-
-	onMount(() => {
-		loadOptions();
-	});
 </script>
 
-<DataTable url={`${baseApiUrl}/logs`} headers={tableHeaders} bind:filters={tableFilters} title="System Logs">
+<DataTable url={`${baseApiUrl}/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
 	<div
 		slot="before-table"
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
@@ -69,7 +46,7 @@
 					class="uk-select uk-form-small uk-child-width-1-1"
 				>
 					<option value={undefined}>All</option>
-					{#each vendos as vendo}
+					{#each await getVendos() as vendo}
 						<option value={vendo.id}>{vendo.name}</option>
 					{/each}
 				</select>

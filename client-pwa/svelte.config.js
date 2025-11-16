@@ -11,8 +11,17 @@ const config = {
 		adapter: adapter(),
 		env: {
 			dir: '../'
+		},
+		experimental: {
+			remoteFunctions: true
 		}
 	},
+
+	compilerOptions: {
+		experimental: {
+			async: true
+		}
+	}
 };
 
 export default config;
