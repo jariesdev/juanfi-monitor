@@ -20,7 +20,7 @@ class VendoRepository:
         self._db = Database()
         self._db_session = db
 
-    def search(self, q: Union[str, None] = None) -> list:
+    def search(self, q: Union[str, None] = None, is_active: bool | None = None) -> list:
         db = self._db_session
 
         query = (db.query(sql_app.models.Vendo)
@@ -29,6 +29,9 @@ class VendoRepository:
 
         if q is not None:
             query = query.where(models.Vendo.name.like("%{0}%".format(q)))
+
+        if is_active is not None:
+            query = query.where(models.Vendo.is_active == is_active)
 
         return query.all()
 
