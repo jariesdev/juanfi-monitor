@@ -99,19 +99,17 @@
 	$effect(() => {
 		filters // allow to watch for changes
 		resetTableQuery()
+		isLoading=true
+		loadData()
 	})
 	$effect(() => {
 		searchInput // allow to watch for changes
 		resetTableQuery()
 	})
-	$effect(() => {
-		queryParams // allow to watch for changes
-		loadData()
-	})
 
 	// watcher infinite scroll
-	$effect(() => {
-		if (browser && infiniteScrollEl) {
+	const initializeInfiniteScroll = () => {
+		if (browser) {
 			let options = {
 				rootMargin: '0px',
 				threshold: 0
@@ -130,11 +128,12 @@
 			let observer = new IntersectionObserver(callback, options);
 			observer.observe(infiniteScrollEl);
 		}
-	})
+	}
 
 	onMount(() => {
 		// load data from url
 		loadData();
+		initializeInfiniteScroll()
 	});
 
 	onDestroy(() => {
