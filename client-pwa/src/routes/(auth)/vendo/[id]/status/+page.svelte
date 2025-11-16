@@ -6,6 +6,6 @@
 
 <div class="uk-section">
 	<div class="uk-container">
-		<SystemStatus bind:vendoId={data.id} />
+		<SystemStatus vendoId={data.id} />
 	</div>
 </div>

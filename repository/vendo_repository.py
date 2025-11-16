@@ -72,3 +72,8 @@ class VendoRepository:
     def get(self, id: int) -> models.Vendo:
         db = self._db_session
         return db.query(models.Vendo).filter(models.Vendo.id == id).first()
+
+    def set_status(self, id: int, status: bool) -> None:
+        db = self._db_session
+        db.query(models.Vendo).filter(models.Vendo.id == id).update({models.Vendo.is_active: status})
+        db.commit()
