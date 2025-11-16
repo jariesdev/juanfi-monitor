@@ -181,7 +181,9 @@
 <div class="uk-card uk-card-default uk-card-body">
 	{#if vendo}
 		<button
-			class="uk-button uk-button-primary uk-button-small uk-border-rounded"
+			class="uk-button uk-button-small uk-border-rounded"
+			class:uk-button-primary={!vendo.is_active}
+			class:uk-button-danger={vendo.is_active}
 			type="button"
 			onclick={async () => { changeVendoStatus({id: vendo.id, status: !vendo.is_active}).then(() => getVendoInfo(+vendoId).refresh())}}
 		>
