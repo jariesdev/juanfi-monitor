@@ -43,6 +43,8 @@
 		}
 	})
 
+	const isFirstLoad: boolean = $derived(currentPage == 1 && tableItems.length === 0)
+
 	// load table data
 	export const loadData: Function = debounce(
 		async (): Promise<void> => {
@@ -99,24 +101,26 @@
 	$effect(() => {
 		filters // allow to watch for changes
 		resetTableQuery()
-		isLoading=true
-		loadData()
 	})
 	$effect(() => {
 		searchInput // allow to watch for changes
 		resetTableQuery()
+	})
+	$effect(() => {
+		queryParams // allow to watch for changes
+		loadData()
 	})
 
 	// watcher infinite scroll
 	const initializeInfiniteScroll = () => {
 		if (browser) {
 			let options = {
-				rootMargin: '0px',
+				rootMargin: '-10px',
 				threshold: 0
 			};
 			let callback = (entries: any[]) => {
 				entries.forEach((e) => {
-					if (currentPage < maxPage && !isLoading && e.isIntersecting) {
+					if (currentPage < maxPage && !isLoading && e.isIntersecting && !isFirstLoad) {
 						currentPage += 1;
 						isLoading = true;
 						console.log('infinit scroll')
