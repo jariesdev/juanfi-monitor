@@ -13,17 +13,16 @@
 
 	// export let vendoId: number;
 	const {vendoId} = $props()
-	let statuses: iStatus[] = [];
-	let isLoading: boolean = false;
-	let systemUptime: number = 0;
-	let serverTime: number = 0;
+	let statuses: iStatus[] = $state([]);
+	let isLoading: boolean = $state(false);
+	let systemUptime: number = $state(0);
+	let serverTime: number = $state(0);
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
 	let isWithdrawing: boolean = false;
 
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
-	let vendoActiveStatus: boolean = $derived(!vendo?.is_active)
 
 	function loadStatuses(): void {
 		controller = new AbortController();
