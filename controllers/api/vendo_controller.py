@@ -9,6 +9,8 @@ from models.vendo import VendoMachine
 from repository.vendo_repository import VendoRepository
 from repository.withdrawal_repository import WithdrawalRepository
 from repository.user_repository import UserRepository
+from sql_app.schemas import SetVendoStatusRequest
+
 
 def get_repo():
     return VendoRepository()
@@ -56,6 +58,12 @@ class VendoController():
             "data": vendo
         }
 
+    def get(self, vendo_id: int):
+        vendo = self._repository.get(vendo_id)
+        return {
+            "data": vendo
+        }
+
     def delete(self, vendo_id: int):
         self._repository.delete_vendo(vendo_id)
         return {
@@ -79,4 +87,10 @@ class VendoController():
 
         return JSONResponse({
             "message": jsonable_encoder(withdrawal)
+        })
+
+    def set_status(self, vendo_id: int, request: SetVendoStatusRequest):
+        self._repository.set_status(vendo_id, request.status)
+        return JSONResponse({
+            "message": "success",
         })
