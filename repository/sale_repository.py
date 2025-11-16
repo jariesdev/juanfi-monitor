@@ -42,8 +42,7 @@ class SaleRepository:
         query = (db.query(func.date(VendoSale.sale_time).label("date"), func.sum(VendoSale.amount).label("total"),
                           VendoSale.vendo_id, Vendo.name.label("vendo_name"))
                  .join(VendoSale.vendo)
-                 .filter(VendoSale.sale_time >= from_date.strftime('%Y-%m-%d'))
-                 .filter(VendoSale.sale_time <= to_date.strftime('%Y-%m-%d'))
+                 .filter(func.date(VendoSale.sale_time).between(from_date, to_date))
                  .filter(Vendo.is_active == True)
                  .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
                  .order_by(VendoSale.sale_time))
