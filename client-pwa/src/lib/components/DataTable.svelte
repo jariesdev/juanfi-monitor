@@ -158,7 +158,6 @@
 				type="search"
 				placeholder="Search"
 				aria-label="Input"
-				onchange={()=>resetTableQuery()}
 			/>
 		</div>
 	</div>
