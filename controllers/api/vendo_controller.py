@@ -27,8 +27,8 @@ class VendoController():
         self._repository = repository
         self._withdrawal_repository = withdrawal_repository
 
-    def all(self, q: Union[str, None] = None) -> JSONResponse:
-        vendo_machines = self._repository.search(q)
+    def all(self, q: Union[str, None] = None, is_active: bool | None = None) -> JSONResponse:
+        vendo_machines = self._repository.search(q, is_active)
         return JSONResponse({
             "data": jsonable_encoder(vendo_machines)
         })

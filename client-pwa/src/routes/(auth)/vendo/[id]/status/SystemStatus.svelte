@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
 	import { baseApiUrl } from '$lib/env';
-	import {changeVendoStatus, getVendoInfo} from "../../vendo.remote";
+	import {changeVendoStatus, getVendoInfo} from "$lib/remote/vendo.remote";
 	import type {iVendo} from "$lib/types/models";
 
 	interface iStatus {
@@ -13,17 +13,16 @@
 
 	// export let vendoId: number;
 	const {vendoId} = $props()
-	let statuses: iStatus[] = [];
-	let isLoading: boolean = false;
-	let systemUptime: number = 0;
-	let serverTime: number = 0;
+	let statuses: iStatus[] = $state([]);
+	let isLoading: boolean = $state(false);
+	let systemUptime: number = $state(0);
+	let serverTime: number = $state(0);
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
 	let isWithdrawing: boolean = false;
 
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
-	let vendoActiveStatus: boolean = $derived(!vendo?.is_active)
 
 	function loadStatuses(): void {
 		controller = new AbortController();
@@ -181,7 +180,9 @@
 <div class="uk-card uk-card-default uk-card-body">
 	{#if vendo}
 		<button
-			class="uk-button uk-button-primary uk-button-small uk-border-rounded"
+			class="uk-button uk-button-small uk-border-rounded"
+			class:uk-button-primary={!vendo.is_active}
+			class:uk-button-danger={vendo.is_active}
 			type="button"
 			onclick={async () => { changeVendoStatus({id: vendo.id, status: !vendo.is_active}).then(() => getVendoInfo(+vendoId).refresh())}}
 		>

@@ -24,7 +24,6 @@ class SalesSearchRequest(SearchRequest):
     pass
 
 class SetVendoStatusRequest(BaseRequest):
-    # vendo_id: int
     status: bool
     pass
 

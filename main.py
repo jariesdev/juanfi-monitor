@@ -166,14 +166,15 @@ async def read_vendo_status(
         controller: VendoStatusController = Depends(VendoStatusController),
         vendo_id: Union[int, None] = None,
         from_date: Union[str, None] = None,
-        to_date: Union[str, None] = None
+        to_date: Union[str, None] = None,
+        active_only: bool | None = False,
 ):
-    return controller.search(vendo_id=vendo_id, from_date=from_date, to_date=to_date)
+    return controller.search(vendo_id=vendo_id, from_date=from_date, to_date=to_date, active_only=active_only)
 
 
 @app.get("/vendo-machines")
-async def read_vendos(controller: VendoController = Depends(VendoController), q: Union[str, None] = None):
-    return controller.all(q)
+async def read_vendos(controller: VendoController = Depends(VendoController), q: Union[str, None] = None, is_active: bool | None = None):
+    return controller.all(q, is_active)
 
 
 @app.get("/vendo-machines/{vendo_id}/status")
