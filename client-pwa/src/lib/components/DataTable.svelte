@@ -121,6 +121,7 @@
 					if (currentPage < maxPage && !isLoading && e.isIntersecting) {
 						currentPage += 1;
 						isLoading = true;
+						console.log('infinit scroll')
 						loadData();
 					}
 				});
