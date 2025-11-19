@@ -78,7 +78,7 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
                 role: null,
             }
         }
-    } catch (e) {
+    } catch (e: unknown) {
         return fail(400, {message: e.message, invalid: true})
     }
 
