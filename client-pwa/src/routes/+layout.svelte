@@ -5,6 +5,11 @@
 	import '$lib/js/uikit.min.js';
 	import '$lib/js/uikit-icons.min.js';
 	import OfflineAlert from '$lib/components/OfflineAlert.svelte';
+    import {onMount} from 'svelte'
+
+    onMount(() => {
+        import('$lib/js/uikit.min.js')
+    })
 </script>
 
 <div class="app">
