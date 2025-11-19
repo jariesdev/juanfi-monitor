@@ -1,4 +1,6 @@
-.idea
+.idea**/.idea/workspace.xml
+**/.idea/usage.statistics.xml
+**/.idea/shelf
 .venv
 __pycache__
 *.db
