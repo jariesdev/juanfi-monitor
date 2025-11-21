@@ -51,6 +51,7 @@ class Vendo(Base):
     vendo_sales = relationship("VendoSale", back_populates='vendo')
     vendo_status = relationship("VendoStatus", back_populates='vendo')
     withdrawals = relationship("Withdrawal", back_populates='vendo')
+    rewards = relationship("Reward", back_populates='vendo')
 
     @orm.declared_attr
     def __mapper_args__(vendo):
@@ -115,3 +116,13 @@ class Withdrawal(Base):
     updated_at = Column(TIMESTAMP)
 
 
+class Reward(Base):
+    __tablename__ = "rewards"
+
+    id = Column(Integer, primary_key=True)
+    vendo_id = Column(Integer, ForeignKey("vendos.id"))
+    vendo = relationship("Vendo", back_populates="rewards")
+    mac_address = Column(String)
+    points = Column(Float)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP)

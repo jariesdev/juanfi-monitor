@@ -28,6 +28,7 @@ from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSear
 from sql_app.models import VendoSale
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
+from controllers.api.customer.reward_controller import RewardController as CustomerRewardController
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -151,9 +152,10 @@ async def refresh_logs():
     })
 
 
-@app.get("/sales", response_model=Page[sql_app.schemas.VendoSale])
-def read_sales(request: SalesSearchRequest = Depends(), controller: SaleController = Depends(SaleController)):
-    return controller.search(request)
+@app.get("/sales", response_model=VendoSaleResponse)
+def read_sales(controller: SaleController = Depends(SaleController), q: Union[str, None] = None,
+               date: Union[str, None] = None, vendo_id: Union[int, None] = None):
+    return controller.search(q, date, vendo_id)
 
 
 @app.get("/daily-sales")
@@ -211,6 +213,10 @@ async def set_vendo_status(vendo_id: int, request: SetVendoStatusRequest, contro
 async def read_withdrawals(controller: WithdrawalController = Depends(WithdrawalController)):
     return controller.search()
 
+
+@app.get("/customer/rewards")
+async def read_customer_rewards(mac_address: str, controller: CustomerRewardController = Depends(CustomerRewardController)):
+    return controller.customer_reward(mac_address)
 
 add_pagination(app)
 
