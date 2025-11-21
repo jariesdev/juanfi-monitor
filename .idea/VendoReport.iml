@@ -4,6 +4,7 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/client-pwa/.svelte-kit" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources/e328b5b0-9b5e-4972-8c06-684df581b851" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/Projects/VendoReport/.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
