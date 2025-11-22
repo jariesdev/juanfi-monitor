@@ -9,7 +9,8 @@ from sql_app.database import SessionLocal, engine
 from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends
 
-models.Vendo.metadata.create_all(bind=engine)
+# Automatically create table
+# models.Vendo.metadata.create_all(bind=engine)
 
 
 class VendoRepository:

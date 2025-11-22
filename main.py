@@ -1,17 +1,17 @@
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from typing import Union, Annotated
 
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-import repository.sale_repository
 import sql_app
 from commands.vendo_status_log import VendoStatusLog
 from controllers.api.log_controller import LogController
@@ -22,10 +22,12 @@ from controllers.api.vendo_status_controller import VendoStatusController
 from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
+from repository.notification_repository import NotificationRepository
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
     DailySaleRequest, SetVendoStatusRequest
 from sql_app.models import VendoSale
+from src.vendoreport.notification.notificatoin_manager import ConnectionManager
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
 
@@ -211,6 +213,25 @@ async def set_vendo_status(vendo_id: int, request: SetVendoStatusRequest, contro
 async def read_withdrawals(controller: WithdrawalController = Depends(WithdrawalController)):
     return controller.search()
 
+
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, repository: NotificationRepository = Depends(NotificationRepository)):
+    await manager.connect(websocket)
+    try:
+        while True:
+            unread = repository.pull_unread()
+            # You can handle incoming messages from clients here if needed
+            # data = await websocket.receive_text()
+            # Example: Echoing back received message
+            for notification in unread:
+                await manager.broadcast(f"{notification.message}")
+
+            time.sleep(2)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast(f"Client disconnected")
 
 add_pagination(app)
 

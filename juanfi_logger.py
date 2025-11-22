@@ -49,15 +49,24 @@ class JuanfiLogger():
             ).fetchall()
 
             if len(rows) == 0:
+                mac_address = _log.get("log_params")[0]
+                voucher = _log.get("log_params")[1]
+                amount = _log.get("log_params")[2]
                 self._db_conn.execute(
                     "INSERT OR IGNORE INTO vendo_sales(`vendo_id`, `sale_time`, `mac_address`, `voucher`, `amount`, `created_at`) VALUES ('{0}', '{1}', '{2}', '{3}', '{4}', DATETIME('now', 'localtime'))".format(
                         self._vendo.id,
                         self._juanfi.compute_log_time(_log.get("time")),
-                        _log.get("log_params")[0],
-                        _log.get("log_params")[1],
-                        _log.get("log_params")[2]
+                        mac_address,
+                        voucher,
+                        amount
                     )
                 )
+                self._db_conn.execute(
+                    "INSERT INTO notifications(`message`, `created_at`) VALUES ('{0}', DATETIME('now', 'localtime'))".format(
+                        f"{mac_address} bought {voucher} for {amount}",
+                    )
+                )
+
 
             self._db_conn.commit()
         print("%s: sales inserted" % datetime.datetime.now())

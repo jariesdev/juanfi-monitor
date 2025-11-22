@@ -46,3 +46,8 @@ export interface iUser {
 	username: string;
 	is_active: boolean;
 }
+
+export interface iNotification {
+	id: number
+	message: string
+}
