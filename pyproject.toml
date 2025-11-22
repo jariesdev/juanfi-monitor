@@ -1,0 +1,28 @@
+[project]
+name = "vendoreport"
+package-mode = false
+packages = [{include = "vendoreport", from="src"}]
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Jay Aries Flores",email = "jariesdev@gmail.com"}
+]
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "fastapi (>=0.121.3,<0.122.0)",
+    "uvicorn (>=0.38.0,<0.39.0)",
+    "alembic (>=1.17.2,<2.0.0)",
+    "httptools (>=0.7.1,<0.8.0)",
+    "pydantic (>=2.12.4,<3.0.0)",
+    "requests (>=2.32.5,<3.0.0)",
+    "websockets (>=15.0.1,<16.0.0)",
+    "apscheduler (>=3.11.1,<4.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "fastapi-pagination (>=0.15.0,<0.16.0)",
+    "python-multipart (==0.0.9)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
