@@ -10,7 +10,7 @@
 	let activeNotification: string = $state('')
 
 	onMount(() => {
-		ws = new WebSocket(`{baseWsUrl}/ws`); // Replace with your WebSocket server address
+		ws = new WebSocket(`${baseWsUrl}/ws`); // Replace with your WebSocket server address
 
 		ws.onopen = () => {
 			console.log('WebSocket connected');
