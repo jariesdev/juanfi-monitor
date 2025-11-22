@@ -2,6 +2,7 @@
 	import {onMount, onDestroy} from 'svelte';
 	import type {iNotification} from "$lib/types/models";
 	import Notification from "$lib/components/Notification.svelte";
+	import { baseWsUrl } from '$lib/env';
 
 	let messages: string[] = $state([]);
 	let inputValue: string = $state('');
@@ -9,7 +10,7 @@
 	let activeNotification: string = $state('')
 
 	onMount(() => {
-		ws = new WebSocket('ws://localhost:8000/ws'); // Replace with your WebSocket server address
+		ws = new WebSocket(`{baseWsUrl}/ws`); // Replace with your WebSocket server address
 
 		ws.onopen = () => {
 			console.log('WebSocket connected');
