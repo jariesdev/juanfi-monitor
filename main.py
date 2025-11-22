@@ -228,7 +228,7 @@ async def websocket_endpoint(websocket: WebSocket, repository: NotificationRepos
             for notification in unread:
                 await manager.broadcast(f"{notification.message}")
 
-            time.sleep(2)
+            time.sleep(10)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast(f"Client disconnected")
