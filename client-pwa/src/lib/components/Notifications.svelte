@@ -17,7 +17,7 @@
 		};
 
 		ws.onmessage = (event) => {
-			messages = [...messages, event.data];
+			messages.push(event.data);
 
 			if (! activeNotification) {
 				nextNotification()
@@ -55,10 +55,6 @@
 	}
 </script>
 
-{#if messages.length > 0}
-	<div class="notifications uk-width-expand uk-position-absolute uk-position-bottom">
-		{#if activeNotification}
-			<Notification message={activeNotification} onHide={nextNotification} />
-		{/if}
-	</div>
-{/if}
+<div class="notifications uk-width-expand uk-position-absolute uk-position-bottom">
+		<Notification message={activeNotification} onHide={nextNotification} />
+</div>

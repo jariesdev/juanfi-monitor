@@ -6,7 +6,7 @@
 
 	const {message, onHide}: iProps = $props()
 
-	let timer: number = 3
+	let timer: number = 5
 	let intervalId: number
 	let isVisible: boolean = $derived(!!message)
 
@@ -21,6 +21,4 @@
 	})
 </script>
 
-{#if isVisible}
-	<div class="uk-alert-primary uk-animation-slide-bottom-small uk-position-bottom-center" uk-alert>{message}</div>
-{/if}
+<div class="uk-alert-primary uk-animation-slide-bottom-small uk-position-bottom-center uk-padding-small" class:uk-hidden={!message} uk-alert>{message}</div>
