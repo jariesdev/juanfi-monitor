@@ -217,18 +217,15 @@ async def read_withdrawals(controller: WithdrawalController = Depends(Withdrawal
 manager = ConnectionManager()
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, repository: NotificationRepository = Depends(NotificationRepository)):
+async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            unread = repository.pull_unread()
             # You can handle incoming messages from clients here if needed
-            # data = await websocket.receive_text()
+            data = await websocket.receive_text()
             # Example: Echoing back received message
-            for notification in unread:
-                await manager.broadcast(f"{notification.message}")
+            await manager.broadcast(f"{data}")
 
-            time.sleep(10)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast(f"Client disconnected")
