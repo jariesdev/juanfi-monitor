@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 crons = Crons(app)
-app.include_router(get_cron_router())
+# app.include_router(get_cron_router())
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
