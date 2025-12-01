@@ -1,6 +1,11 @@
+<svelte:head>
+	<title>Login</title>
+</svelte:head>
+
 <script lang="ts">
 	import LoginForm from './LoginForm.svelte';
 </script>
+
 
 <div class="uk-section uk-child-width-1-2@s uk-margin-auto-vertical">
 	<div class="uk-card uk-card-default uk-card-body uk-margin-auto">

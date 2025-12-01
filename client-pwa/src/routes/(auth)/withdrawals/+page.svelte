@@ -1,3 +1,7 @@
+<svelte:head>
+	<title>Withdrawals</title>
+</svelte:head>
+
 <script lang="ts">
 	import { apiUrl } from '$lib/store';
 	import WithdrawalTable from './WithdrawalTable.svelte';

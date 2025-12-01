@@ -1,3 +1,7 @@
+<svelte:head>
+	<title>Sales</title>
+</svelte:head>
+
 <script lang="ts">
 	import LogTable from './SaleTable.svelte';
 	import { apiUrl } from '$lib/store';

@@ -1,3 +1,7 @@
+<svelte:head>
+	<title>Vendo Status</title>
+</svelte:head>
+
 <script lang="ts">
 	import SystemStatus from './SystemStatus.svelte';
 
