@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 from contextlib import asynccontextmanager
 from typing import Union, Annotated
 
@@ -30,6 +29,7 @@ from sql_app.models import VendoSale
 from src.vendoreport.notification.notificatoin_manager import ConnectionManager
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
+from fastapi_crons import Crons, get_cron_router
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -45,6 +45,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+crons = Crons(app)
+app.include_router(get_cron_router())
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -229,6 +231,14 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         await manager.broadcast(f"Client disconnected")
+
+@crons.cron("* * * * *", name="print_hello")
+async def print_hello():
+    db = SessionLocal()
+    repository = NotificationRepository(db)  # Instantiate directly
+    unread = repository.pull_unread()
+    for notification in unread:
+        await manager.broadcast(f"{notification.message}")
 
 add_pagination(app)
 
