@@ -8,6 +8,7 @@
 	let inputValue: string = $state('');
 	let ws: WebSocket;
 	let activeNotification: string = $state('')
+	let pageVisible: DocumentVisibilityState|undefined|null = $state('visible')
 
 	onMount(() => {
 		ws = new WebSocket(`${baseWsUrl}/ws`); // Replace with your WebSocket server address
@@ -52,13 +53,21 @@
 	// }
 
 	const nextNotification = (): void => {
-		if (messages.length > 0) {
+		if (messages.length > 0 && pageVisible === 'visible') {
 			activeNotification = messages.shift() || ''
 		} else {
 			activeNotification = ''
 		}
 	}
+
+	const handleVisibilityChange = (): void => {
+			if (pageVisible === 'visible') {
+				nextNotification()
+			}
+	}
 </script>
+
+<svelte:document bind:visibilityState={pageVisible} onvisibilitychange={handleVisibilityChange} />
 
 <div class="notifications uk-width-expand uk-position-absolute uk-position-bottom">
 		<Notification message={activeNotification} onHide={nextNotification} />
