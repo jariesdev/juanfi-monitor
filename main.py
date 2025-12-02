@@ -49,7 +49,6 @@ sys.path.append(BASE_DIR)
 logging.basicConfig(level=logging.INFO)
 app = FastAPI()
 crons = Crons(app)
-# app.include_router(get_cron_router())
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -280,6 +279,7 @@ async def cron_refresh_logs():
 
 
 add_pagination(app)
+app.include_router(get_cron_router(), prefix="/crons")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
