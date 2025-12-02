@@ -53,7 +53,9 @@
 	// }
 
 	const nextNotification = (): void => {
-		if (messages.length > 0 && pageVisible === 'visible') {
+		if (pageVisible !== 'visible') return;
+
+		if (messages.length > 0) {
 			activeNotification = messages.shift() || ''
 		} else {
 			activeNotification = ''
