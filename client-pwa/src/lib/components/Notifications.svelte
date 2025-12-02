@@ -17,11 +17,16 @@
 		};
 
 		ws.onmessage = (event) => {
-			messages.push(event.data);
+			const notification = JSON.parse(event.data)
 
-			if (! activeNotification) {
-				nextNotification()
+			if (notification.type === 'notification') {
+				messages.push(notification.message);
+
+				if (! activeNotification) {
+					nextNotification()
+				}
 			}
+
 		};
 
 		ws.onclose = () => {

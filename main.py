@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import logging
@@ -46,7 +47,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-logging.basicConfig()
+logging.basicConfig(level=logging.INFO)
 app = FastAPI(lifespan=lifespan)
 crons = Crons(app)
 # app.include_router(get_cron_router())
@@ -246,7 +247,12 @@ async def broadcast_notifications():
     repository = NotificationRepository(db)  # Instantiate directly
     unread = repository.pull_unread()
     for notification in unread:
-        await manager.broadcast(f"{notification.message}")
+        notification = {
+            'type': 'notification',
+            'message': notification.message
+        }
+        data = json.dumps(notification)
+        await manager.broadcast(f"{data}")
 
 
 
