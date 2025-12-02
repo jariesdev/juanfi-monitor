@@ -49,6 +49,7 @@ class JuanfiLogger():
             ).fetchall()
 
             if len(rows) == 0:
+                vendo_name = self._vendo.name
                 mac_address = _log.get("log_params")[0]
                 voucher = _log.get("log_params")[1]
                 amount = _log.get("log_params")[2]
@@ -63,7 +64,7 @@ class JuanfiLogger():
                 )
                 self._db_conn.execute(
                     "INSERT INTO notifications(`message`, `created_at`) VALUES ('{0}', DATETIME('now', 'localtime'))".format(
-                        f"{mac_address} bought {voucher} for {amount}",
+                        f"{vendo_name}: {mac_address} bought {voucher} for {amount}",
                     )
                 )
 
