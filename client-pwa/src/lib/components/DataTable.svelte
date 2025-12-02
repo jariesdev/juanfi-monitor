@@ -142,7 +142,7 @@
 
 	onDestroy(() => {
 		// on component destroy, cancel ongoing HTTP request
-		controller && controller.abort('component destroyed');
+		// controller && controller.abort('component destroyed');
 	});
 </script>
 
