@@ -23,6 +23,7 @@ from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
 from repository.notification_repository import NotificationRepository
+from repository.vendo_repository import VendoRepository
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
     DailySaleRequest, SetVendoStatusRequest
@@ -136,7 +137,8 @@ async def read_logs(
 @app.post("/log/refresh")
 async def refresh_logs():
     db = SessionLocal()
-    vendos = db.query(sql_app.models.Vendo).where(sql_app.models.Vendo.is_active == 1).all()
+    repository = VendoRepository(db)
+    vendos = repository.all_active()
     if len(vendos) == 0:
         return JSONResponse({
             "data": None,
@@ -235,13 +237,38 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
         await manager.broadcast(f"Client disconnected")
 
-@crons.cron("* * * * *", name="print_hello")
-async def print_hello():
+@crons.cron("* * * * *", name="broadcast_notifications")
+async def broadcast_notifications():
     db = SessionLocal()
     repository = NotificationRepository(db)  # Instantiate directly
     unread = repository.pull_unread()
     for notification in unread:
         await manager.broadcast(f"{notification.message}")
+
+
+
+@crons.cron("*/5 * * * *", name="cron_refresh_logs")
+async def cron_refresh_logs():
+    db = SessionLocal()
+    repository = VendoRepository(db)
+    vendos = repository.all_active()
+    if len(vendos) == 0:
+        logging.warning("No registered vendo. Please add first.")
+        return None
+
+    for vendo in vendos:
+        logging.warning(f"Checking vendo {vendo.name} status.")
+        try:
+            logger = JuanfiLogger(vendo)
+            logger.run()
+        except Exception as e:
+            logging.warning(repr(e))
+        finally:
+            pass
+
+    logging.warning("Vendo checked.")
+    return None
+
 
 add_pagination(app)
 
