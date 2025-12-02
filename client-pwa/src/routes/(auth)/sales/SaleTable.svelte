@@ -3,6 +3,7 @@
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
 	import {getVendos} from "$lib/remote/vendo.remote";
+	import type {RowItem, TableHeader} from "$lib/types/datatable";
 
 	let dataTable: DataTable
 	let headers = [
@@ -25,41 +26,46 @@
 </script>
 
 <DataTable bind:this={dataTable} url={`${baseApiUrl}/sales`} {headers} filters={tableFilters} title="Sales">
-	<div slot="before-table">
-		<div
-			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
-			style="row-gap: 15px"
-		>
-			<div>
-				<select
-					bind:value={vendoId}
-					name="vendo_id"
-					id="vendo_id"
-					class="uk-select uk-form-small uk-child-width-1-1"
-				>
-					<option value={undefined}>All</option>
-					{#each await getVendos() as vendo}
-						<option value={vendo.id}>{vendo.name}</option>
-					{/each}
-				</select>
-			</div>
 
-			<div>
-				<input
-					type="date"
-					bind:value={saleTime}
-					class="uk-input uk-form-small"
-					max={new Date().toISOString().split('T')[0]}
-				/>
+	{#snippet beforeTable()}
+		<div>
+			<div
+				class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
+				style="row-gap: 15px"
+			>
+				<div>
+					<select
+						bind:value={vendoId}
+						name="vendo_id"
+						id="vendo_id"
+						class="uk-select uk-form-small uk-child-width-1-1"
+					>
+						<option value={undefined}>All</option>
+						{#each await getVendos() as vendo}
+							<option value={vendo.id}>{vendo.name}</option>
+						{/each}
+					</select>
+				</div>
+
+				<div>
+					<input
+						type="date"
+						bind:value={saleTime}
+						class="uk-input uk-form-small"
+						max={new Date().toISOString().split('T')[0]}
+					/>
+				</div>
 			</div>
 		</div>
-	</div>
+	{/snippet}
 
-	<span slot="cell" let:item let:header let:getCellValue>
+	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
+	<span>
 		{#if header.field === 'sale_time'}
 			<DateTime humanized={true} date={item.sale_time} />
 		{:else}
 			{getCellValue(item, header)}
 		{/if}
 	</span>
+	{/snippet}
 </DataTable>

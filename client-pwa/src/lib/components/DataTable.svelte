@@ -1,20 +1,27 @@
 <script lang="ts">
 	import {browser} from '$app/environment';
-	import {onDestroy, onMount} from 'svelte';
+	import {onDestroy, onMount, type Snippet} from 'svelte';
 	import debounce from 'lodash/debounce';
 	import get from 'lodash/get';
 	import type {Filter, QueryParameters, RowItem, TableHeader} from '$lib/types/datatable';
 
 	// props
 	interface Props {
-		url: string,
-		headers: TableHeader[],
-		filters: Filter,
-		title: string,
+		url: string
+		headers: TableHeader[]
+		filters: Filter
+		title: string
 		perPage?: number
+
+		// snippets
+		beforeTable: Snippet|undefined
+		afterTable: Snippet|undefined
+		empty: Snippet|undefined
+		row: Snippet|undefined
+		cell: Snippet|undefined
 	}
 
-	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15}: Props = $props()
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, beforeTable, afterTable, row, cell, empty}: Props = $props()
 
 	// states
 	let currentPage: number = $state(1);
@@ -146,6 +153,24 @@
 	});
 </script>
 
+{#snippet rowFallback(item: RowItem)}
+	<tr>
+		{#each headers as header}
+			<td>
+				{@render (cell || cellFallback)(item, header, getCellValue)}
+			</td>
+		{/each}
+	</tr>
+{/snippet}
+
+{#snippet cellFallback(item: RowItem, header: TableHeader, getCellValue: Function)}
+	{getCellValue(item, header)}
+{/snippet}
+
+{#snippet emptyFallback()}
+	<span>No record yet.</span>
+{/snippet}
+
 <div class="uk-card uk-card-default uk-card-body">
 	<div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
 		<div class="uk-width-2-3@s">
@@ -162,7 +187,7 @@
 		</div>
 	</div>
 	<div>
-		<slot name="before-table" />
+		{@render beforeTable?.()}
 	</div>
 	<div class="uk-overflow-auto uk-margin-bottom">
 		<table class="uk-table uk-table-divider">
@@ -177,32 +202,21 @@
 			{#if tableItems.length === 0}
 				<tr>
 					<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
-						<slot name="empty">No record yet.</slot>
+						{@render (empty || emptyFallback)()}
 					</td>
 				</tr>
 			{/if}
 			{#each tableItems as item}
-				<slot name="item" {item}>
-					<tr>
-						{#each headers as header}
-							<td>
-								<!-- svelte 4 does not support dynamic slot names -->
-								<slot name="cell" {item} {header} {getCellValue}>
-									{getCellValue(item, header)}
-								</slot>
-							</td>
-						{/each}
-					</tr>
-				</slot>
+				{@render (row || rowFallback)(item) }
 			{/each}
 			</tbody>
 		</table>
 	</div>
 	<div>
-		<slot name="after-table" />
+		{@render afterTable?.()}
 	</div>
 	<div class="uk-text-muted">
 		Total items: {totalItems}
 	</div>
-	<div bind:this={infiniteScrollEl} />
+	<div bind:this={infiniteScrollEl} ></div>
 </div>
