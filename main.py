@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 from contextlib import asynccontextmanager
 from typing import Union, Annotated
 
@@ -146,6 +147,8 @@ async def refresh_logs():
         try:
             logger = JuanfiLogger(vendo)
             logger.run()
+        except Exception as e:
+            logging.warning(repr(e))
         finally:
             pass
 
