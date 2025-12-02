@@ -6,7 +6,7 @@
 
 	const {message, onHide}: iProps = $props()
 
-	let timer: number = 5
+	let timer: number = 10
 	let intervalId: number
 	let isVisible: boolean = $derived(!!message)
 
