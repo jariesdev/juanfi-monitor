@@ -239,6 +239,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @crons.cron("* * * * *", name="broadcast_notifications")
 async def broadcast_notifications():
+    logging.info("Broadcasting new notifications.")
     db = SessionLocal()
     repository = NotificationRepository(db)  # Instantiate directly
     unread = repository.pull_unread()
@@ -253,11 +254,11 @@ async def cron_refresh_logs():
     repository = VendoRepository(db)
     vendos = repository.all_active()
     if len(vendos) == 0:
-        logging.warning("No registered vendo. Please add first.")
+        logging.info("No registered vendo. Please add first.")
         return None
 
     for vendo in vendos:
-        logging.warning(f"Checking vendo {vendo.name} status.")
+        logging.info(f"Checking vendo {vendo.name} status.")
         try:
             logger = JuanfiLogger(vendo)
             logger.run()
