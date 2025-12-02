@@ -241,7 +241,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @crons.cron("* * * * *", name="broadcast_notifications")
 async def broadcast_notifications():
-    print("broadcast notifications")
     logger.info("Broadcasting new notifications.")
     db = SessionLocal()
     repository = NotificationRepository(db)  # Instantiate directly
@@ -253,7 +252,7 @@ async def broadcast_notifications():
 
 @crons.cron("*/5 * * * *", name="cron_refresh_logs")
 async def cron_refresh_logs():
-    print("Refreshing logs...")
+    logger.info("Refreshing logs.")
     db = SessionLocal()
     repository = VendoRepository(db)
     vendos = repository.all_active()
@@ -271,7 +270,7 @@ async def cron_refresh_logs():
         finally:
             pass
 
-    logger.warning("Vendo checked.")
+    logger.info("Vendo checked.")
     return None
 
 
