@@ -154,6 +154,11 @@
 </script>
 
 {#snippet rowFallback(item: RowItem)}
+
+	{#snippet cellFallback(item: RowItem, header: TableHeader, getCellValue: Function)}
+		{getCellValue(item, header)}
+	{/snippet}
+
 	<tr>
 		{#each headers as header}
 			<td>
@@ -161,10 +166,6 @@
 			</td>
 		{/each}
 	</tr>
-{/snippet}
-
-{#snippet cellFallback(item: RowItem, header: TableHeader, getCellValue: Function)}
-	{getCellValue(item, header)}
 {/snippet}
 
 {#snippet emptyFallback()}
@@ -199,16 +200,19 @@
 			</tr>
 			</thead>
 			<tbody>
+
 			{#if tableItems.length === 0}
 				<tr>
 					<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
 						{@render (empty || emptyFallback)()}
 					</td>
 				</tr>
+			{:else}
+				{#each tableItems as item}
+					{@render (row || rowFallback)(item) }
+				{/each}
 			{/if}
-			{#each tableItems as item}
-				{@render (row || rowFallback)(item) }
-			{/each}
+
 			</tbody>
 		</table>
 	</div>
