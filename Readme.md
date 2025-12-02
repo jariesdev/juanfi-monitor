@@ -22,7 +22,8 @@
 * API Server
   * If running in .venv activate first `source .venv/bin/activate`
   * Run migration, `alembic upgrade head`
-  * Run this in the background `uvicorn main:app --port 8000 --reload`
+  * Single instance: Run this in the background `uvicorn main:app --port 8000 --reload`
+  * Multiple instance: `gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app -b 127.0.0.1:8000 --reload`
 * Frontend
   * Build, `cd client-pwa && ./node_modules/.bin/vite build`
     * Use pm2 
