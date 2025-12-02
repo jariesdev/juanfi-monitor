@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
+logging.basicConfig()
 app = FastAPI(lifespan=lifespan)
 crons = Crons(app)
 # app.include_router(get_cron_router())
@@ -69,6 +70,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger = logging.getLogger(__name__)
 
 @app.get("/")
 def read_root():
@@ -147,8 +149,8 @@ async def refresh_logs():
 
     for vendo in vendos:
         try:
-            logger = JuanfiLogger(vendo)
-            logger.run()
+            vlogger = JuanfiLogger(vendo)
+            vlogger.run()
         except Exception as e:
             logging.warning(repr(e))
         finally:
@@ -239,7 +241,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @crons.cron("* * * * *", name="broadcast_notifications")
 async def broadcast_notifications():
-    logging.info("Broadcasting new notifications.")
+    print("broadcast notifications")
+    logger.info("Broadcasting new notifications.")
     db = SessionLocal()
     repository = NotificationRepository(db)  # Instantiate directly
     unread = repository.pull_unread()
@@ -250,24 +253,25 @@ async def broadcast_notifications():
 
 @crons.cron("*/5 * * * *", name="cron_refresh_logs")
 async def cron_refresh_logs():
+    print("Refreshing logs...")
     db = SessionLocal()
     repository = VendoRepository(db)
     vendos = repository.all_active()
     if len(vendos) == 0:
-        logging.info("No registered vendo. Please add first.")
+        logger.info("No registered vendo. Please add first.")
         return None
 
     for vendo in vendos:
-        logging.info(f"Checking vendo {vendo.name} status.")
+        logger.info(f"Checking vendo {vendo.name} status.")
         try:
-            logger = JuanfiLogger(vendo)
-            logger.run()
+            vlogger = JuanfiLogger(vendo)
+            vlogger.run()
         except Exception as e:
             logging.warning(repr(e))
         finally:
             pass
 
-    logging.warning("Vendo checked.")
+    logger.warning("Vendo checked.")
     return None
 
 
