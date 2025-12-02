@@ -6,6 +6,7 @@
 	import type { TableHeader } from '$lib/types/datatable';
 	import {getVendos} from "$lib/remote/vendo.remote";
 
+	let dataTable: DataTable
 	let date: string = $state(moment().format('Y-MM-DD'));
 	let vendoId: number|undefined = $state(undefined);
 
@@ -21,9 +22,12 @@
 		date: date,
 	})
 
+	export function loadData() {
+		dataTable.loadData()
+	}
 </script>
 
-<DataTable url={`${baseApiUrl}/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
+<DataTable bind:this={dataTable} url={`${baseApiUrl}/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
 	<div
 		slot="before-table"
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
