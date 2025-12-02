@@ -135,7 +135,7 @@ async def read_logs(
 @app.post("/log/refresh")
 async def refresh_logs():
     db = SessionLocal()
-    vendos = db.query(sql_app.models.Vendo).all()
+    vendos = db.query(sql_app.models.Vendo).where(sql_app.models.Vendo.is_active == 1).all()
     if len(vendos) == 0:
         return JSONResponse({
             "data": None,
