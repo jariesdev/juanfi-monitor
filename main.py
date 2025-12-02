@@ -28,7 +28,6 @@ from repository.vendo_repository import VendoRepository
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
     DailySaleRequest, SetVendoStatusRequest
-from sql_app.models import VendoSale
 from src.vendoreport.notification.notificatoin_manager import ConnectionManager
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
@@ -39,16 +38,16 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 sys.path.append(BASE_DIR)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
-    scheduler.start()
-    yield
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     scheduler = BackgroundScheduler()
+#     scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
+#     scheduler.start()
+#     yield
 
 
 logging.basicConfig(level=logging.INFO)
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 crons = Crons(app)
 # app.include_router(get_cron_router())
 
