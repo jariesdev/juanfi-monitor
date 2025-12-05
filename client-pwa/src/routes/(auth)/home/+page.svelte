@@ -3,11 +3,14 @@
 </svelte:head>
 
 <script>
-	import welcome from '$lib/images/svelte-welcome.webp';
-	import welcome_fallback from '$lib/images/svelte-welcome.png';
 	import DailySaleChart from '$lib/components/DailySaleChart.svelte';
 	import VendoMonthlyUserChart from '$lib/components/VendoMonthlyUserChart.svelte';
 	import VendoCapacityChart from '$lib/components/VendoCapacityChart.svelte';
+	import {onMount} from "svelte";
+
+	onMount(() => {
+		window.Notification.requestPermission()
+	})
 </script>
 
 <section class="uk-section">

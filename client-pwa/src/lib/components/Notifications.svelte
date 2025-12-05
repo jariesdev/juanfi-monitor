@@ -23,8 +23,10 @@
 			if (notification.type === 'notification') {
 				messages.push(notification.message);
 
-				if (! activeNotification) {
-					nextNotification()
+				if (pageVisible !== 'visible' && ! activeNotification) {
+					showNotification()
+				} else {
+					pushNotification(notification.message)
 				}
 			}
 
@@ -52,7 +54,7 @@
 	// 	}
 	// }
 
-	const nextNotification = (): void => {
+	const showNotification = (): void => {
 		if (pageVisible !== 'visible') return;
 
 		if (messages.length > 0) {
@@ -62,15 +64,42 @@
 		}
 	}
 
+	const getNotification = (): string => {
+		if (messages.length > 0) {
+			return messages.shift() || ''
+		}
+
+		return activeNotification = ''
+	}
+
+	const pushNotification = (message: string): void => {
+		if (!("Notification" in window)) {
+			// Check if the browser supports notifications
+			console.log("This browser does not support desktop notification");
+		} else if (window.Notification.permission === "granted") {
+			// Check whether notification permissions have already been granted;
+			// if so, create a notification
+			const notification = new window.Notification(message);
+		} else if (window.Notification.permission !== "denied") {
+			// We need to ask the user for permission
+			window.Notification.requestPermission().then((permission) => {
+				// If the user accepts, let's create a notification
+				if (permission === "granted") {
+					const notification = new window.Notification(message);
+				}
+			});
+		}
+	}
+
 	const handleVisibilityChange = (): void => {
-			if (pageVisible === 'visible') {
-				nextNotification()
-			}
+		if (pageVisible === 'visible') {
+			showNotification()
+		}
 	}
 </script>
 
 <svelte:document bind:visibilityState={pageVisible} onvisibilitychange={handleVisibilityChange} />
 
 <div class="notifications uk-width-expand uk-position-absolute uk-position-bottom">
-		<Notification message={activeNotification} onHide={nextNotification} />
+		<Notification message={activeNotification} onHide={showNotification} />
 </div>
