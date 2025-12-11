@@ -277,6 +277,20 @@ async def cron_refresh_logs():
     logger.info("Vendo checked.")
     return None
 
+@crons.cron("*/5 * * * *", name="cron_vendo_status")
+async def cron_vendo_status():
+    logger.info("Getting vendo status.")
+
+    try:
+        VendoStatusLog().run()
+    except Exception as e:
+        logging.warning(repr(e))
+    finally:
+        pass
+
+    logger.info("Vendo status updated.")
+    return None
+
 
 add_pagination(app)
 app.include_router(get_cron_router(), prefix="/crons")
