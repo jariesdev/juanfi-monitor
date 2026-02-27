@@ -9,7 +9,8 @@ from sql_app.database import SessionLocal, engine
 from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends
 
-models.Vendo.metadata.create_all(bind=engine)
+# Automatically create table
+# models.Vendo.metadata.create_all(bind=engine)
 
 
 class VendoRepository:
@@ -69,7 +70,8 @@ class VendoRepository:
     def all(self, db: Session = Depends(get_db)) -> list:
         return db.query(models.Vendo).all()
 
-    def allActive(self, db: Session = Depends(get_db)) -> list:
+    def all_active(self) -> list:
+        db = self._db_session
         return db.query(models.Vendo).where(models.Vendo.is_active == True).all()
 
     def get(self, id: int) -> models.Vendo:

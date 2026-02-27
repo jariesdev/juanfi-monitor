@@ -5,7 +5,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
       <excludeFolder url="file://$MODULE_DIR$/client-pwa/.svelte-kit" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/Projects/VendoReport/.venv" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Remote Python 3.10.19 Docker Compose (api)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
