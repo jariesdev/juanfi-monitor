@@ -1,0 +1,24 @@
+services:
+  api:
+    build:
+      dockerfile: ./docker/python/Dockerfile
+      context: .
+    container_name: pw_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app           # optional: for live editing; remove in production
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  app:
+    build:
+      dockerfile: ./docker/node/Dockerfile
+      context: .
+    container_name: pw_app
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app           # optional: for live editing; remove in production

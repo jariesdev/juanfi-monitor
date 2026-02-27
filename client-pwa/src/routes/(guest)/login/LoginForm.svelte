@@ -18,9 +18,17 @@
 	currentUser.subscribe(function (value) {
 		user = value;
 	});
+
+    const handleSubmit = () => {
+        isProcessing = true; // Set to true when submission starts
+        return async ({ update }) => {
+            await update(); // Wait for the form update (data, status, etc.)
+            isProcessing = false; // Set to false when submission finishes
+        };
+    }
 </script>
 
-<form method="POST" action="/login" use:enhance>
+<form method="POST" action="/login" use:enhance={handleSubmit}>
 	<div class="uk-grid uk-grid-small uk-child-width-1-1" style="row-gap: 20px">
 		<div>
 			<div class="uk-inline uk-display-block">

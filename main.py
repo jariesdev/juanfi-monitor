@@ -1,17 +1,18 @@
+import json
 import os
 import sys
+import logging
 from contextlib import asynccontextmanager
 from typing import Union, Annotated
 
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-import repository.sale_repository
 import sql_app
 from commands.vendo_status_log import VendoStatusLog
 from controllers.api.log_controller import LogController
@@ -22,27 +23,32 @@ from controllers.api.vendo_status_controller import VendoStatusController
 from controllers.api.withdrawal_controller import WithdrawalController
 from juanfi_logger import JuanfiLogger
 from models.vendo import VendoMachine
+from repository.notification_repository import NotificationRepository
+from repository.vendo_repository import VendoRepository
 from sql_app.database import SessionLocal
 from sql_app.schemas import VendoLogResponse, VendoSaleResponse, User, SalesSearchRequest, LogsSearchRequest, \
     DailySaleRequest, SetVendoStatusRequest
-from sql_app.models import VendoSale
+from src.vendoreport.notification.notificatoin_manager import ConnectionManager
 from user_repository import UserRepository
 from fastapi_pagination import Page, add_pagination
+from fastapi_crons import Crons, get_cron_router
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 sys.path.append(BASE_DIR)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
-    scheduler.start()
-    yield
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     scheduler = BackgroundScheduler()
+#     scheduler.add_job(VendoStatusLog().run, "interval", minutes=10)
+#     scheduler.start()
+#     yield
 
 
-app = FastAPI(lifespan=lifespan)
+logging.basicConfig(level=logging.INFO)
+app = FastAPI()
+crons = Crons(app)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -63,6 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+logger = logging.getLogger(__name__)
 
 @app.get("/")
 def read_root():
@@ -131,7 +138,8 @@ async def read_logs(
 @app.post("/log/refresh")
 async def refresh_logs():
     db = SessionLocal()
-    vendos = db.query(sql_app.models.Vendo).all()
+    repository = VendoRepository(db)
+    vendos = repository.all_active()
     if len(vendos) == 0:
         return JSONResponse({
             "data": None,
@@ -140,8 +148,10 @@ async def refresh_logs():
 
     for vendo in vendos:
         try:
-            logger = JuanfiLogger(vendo)
-            logger.run()
+            vlogger = JuanfiLogger(vendo)
+            vlogger.run()
+        except Exception as e:
+            logging.warning(repr(e))
         finally:
             pass
 
@@ -212,7 +222,78 @@ async def read_withdrawals(controller: WithdrawalController = Depends(Withdrawal
     return controller.search()
 
 
+manager = ConnectionManager()
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # You can handle incoming messages from clients here if needed
+            data = await websocket.receive_text()
+            # Example: Echoing back received message
+            await manager.broadcast(f"{data}")
+
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast(f"Client disconnected")
+
+@crons.cron("* * * * *", name="broadcast_notifications")
+async def broadcast_notifications():
+    logger.info("Broadcasting new notifications.")
+    db = SessionLocal()
+    repository = NotificationRepository(db)  # Instantiate directly
+    unread = repository.pull_unread()
+    for notification in unread:
+        notification = {
+            'type': 'notification',
+            'message': notification.message
+        }
+        data = json.dumps(notification)
+        await manager.broadcast(f"{data}")
+
+
+
+@crons.cron("*/5 * * * *", name="cron_refresh_logs")
+async def cron_refresh_logs():
+    logger.info("Refreshing logs.")
+    db = SessionLocal()
+    repository = VendoRepository(db)
+    vendos = repository.all_active()
+    if len(vendos) == 0:
+        logger.info("No registered vendo. Please add first.")
+        return None
+
+    for vendo in vendos:
+        logger.info(f"Checking vendo {vendo.name} status.")
+        try:
+            vlogger = JuanfiLogger(vendo)
+            vlogger.run()
+        except Exception as e:
+            logging.warning(repr(e))
+        finally:
+            pass
+
+    logger.info("Vendo checked.")
+    return None
+
+@crons.cron("*/5 * * * *", name="cron_vendo_status")
+async def cron_vendo_status():
+    logger.info("Getting vendo status.")
+
+    try:
+        VendoStatusLog().run()
+    except Exception as e:
+        logging.warning(repr(e))
+    finally:
+        pass
+
+    logger.info("Vendo status updated.")
+    return None
+
+
 add_pagination(app)
+app.include_router(get_cron_router(), prefix="/crons")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -115,3 +115,11 @@ class Withdrawal(Base):
     updated_at = Column(TIMESTAMP)
 
 
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True)
+    message = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    read_at = Column(DateTime)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP)

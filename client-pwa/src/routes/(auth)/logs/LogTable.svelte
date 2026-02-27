@@ -3,9 +3,10 @@
 	import DateTime from '$lib/components/DateTime.svelte';
 	import { baseApiUrl } from '$lib/env';
 	import DataTable from '$lib/components/DataTable.svelte';
-	import type { TableHeader } from '$lib/types/datatable';
+	import type {RowItem, TableHeader} from '$lib/types/datatable';
 	import {getVendos} from "$lib/remote/vendo.remote";
 
+	let dataTable: DataTable
 	let date: string = $state(moment().format('Y-MM-DD'));
 	let vendoId: number|undefined = $state(undefined);
 
@@ -21,11 +22,15 @@
 		date: date,
 	})
 
+	export function loadData() {
+		dataTable.loadData()
+	}
 </script>
 
-<DataTable url={`${baseApiUrl}/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
-	<div
-		slot="before-table"
+<DataTable bind:this={dataTable} url={`${baseApiUrl}/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
+
+	{#snippet beforeTable()}
+		<div
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
 			style="row-gap: 15px"
 		>
@@ -52,7 +57,10 @@
 				</select>
 			</div>
 		</div>
-	<span slot="cell" let:item let:header let:getCellValue>
+	{/snippet}
+
+	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
+	<span>
 		{#if header.field === 'log_time'}
 			<DateTime date={item.log_time}></DateTime>
 		{:else if header.field === 'created_at'}
@@ -61,4 +69,6 @@
 			<span>{getCellValue(item, header)}</span>
 		{/if}
 	</span>
+	{/snippet}
+	
 </DataTable>

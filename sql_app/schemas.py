@@ -94,9 +94,19 @@ class VendoSale(BaseModel):
     vendo: Vendo
 
 
+class Notification(BaseModel):
+    id: int
+    message: str
+    user_id: int
+    read_at: datetime
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
 class SuccessResponse(BaseModel):
     success: bool
     pass
+
 
 
 class VendoLogResponse(SuccessResponse):

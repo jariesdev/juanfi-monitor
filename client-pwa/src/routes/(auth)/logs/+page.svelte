@@ -1,10 +1,13 @@
+<svelte:head>
+	<title>Logs</title>
+</svelte:head>
+
 <script lang="ts">
 	import LogTable from './LogTable.svelte';
-	import { apiUrl } from '$lib/store';
 	import { baseApiUrl } from '$lib/env';
 
+	let logTable: LogTable
 	let isReloading: boolean = false;
-	let reloadData: Function;
 
 	function refreshLogs(): void {
 		isReloading = true;
@@ -12,7 +15,7 @@
 		const request = new Request(`${baseApiUrl}/log/refresh`, { method: 'POST' });
 		fetch(request)
 			.then(() => {
-				reloadData();
+				logTable.loadData();
 			})
 			.finally(() => {
 				isReloading = false;
@@ -28,6 +31,6 @@
 			>
 		</div>
 
-		<LogTable bind:loadData={reloadData} />
+		<LogTable bind:this={logTable} />
 	</div>
 </div>

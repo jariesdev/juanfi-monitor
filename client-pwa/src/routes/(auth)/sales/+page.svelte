@@ -1,10 +1,13 @@
+<svelte:head>
+	<title>Sales</title>
+</svelte:head>
+
 <script lang="ts">
-	import LogTable from './SaleTable.svelte';
-	import { apiUrl } from '$lib/store';
+	import SaleTable from './SaleTable.svelte';
 	import { baseApiUrl } from '$lib/env';
 
 	let isReloading: boolean = false;
-	let reloadData: Function;
+	let saleTable: SaleTable;
 
 	function refreshLogs(): void {
 		isReloading = true;
@@ -12,7 +15,7 @@
 		const request = new Request(`${baseApiUrl}/log/refresh`, { method: 'POST' });
 		fetch(request)
 			.then(() => {
-				reloadData();
+				saleTable.loadData();
 			})
 			.finally(() => {
 				isReloading = false;
@@ -29,6 +32,6 @@
 			<a href="/withdrawals" class="uk-button uk-button-primary">Withdrawals</a>
 		</div>
 
-		<LogTable bind:loadData={reloadData} />
+		<SaleTable bind:this={saleTable} />
 	</div>
 </div>
