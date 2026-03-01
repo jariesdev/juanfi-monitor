@@ -4,7 +4,7 @@
 
 <script>
 	import DailySaleChart from '$lib/components/DailySaleChart.svelte';
-	import VendoMonthlyUserChart from '$lib/components/VendoMonthlyUserChart.svelte';
+	import ActiveCustomerChart from '$lib/components/ActiveCustomerChart.svelte';
 	import VendoCapacityChart from '$lib/components/VendoCapacityChart.svelte';
 	import MonthlySaleChart from '$lib/components/MonthlySaleChart.svelte';
 	import {onMount} from "svelte";
@@ -22,5 +22,5 @@
 	<h3 class="uk-text-light uk-text-center">Vendo Capacity Counter</h3>
 	<VendoCapacityChart />
 	<h3 class="uk-text-light uk-text-center">Active User History</h3>
-	<VendoMonthlyUserChart />
+	<ActiveCustomerChart />
 </section>
