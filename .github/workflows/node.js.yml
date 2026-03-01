@@ -76,6 +76,7 @@ jobs:
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           PRODUCTION_SERVER_URI: ${{ vars.PRODUCTION_SERVER_URI }}
+          PRODUCTION_WORKING_DIR: ${{ vars.PRODUCTION_WORKING_DIR }}
           PRODUCTION_PM2_ID: ${{ vars.PRODUCTION_PM2_ID }}
         run: |
           echo "${SSH_PRIVATE_KEY}" > ssh_key
