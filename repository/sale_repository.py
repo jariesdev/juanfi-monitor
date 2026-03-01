@@ -47,3 +47,14 @@ class SaleRepository:
                  .group_by(func.date(VendoSale.sale_time), VendoSale.vendo_id)
                  .order_by(VendoSale.sale_time))
         return query.all()
+
+    def get_monthly_sales(self, from_date: date, to_date: date):
+        db = self._db
+        query = (db.query(func.strftime("%Y-%m", VendoSale.sale_time).label("month"), func.sum(VendoSale.amount).label("total"),
+                          VendoSale.vendo_id, Vendo.name.label("vendo_name"))
+                 .join(VendoSale.vendo)
+                 .filter(func.date(VendoSale.sale_time).between(from_date, to_date))
+                 .filter(Vendo.is_active == True)
+                 .group_by(func.strftime("%Y-%m", VendoSale.sale_time), VendoSale.vendo_id)
+                 .order_by(VendoSale.sale_time))
+        return query.all()
