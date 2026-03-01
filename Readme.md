@@ -5,7 +5,8 @@
   * Start python server in Pycharm
   * connect to http://localhost:8000
 * .venv
-  * If running in .venv activate first `source .venv/bin/activate` 
+  * Initialize venv `python3 -m venv .venv`
+  * Activate `source .venv/bin/activate` 
   * Run this in the background `uvicorn main:app --port 8000 --reload`
   * connect to http://localhost:8000
 * Database Migration

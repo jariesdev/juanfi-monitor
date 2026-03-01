@@ -79,5 +79,5 @@ jobs:
         run: |
           echo "${SSH_PRIVATE_KEY}" > ssh_key
           chmod 600 ssh_key
-          scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:/opt/vendo_report
-          ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd /opt/vendo_report && tar -xzf build-artifacts.tar.gz && pm2 restart pwifi"
+          scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:${PRODUCTION_WORKING_DIR}
+          ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd ${PRODUCTION_WORKING_DIR} && tar -xzf build-artifacts.tar.gz && pm2 restart ${PRODUCTION_PM2_ID}"

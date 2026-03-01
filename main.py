@@ -170,6 +170,10 @@ def read_sales(request: SalesSearchRequest = Depends(), controller: SaleControll
 def read_daily_sales(request: DailySaleRequest = Depends(), controller: SaleController = Depends(SaleController)):
     return controller.daily_sales(request)
 
+@app.get("/monthly-sales")
+def read_monthly_sales(request: DailySaleRequest = Depends(), controller: SaleController = Depends(SaleController)):
+    return controller.monthly_sales(request)
+
 
 @app.get("/vendo-status-history")
 async def read_vendo_status(
