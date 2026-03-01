@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi import Depends
 
 from repository.sale_repository import SaleRepository
-from sql_app.schemas import SalesSearchRequest, DailySaleRequest
+from sql_app.schemas import SalesSearchRequest, DailySaleRequest, MonthlySaleRequest
 from fastapi_pagination import Page
 
 
@@ -41,6 +41,12 @@ class SaleController():
 
     def daily_sales(self, request: DailySaleRequest):
         result = self._repository.get_daily_sales(request.from_date, request.to_date)
+        return JSONResponse({
+            "data": [dict(r._mapping) for r in result]
+        })
+
+    def monthly_sales(self, request: MonthlySaleRequest):
+        result = self._repository.get_monthly_sales(request.from_date, request.to_date)
         return JSONResponse({
             "data": [dict(r._mapping) for r in result]
         })

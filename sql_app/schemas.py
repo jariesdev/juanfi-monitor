@@ -13,6 +13,11 @@ class DailySaleRequest(BaseRequest):
     to_date: date = Field(default=None)
 
 
+class MonthlySaleRequest(BaseRequest):
+    from_date: date = Field(default=None)
+    to_date: date = Field(default=None)
+
+
 class SearchRequest(Params):
     q: Optional[str] = Field(default=None, example="my search")
     pass
