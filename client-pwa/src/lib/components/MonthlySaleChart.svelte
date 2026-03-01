@@ -113,7 +113,7 @@
 						const sDate = new Date(fromDate);
 						const eDate = new Date(toDate);
 						while (sDate <= eDate) {
-							const dKey = `${sDate.getFullYear()}-${sDate.getMonth() + 1}`;
+							const dKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
 							const dt = sDate;
 
 							if (vendoSales2[dKey]) {
@@ -140,12 +140,12 @@
 						};
 					});
 
-					const startDate = moment(fromDate).startOf('day');
-					chart.data.labels = [];
-					while (startDate.isSameOrBefore(toDate)) {
-						chart.data.labels.push(startDate.toDate());
-						startDate.add(1, 'day');
-					}
+					// const startDate = moment(fromDate).startOf('day');
+					// chart.data.labels = [];
+					// while (startDate.isSameOrBefore(toDate)) {
+					// 	chart.data.labels.push(startDate.toDate());
+					// 	startDate.add(1, 'day');
+					// }
 					chart.data.datasets = datasets;
 					chart.update();
 				}
