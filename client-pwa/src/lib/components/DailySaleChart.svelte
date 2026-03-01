@@ -74,7 +74,8 @@
 							beginAtZero: true,
 							stepSize: 1,
 							callback: function(value: string) {
-								return 'PHP ' + value;
+								const n = Number(value)
+								return '₱ ' + n.toLocaleString();
 							}
 						}
 					}

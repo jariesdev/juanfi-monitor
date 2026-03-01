@@ -80,7 +80,15 @@
 				scales: {
 					y: {
 						min: 0,
-						max: 5500
+						max: 5500,
+							ticks: {
+								beginAtZero: true,
+								stepSize: 1,
+								callback: function(value: string) {
+									const n = Number(value)
+									return '₱ ' + n.toLocaleString();
+								}
+							}
 					}
 				},
 				interaction: {
