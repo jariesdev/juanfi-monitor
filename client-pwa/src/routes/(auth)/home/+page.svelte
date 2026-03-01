@@ -17,10 +17,10 @@
 <section class="uk-section">
 	<h3 class="uk-text-light uk-text-center">Daily Sales</h3>
 	<DailySaleChart />
-	<h3 class="uk-text-light uk-text-center">Monthly Sales</h3>
-	<MonthlySaleChart />
 	<h3 class="uk-text-light uk-text-center">Vendo Capacity Counter</h3>
 	<VendoCapacityChart />
+	<h3 class="uk-text-light uk-text-center">Monthly Sales</h3>
+	<MonthlySaleChart />
 	<h3 class="uk-text-light uk-text-center">Active User History</h3>
 	<ActiveCustomerChart />
 </section>
