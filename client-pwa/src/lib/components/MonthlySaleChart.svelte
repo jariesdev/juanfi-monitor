@@ -66,6 +66,9 @@
 				scales: {
 					x: {
 						type: 'time',
+						time: {
+							unit: 'month'
+						}
 					},
 					y: {
 						ticks: {
@@ -90,7 +93,7 @@
 		// request
 		const fromDate = new Date(new Date().getFullYear() - 1, new Date().getMonth(), 1)
 		const fromDateStr = fromDate.toISOString().split('T')[0]
-		const toDate = new Date(new Date().getFullYear(), new Date().getMonth(), 31)
+		const toDate = new Date(new Date().getFullYear(), new Date().getMonth(), 0)
 		const toDateStr = toDate.toISOString().split('T')[0]
 		let url = `/api/monthly-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
 		const request = new Request(url, { method: 'GET', signal: signal });
