@@ -10,7 +10,7 @@ const sendApiRequest = async (r: RouteParams2): Promise<Response> => {
 	baseApiUrl = baseApiUrl.replace(/\/$/, '');
 
 	// path and search params
-	const pathname = r.url.pathname.replace('/api/', '/');
+	const pathname = r.url.pathname.replace('/x-api/', '/');
 	const url: URL = new URL(baseApiUrl);
 	url.pathname = pathname;
 	url.search = r.url.search;
