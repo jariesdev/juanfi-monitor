@@ -5,7 +5,7 @@ import type { MaybePromise } from '@sveltejs/kit/src/types/private';
 type RouteParams2 = RouteParams & { url: URL; request: Request };
 
 const sendApiRequest = async (r: RouteParams2): Promise<Response> => {
-	let baseApiUrl: string = VITE_API_URL;
+	let baseApiUrl: string = VITE_INTERNAL_API;
 	// remove the leading slash
 	baseApiUrl = baseApiUrl.replace(/\/$/, '');
 
