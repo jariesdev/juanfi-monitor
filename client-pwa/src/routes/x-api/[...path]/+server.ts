@@ -1,5 +1,5 @@
 import type { RequestHandler, RouteParams } from './$types';
-import { VITE_API_URL } from '$env/static/private';
+import { VITE_INTERNAL_API } from '$env/static/private';
 import type { MaybePromise } from '@sveltejs/kit/src/types/private';
 
 type RouteParams2 = RouteParams & { url: URL; request: Request };
