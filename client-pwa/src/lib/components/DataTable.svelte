@@ -27,7 +27,7 @@
 	let currentPage: number = $state(1);
 	let maxPage: number = $state(1);
 	let totalItems: number = $state(1);
-	let isLoading: boolean = $state(false);
+	let isLoading: boolean = $state(true);
 	let tableItems: RowItem[] = $state([]);
 	let searchInput: string = $state('');
 	let controller: AbortController | undefined = undefined;
@@ -201,7 +201,15 @@
 			</thead>
 			<tbody>
 
-			{#if tableItems.length === 0}
+			{#if isLoading && isFirstLoad}
+				{#each { length: 5 } as _}
+					<tr>
+						{#each headers as _}
+							<td><div class="skeleton-cell"></div></td>
+						{/each}
+					</tr>
+				{/each}
+			{:else if tableItems.length === 0}
 				<tr>
 					<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
 						{@render (empty || emptyFallback)()}
@@ -222,5 +230,19 @@
 	<div class="uk-text-muted">
 		Total items: {totalItems}
 	</div>
-	<div bind:this={infiniteScrollEl} ></div>
+	<div bind:this={infiniteScrollEl}></div>
 </div>
+
+<style>
+	.skeleton-cell {
+		height: 16px;
+		border-radius: 4px;
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>

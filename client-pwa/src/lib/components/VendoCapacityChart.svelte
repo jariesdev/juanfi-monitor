@@ -9,7 +9,7 @@
 	let chartData: any[] = [];
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
-	let isLoading: boolean = false;
+	let isLoading: boolean = true;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
 	let lastDataHash: string = '';
@@ -176,4 +176,28 @@
 	});
 </script>
 
-<canvas bind:this={canvas} />
+<div class="chart-wrapper">
+	<canvas bind:this={canvas} />
+	{#if isLoading}
+		<div class="chart-skeleton"></div>
+	{/if}
+</div>
+
+<style>
+	.chart-wrapper {
+		position: relative;
+		min-height: 200px;
+	}
+	.chart-skeleton {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+		border-radius: 6px;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>

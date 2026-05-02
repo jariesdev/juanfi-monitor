@@ -14,7 +14,7 @@
 	// export let vendoId: number;
 	const {vendoId} = $props()
 	let statuses: iStatus[] = $state([]);
-	let isLoading: boolean = $state(false);
+	let isLoading: boolean = $state(true);
 	let systemUptime: number = $state(0);
 	let serverTime: number = $state(0);
 	let controller: AbortController | undefined = undefined;
@@ -25,6 +25,7 @@
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
 
 	function loadStatuses(): void {
+		isLoading = true;
 		controller = new AbortController();
 		const signal = controller.signal;
 		const request = new Request(`/x-api/vendo-machines/${vendoId}/status?nosw=1`, {
@@ -140,7 +141,16 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body uk-margin-small-bottom">
-	{#if statuses.length > 0}
+	{#if isLoading}
+		<ul class="uk-list uk-list-divider">
+			{#each { length: 6 } as _}
+				<li class="uk-flex uk-flex-between uk-flex-middle">
+					<div class="skeleton skeleton-label"></div>
+					<div class="skeleton skeleton-value"></div>
+				</li>
+			{/each}
+		</ul>
+	{:else if statuses.length > 0}
 		<ul class="uk-list uk-list-divider">
 			<li class="uk-flex uk-flex-between">
 				<span>System Uptime</span>
@@ -176,6 +186,27 @@
 		<p class="uk-text-info">Status not available yet.</p>
 	{/if}
 </div>
+
+<style>
+	.skeleton {
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+		border-radius: 4px;
+	}
+	.skeleton-label {
+		width: 140px;
+		height: 14px;
+	}
+	.skeleton-value {
+		width: 80px;
+		height: 14px;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>
 
 <div class="uk-card uk-card-default uk-card-body">
 	{#if vendo}

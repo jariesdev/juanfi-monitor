@@ -8,12 +8,12 @@
 
 	let vendoMachines: iVendo[] = [];
 	let searchInput: string = '';
-	let isLoading: boolean = false;
+	let isLoading: boolean = true;
 	let controller: AbortController | undefined = undefined;
 
 	export const loadData: Function = debounce(
 		async (): Promise<void> => {
-			isLoading = false;
+			isLoading = true;
 
 			let url = `/x-api/vendo-machines`;
 			if (!!searchInput) {
@@ -88,40 +88,44 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#if vendoMachines.length === 0}
+				{#if isLoading}
+					{#each { length: 5 } as _}
+						<tr>
+							{#each { length: 6 } as _}
+								<td><div class="skeleton-cell"></div></td>
+							{/each}
+							<td></td>
+						</tr>
+					{/each}
+				{:else if vendoMachines.length === 0}
 					<tr>
-						<td colspan="6" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
+						<td colspan="7" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
 							No record yet.
 						</td>
 					</tr>
+				{:else}
+					{#each vendoMachines as vendo}
+						<tr>
+							<td>{vendo.name}</td>
+							<td>{vendo.api_url}</td>
+							<td>
+								<NumberFormat value={vendo.recent_status?.total_sales} />
+							</td>
+							<td>
+								<NumberFormat value={vendo.recent_status?.current_sales} />
+							</td>
+							<td>
+								<NumberFormat value={vendo.recent_status?.active_users || 0} />
+							</td>
+							<td>
+								<DateTime date={vendo.recent_status?.created_at} />
+							</td>
+							<td class="uk-text-nowrap">
+								<a href={`/vendo/${vendo.id}/status`} class="uk-icon-button uk-button-primary" uk-icon="info" aria-label="View details"></a>
+							</td>
+						</tr>
+					{/each}
 				{/if}
-				{#each vendoMachines as vendo}
-					<tr>
-						<td>{vendo.name}</td>
-						<td>{vendo.api_url}</td>
-						<td>
-							<NumberFormat value={vendo.recent_status?.total_sales} />
-						</td>
-						<td>
-							<NumberFormat value={vendo.recent_status?.current_sales} />
-						</td>
-						<td>
-							<NumberFormat value={vendo.recent_status?.active_users || 0} />
-						</td>
-						<td>
-							<DateTime date={vendo.recent_status?.created_at} />
-						</td>
-						<td class="uk-text-nowrap">
-							<a href={`/vendo/${vendo.id}/status`} class="uk-icon-button uk-button-primary" uk-icon="info" aria-label="View details"></a>
-							<!--<a href="#delete" on:click={withdrawCurrentSales} class="uk-margin-small-right">
-                            <span class="uk-text-info" uk-icon="icon: pencil"></span>
-                        </a>
-                        <a href="#delete" on:click={withdrawCurrentSales}>
-                            <span class="uk-text-danger" uk-icon="icon: trash"></span>
-                        </a>-->
-						</td>
-					</tr>
-				{/each}
 			</tbody>
 		</table>
 	</div>
@@ -144,3 +148,17 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.skeleton-cell {
+		height: 16px;
+		border-radius: 4px;
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>
