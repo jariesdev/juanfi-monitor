@@ -7,7 +7,7 @@ on:
   push:
     branches: [ "main", "release/*" ]
     paths:
-      - client-pwa/*
+      - client-pwa/**
   pull_request:
     branches: [ "main" ]
   create:
