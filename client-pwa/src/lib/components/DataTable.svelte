@@ -5,6 +5,7 @@
 	import get from 'lodash/get';
 	import type {Filter, RowItem, TableHeader} from '$lib/types/datatable';
 	import refreshIcon from '$lib/icons/refresh.svg'
+	import {countupInt} from '$lib/utils/countup';
 
 	// props
 	interface Props {
@@ -247,7 +248,7 @@
 		{@render afterTable?.()}
 	</div>
 	<div class="uk-text-muted">
-		Total items: {totalItems}
+		Total items: <span use:countupInt={totalItems}></span>
 	</div>
 	<div bind:this={infiniteScrollEl}></div>
 </div>
