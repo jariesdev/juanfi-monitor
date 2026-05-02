@@ -32,14 +32,13 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
     try {
         // try login to API
         const request: Request = new Request(`${baseApiUrl}/token`, {method: 'POST', body: formData})
-        let response = await fetch(request)
-            .then((response) => {
-                if (response.ok) {
-                    return response.json()
-                }
+        let response = await fetch(request).then(async (response) => {
+					if (response.ok) {
+						return response.json();
+					}
 
-                throw new Error(response.statusText)
-            })
+					throw new Error(await response.text());
+				});
 
         // set auth token cookie
         cookies.set('auth_token', response.access_token, {
