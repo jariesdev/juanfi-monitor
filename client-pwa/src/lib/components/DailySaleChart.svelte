@@ -16,6 +16,7 @@
 	let isLoading: boolean = false;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	interface iDailySale {
 		date: string;
@@ -110,45 +111,36 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
 					const byVendo = groupBy(data, 'vendo_id');
-					const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
-						const data = [];
+					const newDatasets = map(byVendo, (vendoSales: iDailySale[]) => {
+						const points = [];
 						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => o.date);
 						const sDate = new Date(fromDate);
 						const eDate = new Date(toDate);
 						while (sDate <= eDate) {
 							const dKey = sDate.toISOString().split('T')[0];
 							const dt = sDate;
-							// dt.setTime(0)
 							if (vendoSales2[dKey]) {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: vendoSales2[dKey].total
 								});
 							} else {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: null
 								});
 							}
 							sDate.setDate(sDate.getDate() + 1);
 						}
-
-						// const data = map(vendoSales, (d: iDailySale) => {
-						//     const dt = new Date(Date.parse(d.date))
-						//     const m = dt.getMonth() + 1
-						//     const dy = dt.getDate()
-						//     const df = String(dy).padStart(2, '0')
-						//     const mf = String(m).padStart(2, '0')
-						//     return {
-						//         date: d.date,
-						//         total: d.total
-						//     }
-						// });
 						const vendoName = vendoSales[0].vendo_name;
 						return {
 							label: vendoName,
-							data: data,
+							data: points,
 							borderWidth: 1,
 							tension: 0.4,
 							fill: false
@@ -156,13 +148,25 @@
 					});
 
 					const startDate = moment(fromDate).startOf('day');
-					chart.data.labels = [];
+					const newLabels = [];
 					while (startDate.isSameOrBefore(toDate)) {
-						chart.data.labels.push(startDate.toDate());
+						newLabels.push(startDate.toDate());
 						startDate.add(1, 'day');
 					}
+					chart.data.labels = newLabels;
 
-					chart.data.datasets = datasets;
+					// Update existing datasets in-place so Chart.js only animates actual changes;
+					// new datasets are appended, removed ones are dropped.
+					const existingByLabel = keyBy(chart.data.datasets, 'label');
+					chart.data.datasets = newDatasets.map((newDs) => {
+						const existing = existingByLabel[newDs.label];
+						if (existing) {
+							existing.data = newDs.data;
+							return existing;
+						}
+						return newDs;
+					});
+
 					chart.update();
 				}
 			})

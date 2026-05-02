@@ -14,6 +14,7 @@
 	let isLoading: boolean = false;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	interface iMonthlySale {
 		month: string;
@@ -110,9 +111,13 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
 					const byVendo = groupBy(data, 'vendo_id');
-					const datasets = map(byVendo, (sales: iMonthlySale[]) => {
-						const data = [];
+					const newDatasets = map(byVendo, (sales: iMonthlySale[]) => {
+						const points = [];
 						const vendoSales2 = keyBy(sales, (o: iMonthlySale) => o.month);
 						const sDate = new Date(fromDate);
 						const eDate = new Date(toDate);
@@ -121,12 +126,12 @@
 							const dt = sDate;
 
 							if (vendoSales2[dKey]) {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: vendoSales2[dKey].total
 								});
 							} else {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: null
 								});
@@ -137,20 +142,23 @@
 						const vendoName = sales[0].vendo_name;
 						return {
 							label: vendoName,
-							data: data,
+							data: points,
 							borderWidth: 1,
 							tension: 0.4,
 							fill: false
 						};
 					});
 
-					// const startDate = moment(fromDate).startOf('day');
-					// chart.data.labels = [];
-					// while (startDate.isSameOrBefore(toDate)) {
-					// 	chart.data.labels.push(startDate.toDate());
-					// 	startDate.add(1, 'day');
-					// }
-					chart.data.datasets = datasets;
+					const existingByLabel = keyBy(chart.data.datasets, 'label');
+					chart.data.datasets = newDatasets.map((newDs) => {
+						const existing = existingByLabel[newDs.label];
+						if (existing) {
+							existing.data = newDs.data;
+							return existing;
+						}
+						return newDs;
+					});
+
 					chart.update();
 				}
 			})

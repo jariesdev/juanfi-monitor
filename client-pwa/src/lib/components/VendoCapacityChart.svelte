@@ -12,6 +12,7 @@
 	let isLoading: boolean = false;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	const horizontalLinePlugin: Plugin = {
 		afterDraw: function(chartInstance) {
@@ -135,12 +136,21 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
-					const datasets = [{
-						label: 'Current Sales',
-						data: data.map((d) => d?.recent_status.current_sales | 0)
-					}];
-					chart.data.labels = data.map((d) => d.name);
-					chart.data.datasets = datasets;
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
+					const newLabels = data.map((d) => d.name);
+					const newValues = data.map((d) => d?.recent_status.current_sales | 0);
+
+					chart.data.labels = newLabels;
+
+					if (chart.data.datasets.length > 0) {
+						chart.data.datasets[0].data = newValues;
+					} else {
+						chart.data.datasets = [{ label: 'Current Sales', data: newValues }];
+					}
+
 					chart.update();
 				}
 			})

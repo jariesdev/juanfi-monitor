@@ -17,6 +17,7 @@
 	let isLoading: boolean = false;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	interface iDailySale {
 		date: string;
@@ -96,11 +97,15 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
 					const minTime = minBy(data, (o: any) => o.time)?.time;
 					const maxTime = maxBy(data, (o: any) => o.time)?.time;
 					const byVendo = groupBy(data, 'vendo_name');
-					const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
-						const data = [];
+					const newDatasets = map(byVendo, (vendoSales: iDailySale[]) => {
+						const points = [];
 
 						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => (new Date(Date.parse(o.time)).toISOString().substring(0, 16).replace('T', ' ')));
 
@@ -110,12 +115,12 @@
 							const dKey = sTime.toISOString().substring(0, 16).replace('T', ' ');
 							const dt = sTime;
 							if (vendoSales2[dKey]) {
-								data.push({
+								points.push({
 									time: moment(dt).startOf('hour').toDate(),
 									users: vendoSales2[dKey].average_active_users
 								});
 							} else {
-								data.push({
+								points.push({
 									time: moment(dt).startOf('hour').toDate(),
 									users: null
 								});
@@ -123,23 +128,25 @@
 							sTime.setHours(sTime.getHours() + 1);
 						}
 
-						// const data = map(vendoSales, (d: any) => {
-						//     const dt = new Date(Date.parse(d.time))
-						//     return {
-						//         time: moment(dt).format('MM-DD ha'),
-						//         users: d.average_active_users
-						//     }
-						// });
 						const vendoName = vendoSales[0].vendo_name;
 						return {
 							label: vendoName,
-							data: data,
+							data: points,
 							borderWidth: 1,
 							tension: 0.4
 						};
 					});
 
-					chart.data.datasets = datasets;
+					const existingByLabel = keyBy(chart.data.datasets, 'label');
+					chart.data.datasets = newDatasets.map((newDs) => {
+						const existing = existingByLabel[newDs.label];
+						if (existing) {
+							existing.data = newDs.data;
+							return existing;
+						}
+						return newDs;
+					});
+
 					chart.update();
 				}
 			})
