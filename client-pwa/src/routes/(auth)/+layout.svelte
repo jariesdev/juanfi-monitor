@@ -12,7 +12,7 @@
 
 <!-- Main content — offset matches sidebar width on desktop -->
 <main class="auth-content" class:sidebar-expanded={!$navCollapsed} class:sidebar-collapsed={$navCollapsed}>
-	<div class="content-inner">
+	<div class="content-inner uk-margin-auto-left uk-margin-auto-right">
 		<slot />
 	</div>
 </main>
