@@ -2,7 +2,6 @@
 	import {browser} from '$app/environment';
 	import {onDestroy, onMount, type Snippet} from 'svelte';
 	import debounce from 'lodash/debounce';
-	import get from 'lodash/get';
 	import type {Filter, RowItem, TableHeader} from '$lib/types/datatable';
 	import refreshIcon from '$lib/icons/refresh.svg'
 	import {countupInt} from '$lib/utils/countup';
