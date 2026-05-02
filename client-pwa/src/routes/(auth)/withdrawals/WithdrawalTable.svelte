@@ -1,10 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import debounce from 'lodash/debounce';
-	import { apiUrl } from '$lib/store';
 	import type { iSale } from '$lib/types/models';
 	import DateTime from '$lib/components/DateTime.svelte';
-	import { baseApiUrl } from '$lib/env';
 
 	let withdrawals: iSale[] = [];
 	let isLoading: boolean = false;
@@ -14,7 +12,7 @@
 		async (): Promise<void> => {
 			isLoading = false;
 
-			let url = `${baseApiUrl}/withdrawals`;
+			let url = `/x-api/withdrawals`;
 			controller = new AbortController();
 			const signal = controller.signal;
 			const request = new Request(url, { method: 'GET', signal: signal });

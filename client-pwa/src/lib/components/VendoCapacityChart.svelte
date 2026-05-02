@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Chart from 'chart.js/auto';
 	import { onDestroy, onMount } from 'svelte';
-	import { baseApiUrl } from '$lib/env';
+
 	import type { ChartConfiguration } from 'chart.js';
 	import 'chartjs-adapter-moment';
 	import type { Plugin } from 'chart.js/dist/types';
@@ -119,7 +119,7 @@
 		const signal = controller.signal;
 
 		const request = new Request(
-			`${baseApiUrl}/vendo-machines?` + (new URLSearchParams({is_active: true}).toString()),
+			`/x-api/vendo-machines?` + (new URLSearchParams({is_active: 'true'}).toString()),
 			{
 				method: 'GET',
 				signal: signal

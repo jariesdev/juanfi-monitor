@@ -1,28 +1,26 @@
-import type { RequestHandler, RouteParams } from './$types';
+import type { RequestHandler } from './$types';
 import { VITE_INTERNAL_API } from '$env/static/private';
-import type { MaybePromise } from '@sveltejs/kit/src/types/private';
 
-type RouteParams2 = RouteParams & { url: URL; request: Request };
+export const fallback: RequestHandler = async ({ url, request, cookies }) => {
+	const base = VITE_INTERNAL_API.replace(/\/$/, '');
 
-const sendApiRequest = async (r: RouteParams2): Promise<Response> => {
-	let baseApiUrl: string = VITE_INTERNAL_API;
-	// remove the leading slash
-	baseApiUrl = baseApiUrl.replace(/\/$/, '');
+	const target = new URL(base);
+	target.pathname = url.pathname.replace('/x-api/', '/');
+	target.search = url.search;
 
-	// path and search params
-	const pathname = r.url.pathname.replace('/x-api/', '/');
-	const url: URL = new URL(baseApiUrl);
-	url.pathname = pathname;
-	url.search = r.url.search;
+	const headers = new Headers();
 
-	// request object
-	const req: Request = new Request(url, { method: 'GET', body: r.request.body });
+	const token = cookies.get('auth_token');
+	if (token) {
+		headers.set('Authorization', `Bearer ${token}`);
+	}
 
-	// send request
-	return fetch(req);
-};
+	const contentType = request.headers.get('content-type');
+	if (contentType) {
+		headers.set('Content-Type', contentType);
+	}
 
-// This handler will respond to GET, POST, PUT, PATCH, DELETE, etc.
-export const fallback: RequestHandler =  (r: RouteParams2): MaybePromise<Response> => {
-	return  sendApiRequest(r);
+	const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.text();
+
+	return fetch(target, { method: request.method, headers, body });
 };

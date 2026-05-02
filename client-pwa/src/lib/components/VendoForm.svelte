@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { apiUrl } from '$lib/store';
 	import { createEventDispatcher } from 'svelte';
-	import { baseApiUrl } from '$lib/env';
 
 	const dispatcher = createEventDispatcher();
 	let isProcessing: boolean = false;
@@ -15,7 +13,7 @@
 		const formData = new FormData();
 		Object.keys(form).forEach((key) => formData.append(key, form[key]));
 		isProcessing = true;
-		const request = new Request(`${baseApiUrl}/vendo-machines`, {
+		const request = new Request(`/x-api/vendo-machines`, {
 			method: 'POST',
 			body: JSON.stringify(form),
 			headers: {

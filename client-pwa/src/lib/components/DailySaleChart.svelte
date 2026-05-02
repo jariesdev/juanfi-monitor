@@ -6,7 +6,7 @@
 	import maxBy from 'lodash/maxBy';
 	import groupBy from 'lodash/groupBy';
 	import keyBy from 'lodash/keyBy';
-	import { baseApiUrl } from '$lib/env';
+
 	import moment from 'moment';
 	import 'chartjs-adapter-moment';
 
@@ -97,7 +97,7 @@
 		const fromDateStr = fromDate.toISOString().split('T')[0]
 		const toDate = new Date()
 		const toDateStr = toDate.toISOString().split('T')[0]
-		let url = `${baseApiUrl}/daily-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
+		let url = `/x-api/daily-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
 
 		const request = new Request(url, { method: 'GET', signal: signal });
 		fetch(request)

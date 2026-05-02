@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
-	import { baseApiUrl } from '$lib/env';
+
 	import {changeVendoStatus, getVendoInfo} from "$lib/remote/vendo.remote";
 	import type {iVendo} from "$lib/types/models";
 
@@ -27,7 +27,7 @@
 	function loadStatuses(): void {
 		controller = new AbortController();
 		const signal = controller.signal;
-		const request = new Request(`${baseApiUrl}/vendo-machines/${vendoId}/status?nosw=1`, {
+		const request = new Request(`/x-api/vendo-machines/${vendoId}/status?nosw=1`, {
 			method: 'GET',
 			signal: signal
 		});
@@ -84,7 +84,7 @@
 		}
 
 		isWithdrawing = true;
-		let url = `${baseApiUrl}/vendo-machines/${vendoId}/withdraw-current-sales`;
+		let url = `/x-api/vendo-machines/${vendoId}/withdraw-current-sales`;
 		controller = new AbortController();
 		const signal = controller.signal;
 		const request: Request = new Request(url, { method: 'POST', signal });

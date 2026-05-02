@@ -4,7 +4,7 @@
 
 <script lang="ts">
 	import SaleTable from './SaleTable.svelte';
-	import { baseApiUrl } from '$lib/env';
+
 
 	let isReloading: boolean = false;
 	let saleTable: SaleTable;
@@ -12,7 +12,7 @@
 	function refreshLogs(): void {
 		isReloading = true;
 
-		const request = new Request(`${baseApiUrl}/log/refresh`, { method: 'POST' });
+		const request = new Request(`/x-api/log/refresh`, { method: 'POST' });
 		fetch(request)
 			.then(() => {
 				saleTable.loadData();

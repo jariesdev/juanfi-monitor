@@ -4,7 +4,7 @@
 
 <script lang="ts">
 	import LogTable from './LogTable.svelte';
-	import { baseApiUrl } from '$lib/env';
+
 
 	let logTable: LogTable
 	let isReloading: boolean = false;
@@ -12,7 +12,7 @@
 	function refreshLogs(): void {
 		isReloading = true;
 
-		const request = new Request(`${baseApiUrl}/log/refresh`, { method: 'POST' });
+		const request = new Request(`/x-api/log/refresh`, { method: 'POST' });
 		fetch(request)
 			.then(() => {
 				logTable.loadData();

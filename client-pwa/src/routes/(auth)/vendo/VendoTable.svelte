@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import debounce from 'lodash/debounce';
-	import { apiUrl } from '$lib/store';
 	import VendoForm from '$lib/components/VendoForm.svelte';
 	import type { iVendo } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
-	import { baseApiUrl } from '$lib/env';
 
 	let vendoMachines: iVendo[] = [];
 	let searchInput: string = '';
@@ -17,7 +15,7 @@
 		async (): Promise<void> => {
 			isLoading = false;
 
-			let url = `${baseApiUrl}/vendo-machines`;
+			let url = `/x-api/vendo-machines`;
 			if (!!searchInput) {
 				url = `${url}?q=${searchInput}`;
 			}

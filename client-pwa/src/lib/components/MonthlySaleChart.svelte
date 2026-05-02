@@ -4,7 +4,7 @@
 	import map from 'lodash/map';
 	import groupBy from 'lodash/groupBy';
 	import keyBy from 'lodash/keyBy';
-	import { baseApiUrl } from '$lib/env';
+
 	import moment from 'moment';
 	import 'chartjs-adapter-moment';
 

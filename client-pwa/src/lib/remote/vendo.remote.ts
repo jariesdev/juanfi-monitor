@@ -1,104 +1,78 @@
-import {query} from '$app/server';
-import * as v from 'valibot'
-import {VITE_API_URL} from '$env/static/private'
-import {fail} from "@sveltejs/kit";
-import type {iVendo} from "$lib/types/models";
+import { query, getRequestEvent } from '$app/server';
+import * as v from 'valibot';
+import { VITE_INTERNAL_API } from '$env/static/private';
+import { fail } from '@sveltejs/kit';
+import type { iVendo } from '$lib/types/models';
 
-export const changeVendoStatus = query(v.object({
-	id: v.number(),
-	status: v.boolean()
-}), async ({id, status}) => {
-
-	try {
-		// try login to API
-		const baseApiUrl: string = VITE_API_URL
-		const headers: Headers = new Headers()
-		headers.set('Accept', 'application/json')
-		headers.set('Content-Type', 'application/json')
-		headers.set('authorization', ``)
-		const request: Request = new Request(`${baseApiUrl}/vendo-machines/${id}/set-status`, {
-			method: 'POST',
-			body: JSON.stringify({status: status ? '1' : '0'}),
-			headers
-		})
-		await fetch(request)
-			.then((response) => {
-				if (response.ok) {
-					return response.json()
-				}
-
-				throw new Error(response.statusText)
-			})
-			.then(({data}) => data)
-
-		return {
-			success: true
-		}
-	} catch (e: unknown) {
-		let message: string = ''
-		if (e instanceof Error) {
-			message = e.message
-		} else if (typeof e === "string") {
-			message = e
-		} else if (typeof e === "object" && e !== null && "message" in e) {
-			console.error("Caught a custom error object:", (e as { message: string }).message);
-			message = (e as { message: string }).message
-		}
-
-		return fail(400, {message, test: 1})
+function apiHeaders(): Headers {
+	const headers = new Headers();
+	headers.set('Accept', 'application/json');
+	headers.set('Content-Type', 'application/json');
+	const token = getRequestEvent()?.cookies.get('auth_token');
+	if (token) {
+		headers.set('Authorization', `Bearer ${token}`);
 	}
-});
+	return headers;
+}
+
+export const changeVendoStatus = query(
+	v.object({ id: v.number(), status: v.boolean() }),
+	async ({ id, status }) => {
+		try {
+			await fetch(
+				new Request(`${VITE_INTERNAL_API}/vendo-machines/${id}/set-status`, {
+					method: 'POST',
+					body: JSON.stringify({ status: status ? '1' : '0' }),
+					headers: apiHeaders()
+				})
+			).then((response) => {
+				if (response.ok) return response.json();
+				throw new Error(response.statusText);
+			});
+
+			return { success: true };
+		} catch (e: unknown) {
+			const message =
+				e instanceof Error ? e.message : typeof e === 'string' ? e : 'Unknown error';
+			return fail(400, { message });
+		}
+	}
+);
 
 export const getVendoInfo = query(v.number(), async (id) => {
 	try {
-		// try login to API
-		const baseApiUrl: string = VITE_API_URL
-		const headers: Headers = new Headers()
-		headers.set('Accept', 'application/json')
-		headers.set('Content-Type', 'application/json')
-		headers.set('authorization', ``)
-		const request: Request = new Request(`${baseApiUrl}/vendo-machines/${id}`, {
-			method: 'GET',
-			headers
-		})
-		const data: iVendo = await fetch(request)
-			.then((response) => {
-				if (response.ok) {
-					return response.json()
-				}
-
-				throw new Error(response.statusText)
+		const data: iVendo = await fetch(
+			new Request(`${VITE_INTERNAL_API}/vendo-machines/${id}`, {
+				method: 'GET',
+				headers: apiHeaders()
 			})
-			.then(({data}) => data)
+		)
+			.then((response) => {
+				if (response.ok) return response.json();
+				throw new Error(response.statusText);
+			})
+			.then(({ data }) => data);
 
-		return data
-	} catch (e: unknown) {
-		return null
+		return data;
+	} catch {
+		return null;
 	}
 });
 
 export const getVendos = query(async (): Promise<iVendo[]> => {
 	try {
-		// try login to API
-		const baseApiUrl: string = VITE_API_URL
-		const headers: Headers = new Headers()
-		headers.set('Accept', 'application/json')
-		headers.set('Content-Type', 'application/json')
-		headers.set('authorization', ``)
-		const request: Request = new Request(`${baseApiUrl}/vendo-machines`, {
-			method: 'GET',
-			headers
-		})
-		return await fetch(request)
-			.then((response) => {
-				if (response.ok) {
-					return response.json()
-				}
-
-				throw new Error(response.statusText)
+		return await fetch(
+			new Request(`${VITE_INTERNAL_API}/vendo-machines`, {
+				method: 'GET',
+				headers: apiHeaders()
 			})
-			.then(({data}) => data)
-	} catch (e: unknown) {
-		return []
+		)
+			.then((response) => {
+				if (response.ok) return response.json();
+				throw new Error(response.statusText);
+			})
+			.then(({ data }) => data);
+	} catch {
+		return [];
 	}
 });

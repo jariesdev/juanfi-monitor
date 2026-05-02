@@ -7,7 +7,7 @@
 	import minBy from 'lodash/minBy';
 	import maxBy from 'lodash/maxBy';
 	import keyBy from 'lodash/keyBy';
-	import { baseApiUrl } from '$lib/env';
+
 	import type { ChartConfiguration } from 'chart.js';
 	import 'chartjs-adapter-moment';
 
@@ -80,7 +80,7 @@
 		const from = moment().subtract(1, 'month').format('Y-MM-DD');
 		const to = moment().format('Y-MM-DD');
 		const request = new Request(
-			`${baseApiUrl}/vendo-status-history?from_date=${from}&to_date=${to}&active_only=true`,
+			`/x-api/vendo-status-history?from_date=${from}&to_date=${to}&active_only=true`,
 			{
 				method: 'GET',
 				signal: signal
@@ -102,7 +102,8 @@
 					const datasets = map(byVendo, (vendoSales: iDailySale[]) => {
 						const data = [];
 
-						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => o.time);
+						const vendoSales2 = keyBy(vendoSales, (o: iDailySale) => (new Date(Date.parse(o.time)).toISOString().substring(0, 16).replace('T', ' ')));
+
 						const sTime = new Date(Date.parse(minTime));
 						const eTime = new Date(Date.parse(maxTime));
 						while (sTime.getTime() <= eTime.getTime()) {
