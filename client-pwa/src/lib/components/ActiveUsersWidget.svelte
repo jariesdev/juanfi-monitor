@@ -17,7 +17,7 @@
 		fetch('/x-api/vendo-machines', { signal: controller.signal })
 			.then((r) => (r.ok ? r.json() : Promise.reject()))
 			.then(({ data }) => {
-				vendos = data ?? [];
+				vendos = (data ?? []).filter((v) => v.is_active);
 			})
 			.catch(() => {})
 			.finally(() => {
@@ -90,13 +90,6 @@
 			{/each}
 		</div>
 	{:else}
-		<!-- "Show all" button — only when vendos exceed MAX_VISIBLE -->
-		{#if vendos.length > MAX_VISIBLE}
-			<button class="show-all-btn" onclick={() => (showModal = true)} title="Show all vendo machines">
-				<span uk-icon="icon: table"></span>
-				<span class="show-all-count">+{vendos.length - MAX_VISIBLE}</span>
-			</button>
-		{/if}
 
 		{#each vendos.slice(0, MAX_VISIBLE) as v}
 			<div class="vendo-card">
@@ -105,6 +98,14 @@
 				<div class="vendo-sales">₱{currentSales(v)}</div>
 			</div>
 		{/each}
+
+		<!-- "Show all" button — only when vendos exceed MAX_VISIBLE -->
+		{#if vendos.length > MAX_VISIBLE}
+			<button class="show-all-btn" onclick={() => (showModal = true)} title="Show all vendo machines">
+				<span uk-icon="icon: table"></span>
+				<span class="show-all-count">+{vendos.length - MAX_VISIBLE}</span>
+			</button>
+		{/if}
 	{/if}
 </div>
 
