@@ -8,7 +8,6 @@ on:
     branches: [ "main", "release/*" ]
     paths:
       - client-pwa/**
-      - node.js.yml
   pull_request:
     branches: [ "main" ]
   create:
@@ -78,5 +77,7 @@ jobs:
         run: |
           echo "${SSH_PRIVATE_KEY}" > ssh_key
           chmod 600 ssh_key
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.PRODUCTION_SERVER_IP }}" >> ~/.ssh/known_hosts
           scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:${PRODUCTION_WORKING_DIR}
           ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd ${PRODUCTION_WORKING_DIR} && tar -xzf build-artifacts.tar.gz && pm2 restart ${PRODUCTION_PM2_ID}"
