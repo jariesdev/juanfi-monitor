@@ -107,10 +107,6 @@
 		loadData();
 	}
 
-	function getCellValue(item: RowItem, header: TableHeader) {
-		return get(item, header.field, '');
-	}
-
 	// reset when search
 	const resetTableQuery = () => {
 		currentPage = 1;
