@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { CountUp } from 'countup.js';
 	import type { iVendo } from '$lib/types/models';
 
 	const MAX_VISIBLE = 5;
@@ -10,6 +11,46 @@
 	let controller: AbortController | undefined;
 	let intervalId: ReturnType<typeof setInterval>;
 
+	function rawUsers(v: iVendo): number {
+		return v.recent_status?.active_users ?? v.active_users ?? 0;
+	}
+
+	function rawSales(v: iVendo): number {
+		return v.recent_status?.current_sales ?? v.current_sales ?? 0;
+	}
+
+	function fmt(n: number): string {
+		return new Intl.NumberFormat().format(Math.round(n));
+	}
+
+	// Svelte action: animate an integer counter on mount; update() animates to new value
+	function countupInt(node: HTMLElement, value: number) {
+		const counter = new CountUp(node, value, { duration: 0.9, useEasing: true });
+		counter.start();
+		return {
+			update(newValue: number) {
+				counter.update(newValue);
+			}
+		};
+	}
+
+	// Svelte action: animate a peso sales counter with ₱ prefix and comma separator
+	function countupSales(node: HTMLElement, value: number) {
+		const counter = new CountUp(node, value, {
+			duration: 0.9,
+			useEasing: true,
+			prefix: '₱',
+			separator: ',',
+			decimalPlaces: 0
+		});
+		counter.start();
+		return {
+			update(newValue: number) {
+				counter.update(newValue);
+			}
+		};
+	}
+
 	function loadData() {
 		controller?.abort();
 		controller = new AbortController();
@@ -17,21 +58,12 @@
 		fetch('/x-api/vendo-machines', { signal: controller.signal })
 			.then((r) => (r.ok ? r.json() : Promise.reject()))
 			.then(({ data }) => {
-				vendos = (data ?? []).filter((v) => v.is_active);
+				vendos = (data ?? []).filter((v: iVendo) => v.is_active);
 			})
 			.catch(() => {})
 			.finally(() => {
 				isLoading = false;
 			});
-	}
-
-	function activeUsers(v: iVendo): number {
-		return v.recent_status?.active_users ?? v.active_users ?? 0;
-	}
-
-	function currentSales(v: iVendo): string {
-		const n = v.recent_status?.current_sales ?? v.current_sales ?? 0;
-		return new Intl.NumberFormat().format(n);
 	}
 
 	onMount(() => {
@@ -70,9 +102,9 @@
 						<tr>
 							<td>{v.name}</td>
 							<td class="uk-text-center">
-								<strong>{activeUsers(v)}</strong>
+								<strong>{rawUsers(v)}</strong>
 							</td>
-							<td class="uk-text-right text-muted">₱{currentSales(v)}</td>
+							<td class="uk-text-right text-muted">₱{fmt(rawSales(v))}</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -91,11 +123,11 @@
 		</div>
 	{:else}
 
-		{#each vendos.slice(0, MAX_VISIBLE) as v}
+		{#each vendos.slice(0, MAX_VISIBLE) as v (v.id)}
 			<div class="vendo-card">
 				<div class="vendo-name">{v.name}</div>
-				<div class="vendo-users">{activeUsers(v)}</div>
-				<div class="vendo-sales">₱{currentSales(v)}</div>
+				<div class="vendo-users" use:countupInt={rawUsers(v)}></div>
+				<div class="vendo-sales" use:countupSales={rawSales(v)}></div>
 			</div>
 		{/each}
 
