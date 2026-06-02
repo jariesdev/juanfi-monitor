@@ -46,10 +46,10 @@ jobs:
           cache-dependency-path: server/go.sum
 
       - name: Build binary
-        run: CGO_ENABLED=1 go build -ldflags="-s -w" -o vendoreport ./cmd
+        run: CGO_ENABLED=1 go build -ldflags="-s -w" -o go_app_be ./cmd
 
       - name: Compress artifact
-        run: tar -czf server-artifacts.tar.gz vendoreport
+        run: tar -czf server-artifacts.tar.gz go_app_be
 
       - uses: actions/upload-artifact@v4
         with:
