@@ -198,6 +198,10 @@
 		scrollbar-width: thin;
 	}
 
+	.sidebar.collapsed nav {
+		overflow: visible;
+	}
+
 	.nav-item {
 		display: flex;
 		align-items: center;
@@ -296,23 +300,40 @@
 		position: relative;
 	}
 
+	/* Invisible bridge so hover is not lost between icon and popout */
+	.nav-group.collapsed::after {
+		content: '';
+		position: absolute;
+		left: 100%;
+		top: 0;
+		width: 8px;
+		height: 100%;
+	}
+
 	.popout {
 		display: none;
 		position: absolute;
-		left: calc(100% + 6px);
+		left: 100%;
+		padding-left: 6px;
 		top: 0;
-		background: #fff;
-		border: 1px solid #e8e8e8;
-		border-radius: 8px;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+		background: transparent;
+		border: none;
+		box-shadow: none;
 		flex-direction: column;
-		min-width: 160px;
+		min-width: 166px;
 		z-index: 300;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	.nav-group.collapsed:hover .popout {
 		display: flex;
+	}
+
+	.popout-title,
+	.popout-item {
+		background: #fff;
+		border-left: 1px solid #e8e8e8;
+		border-right: 1px solid #e8e8e8;
 	}
 
 	.popout-title {
@@ -322,7 +343,16 @@
 		color: #999;
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
+		border-top: 1px solid #e8e8e8;
 		border-bottom: 1px solid #f0f0f0;
+		border-radius: 8px 8px 0 0;
+		box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+	}
+
+	.popout-item:last-child {
+		border-bottom: 1px solid #e8e8e8;
+		border-radius: 0 0 8px 8px;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 	}
 
 	.popout-item {
