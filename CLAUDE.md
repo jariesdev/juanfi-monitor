@@ -61,11 +61,11 @@ tests/api_test.go    → feature tests, in-memory SQLite, seeds data
 ### Run & test
 ```bash
 cd client-pwa
-npm ci
-npm run dev        # Vite dev server
-npm run build      # production build → ./build/
-npm run check      # svelte-check type check
-npm run lint       # Prettier + ESLint
+pnpm install --frozen-lockfile
+pnpm run dev        # Vite dev server
+pnpm run build      # production build → ./build/
+pnpm run check      # svelte-check type check
+pnpm run lint       # Prettier + ESLint
 ```
 
 ### API proxy rule — important
