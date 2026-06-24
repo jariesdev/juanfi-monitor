@@ -16,14 +16,15 @@
 		perPage?: number
 
 		// snippets
-		beforeTable: Snippet|undefined
-		afterTable: Snippet|undefined
-		empty: Snippet|undefined
-		row: Snippet|undefined
-		cell: Snippet|undefined
+		titleActions?: Snippet
+		beforeTable?: Snippet
+		afterTable?: Snippet
+		empty?: Snippet
+		row?: Snippet<[RowItem]>
+		cell?: Snippet<[RowItem, TableHeader, Function]>
 	}
 
-	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, beforeTable, afterTable, row, cell, empty}: Props = $props()
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
 
 	// states
 	let isRefreshing: boolean = $state(false);
@@ -82,9 +83,10 @@
 					}
 				})
 				.then((response) => {
-					totalItems = response.total;
+					// fall back to a flat `{ data: [...] }` shape for non-paginated endpoints
+					const items = response.items || response.data || [];
+					totalItems = response.total ?? items.length;
 					maxPage = response.pages || 1;
-					const items = response.items || [];
 					tableItems = [...tableItems, ...items];
 				})
 				.catch((error) => {
@@ -196,6 +198,7 @@
 				>
 					<img src="{refreshIcon}" class:spinning={isRefreshing}  alt="Refresh" style:margin="3px"/>
 				</button>
+				{@render titleActions?.()}
 		</div>
 		<div class="uk-width-1-3@s">
 			<input

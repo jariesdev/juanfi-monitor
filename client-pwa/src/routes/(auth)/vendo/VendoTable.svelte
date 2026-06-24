@@ -1,164 +1,76 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import debounce from 'lodash/debounce';
+	import DataTable from '$lib/components/DataTable.svelte';
 	import VendoForm from '$lib/components/VendoForm.svelte';
-	import type { iVendo } from '$lib/types/models.js';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
-	let vendoMachines: iVendo[] = [];
-	let searchInput: string = '';
-	let isLoading: boolean = true;
-	let controller: AbortController | undefined = undefined;
+	let dataTable: DataTable;
 
-	export const loadData: Function = debounce(
-		async (): Promise<void> => {
-			isLoading = true;
+	const tableHeaders: TableHeader[] = [
+		{ label: 'Name', field: 'name' },
+		{ label: 'API URL', field: 'api_url' },
+		{ label: 'Total Sales', field: 'recent_status.total_sales' },
+		{ label: 'Current Sales', field: 'recent_status.current_sales' },
+		{ label: 'Users', field: 'recent_status.active_users' },
+		{ label: 'Last Reported', field: 'recent_status.created_at' },
+		{ label: '', field: 'actions' }
+	];
 
-			let url = `/x-api/vendo-machines`;
-			if (!!searchInput) {
-				url = `${url}?q=${searchInput}`;
-			}
-			controller = new AbortController();
-			const signal = controller.signal;
-			const request = new Request(url, { method: 'GET', signal: signal });
-
-			fetch(request)
-				.then((response) => {
-					if (response.status === 200) {
-						return response.json();
-					} else {
-						throw new Error('Something went wrong on API server!');
-					}
-				})
-				.then((response) => {
-					vendoMachines = response.data;
-				})
-				.catch((error) => {
-					console.error(error);
-					vendoMachines = [];
-				})
-				.finally(() => {
-					isLoading = false;
-				});
-		},
-		250,
-		{ maxWait: 1000 }
-	);
-
-	function withdrawCurrentSales(): string {
-		alert('Feature not available yet.');
+	export function loadData() {
+		dataTable.loadData();
 	}
-
-	$: searchInput, loadData();
-
-	onMount(() => {
-		loadData();
-	});
-	onDestroy(() => {
-		controller && controller.abort('component destroyed');
-	});
 </script>
 
-<div class="uk-card uk-card-default uk-card-body">
-	<div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
-		<div class="uk-width-2-3@s">
-			<h3 class="uk-card-title">Vendo Machines</h3>
-		</div>
-		<div class="uk-width-1-3@s">
-			<input
-				bind:value={searchInput}
-				class="uk-input uk-form-small"
-				type="search"
-				placeholder="Search"
-				aria-label="Input"
-			/>
-		</div>
-	</div>
-	<div class="uk-overflow-auto uk-margin-bottom">
-		<table class="uk-table uk-table-divider">
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>API URL</th>
-					<th>Total Sales</th>
-					<th>Current Sales</th>
-					<th>Users</th>
-					<th>Last Reported</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if isLoading}
-					{#each { length: 5 } as _}
-						<tr>
-							{#each { length: 6 } as _}
-								<td><div class="skeleton-cell"></div></td>
-							{/each}
-							<td></td>
-						</tr>
-					{/each}
-				{:else if vendoMachines.length === 0}
-					<tr>
-						<td colspan="7" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
-							No record yet.
-						</td>
-					</tr>
-				{:else}
-					{#each vendoMachines as vendo}
-						<tr>
-							<td>{vendo.name}</td>
-							<td>{vendo.api_url}</td>
-							<td>
-								<NumberFormat value={vendo.recent_status?.total_sales} />
-							</td>
-							<td>
-								<NumberFormat value={vendo.recent_status?.current_sales} />
-							</td>
-							<td>
-								<NumberFormat value={vendo.recent_status?.active_users || 0} />
-							</td>
-							<td>
-								<DateTime date={vendo.recent_status?.created_at} />
-							</td>
-							<td class="uk-text-nowrap">
-								<a href={`/vendo/${vendo.id}/status`} class="uk-icon-button uk-button-primary" uk-icon="info" aria-label="View details"></a>
-							</td>
-						</tr>
-					{/each}
-				{/if}
-			</tbody>
-		</table>
-	</div>
-	<div>
+<DataTable
+	bind:this={dataTable}
+	url={`/x-api/vendo-machines`}
+	headers={tableHeaders}
+	filters={{}}
+	title="Vendo Machines"
+>
+	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
+		{#if header.field === 'recent_status.total_sales'}
+			<NumberFormat value={item.recent_status?.total_sales} />
+		{:else if header.field === 'recent_status.current_sales'}
+			<NumberFormat value={item.recent_status?.current_sales} />
+		{:else if header.field === 'recent_status.active_users'}
+			<NumberFormat value={item.recent_status?.active_users || 0} />
+		{:else if header.field === 'recent_status.created_at'}
+			<DateTime date={item.recent_status?.created_at} />
+		{:else if header.field === 'actions'}
+			<a
+				href={`/vendo/${item.id}/status`}
+				class="uk-icon-button uk-button-primary"
+				uk-icon="info"
+				aria-label="View details"
+			></a>
+		{:else}
+			{getCellValue(item, header)}
+		{/if}
+	{/snippet}
+
+	{#snippet titleActions()}
 		<button
 			uk-toggle="target: #add-modal"
 			type="button"
-			class="uk-button uk-button-primary uk-position-relative"
-		>
-			Add vendo
-		</button>
-	</div>
-	<!-- This is the modal -->
-	<div id="add-modal" uk-modal class="uk-modal">
-		<div class="uk-modal-dialog uk-modal-body">
-			<h2 class="uk-modal-title">New Vendo</h2>
-			<div class="uk-margin-small-bottom">
-				<VendoForm on:success={loadData} />
+			class="uk-icon-button"
+			uk-icon="icon: plus-circle"
+			style="border: none;"
+			title="Add vendo"
+			aria-label="Add vendo"
+		></button>
+	{/snippet}
+
+	{#snippet afterTable()}
+		<!-- This is the modal -->
+		<div id="add-modal" uk-modal class="uk-modal">
+			<div class="uk-modal-dialog uk-modal-body">
+				<h2 class="uk-modal-title">New Vendo</h2>
+				<div class="uk-margin-small-bottom">
+					<VendoForm on:success={loadData} />
+				</div>
 			</div>
 		</div>
-	</div>
-</div>
-
-<style>
-	.skeleton-cell {
-		height: 16px;
-		border-radius: 4px;
-		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
-		background-size: 200% 100%;
-		animation: shimmer 1.4s infinite;
-	}
-	@keyframes shimmer {
-		0% { background-position: 200% 0; }
-		100% { background-position: -200% 0; }
-	}
-</style>
+	{/snippet}
+</DataTable>
