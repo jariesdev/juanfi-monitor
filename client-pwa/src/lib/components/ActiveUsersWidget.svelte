@@ -2,8 +2,16 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { CountUp } from 'countup.js';
 	import type { iVendo } from '$lib/types/models';
+	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
+	import SimpleTable from '$lib/components/SimpleTable.svelte';
 
 	const MAX_VISIBLE = 5;
+
+	const modalHeaders: SimpleTableHeader[] = [
+		{ label: 'Name', field: 'name' },
+		{ label: 'Active Users', field: 'active_users', align: 'center' },
+		{ label: 'Current Sales', field: 'current_sales', align: 'right' }
+	];
 
 	let vendos: iVendo[] = $state([]);
 	let isLoading = $state(true);
@@ -22,6 +30,16 @@
 	function fmt(n: number): string {
 		return new Intl.NumberFormat().format(Math.round(n));
 	}
+
+	// flattened rows for the "All Vendo Machines" table — sortable by plain field name
+	const modalRows: RowItem[] = $derived(
+		vendos.map((v) => ({
+			id: v.id,
+			name: v.name,
+			active_users: rawUsers(v),
+			current_sales: rawSales(v)
+		}))
+	);
 
 	// Svelte action: animate an integer counter on mount; update() animates to new value
 	function countupInt(node: HTMLElement, value: number) {
@@ -58,7 +76,10 @@
 		fetch('/x-api/vendo-machines', { signal: controller.signal })
 			.then((r) => (r.ok ? r.json() : Promise.reject()))
 			.then(({ data }) => {
-				vendos = (data ?? []).filter((v: iVendo) => v.is_active);
+				// highest active users first, left to right
+				vendos = (data ?? [])
+					.filter((v: iVendo) => v.is_active)
+					.sort((a: iVendo, b: iVendo) => rawUsers(b) - rawUsers(a));
 			})
 			.catch(() => {})
 			.finally(() => {
@@ -89,26 +110,17 @@
 			</button>
 		</div>
 		<div class="modal-body">
-			<table class="uk-table uk-table-divider uk-table-small">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th class="uk-text-center">Active Users</th>
-						<th class="uk-text-right">Current Sales</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each vendos as v}
-						<tr>
-							<td>{v.name}</td>
-							<td class="uk-text-center">
-								<strong>{rawUsers(v)}</strong>
-							</td>
-							<td class="uk-text-right text-muted">₱{fmt(rawSales(v))}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SimpleTable headers={modalHeaders} items={modalRows}>
+				{#snippet cell(item: RowItem, header: SimpleTableHeader, getCellValue: Function)}
+					{#if header.field === 'active_users'}
+						<strong>{getCellValue(item, header)}</strong>
+					{:else if header.field === 'current_sales'}
+						<span class="text-muted">₱{fmt(getCellValue(item, header))}</span>
+					{:else}
+						{getCellValue(item, header)}
+					{/if}
+				{/snippet}
+			</SimpleTable>
 		</div>
 	</div>
 {/if}
