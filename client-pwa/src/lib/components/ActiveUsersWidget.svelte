@@ -5,7 +5,7 @@
 	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
 	import SimpleTable from '$lib/components/SimpleTable.svelte';
 
-	const MAX_VISIBLE = 5;
+	const MAX_VISIBLE = 4;
 
 	const modalHeaders: SimpleTableHeader[] = [
 		{ label: 'Name', field: 'name' },
