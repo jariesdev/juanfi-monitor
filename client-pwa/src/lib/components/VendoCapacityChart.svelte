@@ -2,11 +2,10 @@
 	import Chart from 'chart.js/auto';
 	import { onDestroy, onMount } from 'svelte';
 
-	import type { ChartConfiguration } from 'chart.js';
+	import type { ChartConfiguration, Plugin } from 'chart.js';
 	import 'chartjs-adapter-moment';
-	import type { Plugin } from 'chart.js/dist/types';
 
-	let chartData: any[] = [];
+	let chartData: any = {};
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
 	let isLoading: boolean = true;
@@ -15,11 +14,12 @@
 	let lastDataHash: string = '';
 
 	const horizontalLinePlugin: Plugin = {
-		afterDraw: function(chartInstance) {
+		id: 'horizontalLine',
+		afterDraw: function(chartInstance: Chart) {
 			const { ctx, canvas } = chartInstance;
 			const yScale = chartInstance.scales.y;
 
-			const { horizontalLine } = chartInstance.options;
+			const { horizontalLine } = (chartInstance.options as any);
 			if (horizontalLine && yScale) {
 				let textOffset = -2;
 				for (let index = 0; index < horizontalLine.length; index++) {
@@ -61,7 +61,7 @@
 			labels: [],
 			datasets: []
 		};
-		const chartConfig: ChartConfiguration = {
+		const chartConfig = {
 			type: 'bar',
 			data: chartData,
 			options: {
@@ -83,9 +83,8 @@
 						min: 0,
 						max: 5500,
 							ticks: {
-								beginAtZero: true,
 								stepSize: 1,
-								callback: function(value: string) {
+								callback: function(value: string | number) {
 									const n = Number(value)
 									return '₱ ' + n.toLocaleString();
 								}
@@ -97,7 +96,7 @@
 					mode: 'index'
 				},
 				plugins: {
-					legend: false
+					legend: { display: false }
 					// 	tooltip: {
 					// 		enabled: true,
 					// 		position: 'nearest',
@@ -112,7 +111,7 @@
 			},
 			plugins: [horizontalLinePlugin]
 		};
-		chart = new Chart(canvas, chartConfig);
+		chart = new Chart(canvas, chartConfig as any);
 	}
 
 	function loadChartData(): void {
@@ -140,8 +139,8 @@
 					if (dataHash === lastDataHash) return;
 					lastDataHash = dataHash;
 
-					const newLabels = data.map((d) => d.name);
-					const newValues = data.map((d) => d?.recent_status.current_sales | 0);
+					const newLabels = data.map((d: any) => d.name);
+					const newValues = data.map((d: any) => d?.recent_status.current_sales | 0);
 
 					chart.data.labels = newLabels;
 
@@ -177,7 +176,7 @@
 </script>
 
 <div class="chart-wrapper">
-	<canvas bind:this={canvas} />
+	<canvas bind:this={canvas}></canvas>
 	{#if isLoading}
 		<div class="chart-skeleton"></div>
 	{/if}

@@ -78,7 +78,8 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             }
         }
     } catch (e: unknown) {
-        return fail(400, {message: e.message, invalid: true})
+        const message = e instanceof Error ? e.message : 'An error occurred';
+        return fail(400, {message, invalid: true})
     }
 
     // redirect the user

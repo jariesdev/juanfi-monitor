@@ -11,7 +11,7 @@
 	import type { ChartConfiguration } from 'chart.js';
 	import 'chartjs-adapter-moment';
 
-	let chartData: any[] = [];
+	let chartData: any = {};
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
 	let isLoading: boolean = true;
@@ -21,9 +21,11 @@
 
 	interface iDailySale {
 		date: string;
+		time: string;
 		total: number;
 		vendo_id: number;
 		vendo_name: string;
+		average_active_users: number;
 	}
 
 	function renderChart(): void {
@@ -63,7 +65,7 @@
 						enabled: true,
 						position: 'nearest',
 						callbacks: {
-							title: function(tooltipItems: TooltipItem[]) {
+							title: function(tooltipItems: any[]) {
 								const { raw } = tooltipItems[0];
 								return moment(raw.time).format('MMMM DD, Y h:mm A');
 							},
@@ -138,7 +140,7 @@
 					});
 
 					const existingByLabel = keyBy(chart.data.datasets, 'label');
-					chart.data.datasets = newDatasets.map((newDs) => {
+					chart.data.datasets = (newDatasets as any[]).map((newDs) => {
 						const existing = existingByLabel[newDs.label];
 						if (existing) {
 							existing.data = newDs.data;
@@ -173,7 +175,7 @@
 </script>
 
 <div class="chart-wrapper">
-	<canvas bind:this={canvas} />
+	<canvas bind:this={canvas}></canvas>
 	{#if isLoading}
 		<div class="chart-skeleton"></div>
 	{/if}

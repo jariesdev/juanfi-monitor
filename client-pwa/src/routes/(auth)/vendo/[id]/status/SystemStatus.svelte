@@ -20,7 +20,7 @@
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
-	let isWithdrawing: boolean = false;
+	let isWithdrawing: boolean = $state(false);
 
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
 
@@ -171,7 +171,7 @@
 								type="button"
 								onclick={withdrawCurrenSale}
 							>
-								<i uk-icon="icon: credit-card" class="uk-margin-small-right" />
+								<i uk-icon="icon: credit-card" class="uk-margin-small-right"></i>
 								Withdraw
 							</button>
 							<span class="uk-margin-small-left">{status.text}</span>

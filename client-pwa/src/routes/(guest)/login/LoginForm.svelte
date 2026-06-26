@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {enhance} from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import {currentUser} from '$lib/store';
 	import type {iUser} from '$lib/types/models';
 	import {page} from '$app/state';
@@ -19,11 +20,11 @@
 		user = value;
 	});
 
-    const handleSubmit = () => {
-        isProcessing = true; // Set to true when submission starts
+    const handleSubmit: SubmitFunction = () => {
+        isProcessing = true;
         return async ({ update }) => {
-            await update(); // Wait for the form update (data, status, etc.)
-            isProcessing = false; // Set to false when submission finishes
+            await update();
+            isProcessing = false;
         };
     }
 </script>

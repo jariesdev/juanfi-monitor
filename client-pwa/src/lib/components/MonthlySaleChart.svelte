@@ -8,7 +8,7 @@
 	import moment from 'moment';
 	import 'chartjs-adapter-moment';
 
-	let chartData: any[] = [];
+	let chartData: any = {};
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
 	let isLoading: boolean = true;
@@ -46,11 +46,11 @@
 						enabled: true,
 						position: 'nearest',
 						callbacks: {
-							title: function(tooltipItems: TooltipItem[]) {
+							title: function(tooltipItems: any[]) {
 								const { raw } = tooltipItems[0];
 								return moment(raw.date).format('MMMM Y');
 							},
-							footer: function(tooltipItems: TooltipItem[]) {
+							footer: function(tooltipItems: any[]) {
 								const total = tooltipItems.map(i => i.raw.total)
 									.reduce((carry: number, value: number) => carry + value, 0);
 								const formatTotal = new Intl.NumberFormat().format(total);
@@ -72,10 +72,10 @@
 						}
 					},
 					y: {
+						min: 0,
 						ticks: {
-							beginAtZero: true,
 							stepSize: 1,
-							callback: function(value: string) {
+							callback: function(value: string | number) {
 								const n = Number(value)
 								return '₱ ' + n.toLocaleString();
 							}
@@ -150,7 +150,7 @@
 					});
 
 					const existingByLabel = keyBy(chart.data.datasets, 'label');
-					chart.data.datasets = newDatasets.map((newDs) => {
+					chart.data.datasets = (newDatasets as any[]).map((newDs) => {
 						const existing = existingByLabel[newDs.label];
 						if (existing) {
 							existing.data = newDs.data;
@@ -185,7 +185,7 @@
 </script>
 
 <div class="chart-wrapper">
-	<canvas bind:this={canvas} />
+	<canvas bind:this={canvas}></canvas>
 	{#if isLoading}
 		<div class="chart-skeleton"></div>
 	{/if}

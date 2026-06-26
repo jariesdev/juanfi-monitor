@@ -68,7 +68,7 @@
 			<div class="uk-modal-dialog uk-modal-body">
 				<h2 class="uk-modal-title">New Vendo</h2>
 				<div class="uk-margin-small-bottom">
-					<VendoForm on:success={loadData} />
+					<VendoForm onsuccess={loadData} />
 				</div>
 			</div>
 		</div>

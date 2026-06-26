@@ -1,17 +1,19 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	interface Props {
+		onsuccess?: () => void;
+	}
 
-	const dispatcher = createEventDispatcher();
-	let isProcessing: boolean = false;
-	let form = {
+	const { onsuccess }: Props = $props();
+	let isProcessing: boolean = $state(false);
+	let form = $state({
 		name: '',
 		api_url: '',
 		api_key: ''
-	};
+	});
 
 	function submit(): void {
 		const formData = new FormData();
-		Object.keys(form).forEach((key) => formData.append(key, form[key]));
+		Object.keys(form).forEach((key) => formData.append(key, form[key as keyof typeof form]));
 		isProcessing = true;
 		const request = new Request(`/x-api/vendo-machines`, {
 			method: 'POST',
@@ -35,7 +37,7 @@
 					api_url: '',
 					api_key: ''
 				};
-				dispatcher('success');
+				onsuccess?.();
 			})
 			.catch((error) => {
 				console.error(error);
@@ -47,7 +49,7 @@
 </script>
 
 <div>
-	<form on:submit|preventDefault={submit}>
+	<form onsubmit={(e) => { e.preventDefault(); submit(); }}>
 		<div class="uk-margin-small-bottom">
 			<label class="uk-form-label" for="name">Name</label>
 			<input
