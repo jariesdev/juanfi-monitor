@@ -1,79 +1,36 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import debounce from 'lodash/debounce';
-	import type { iSale } from '$lib/types/models';
+	import DataTable from '$lib/components/DataTable.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
+	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
-	let withdrawals: iSale[] = [];
-	let isLoading: boolean = false;
-	let controller: AbortController | undefined = undefined;
+	let dataTable: DataTable;
 
-	export const loadData: Function = debounce(
-		async (): Promise<void> => {
-			isLoading = false;
+	const tableHeaders: TableHeader[] = [
+		{ label: 'Vendo', field: 'vendo.name' },
+		{ label: 'Amount', field: 'amount' },
+		{ label: 'Date', field: 'created_at' }
+	];
 
-			let url = `/x-api/withdrawals`;
-			controller = new AbortController();
-			const signal = controller.signal;
-			const request = new Request(url, { method: 'GET', signal: signal });
-
-			fetch(request)
-				.then((response) => {
-					if (response.status === 200) {
-						return response.json();
-					} else {
-						throw new Error('Something went wrong on API server!');
-					}
-				})
-				.then((response) => {
-					withdrawals = response.data;
-				})
-				.catch((error) => {
-					console.error(error);
-					withdrawals = [];
-				})
-				.finally(() => {
-					isLoading = false;
-				});
-		},
-		250,
-		{ maxWait: 1000 }
-	);
-
-	onMount(() => {
-		loadData();
-	});
-	onDestroy(() => {
-		controller && controller.abort('component destroyed');
-	});
+	export function loadData() {
+		dataTable.loadData();
+	}
 </script>
 
-<div class="uk-card uk-card-default uk-card-body">
-	<div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
-		<div class="uk-width-2-3@s">
-			<h3 class="uk-card-title">Withdrawals</h3>
-		</div>
-	</div>
-	<div class="uk-overflow-auto">
-		<table class="uk-table uk-table-divider">
-			<thead>
-				<tr>
-					<th>Vendo</th>
-					<th>Amount</th>
-					<th>Date</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each withdrawals as item}
-					<tr>
-						<td>{item.vendo?.name}</td>
-						<td>{item.amount}</td>
-						<td>
-							<DateTime date={item.created_at} class="uk-text-nowrap" />
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
-</div>
+<DataTable
+	bind:this={dataTable}
+	url="/x-api/withdrawals"
+	headers={tableHeaders}
+	filters={{}}
+	title="Withdrawals"
+>
+	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
+		{#if header.field === 'amount'}
+			<NumberFormat value={item.amount} />
+		{:else if header.field === 'created_at'}
+			<DateTime date={item.created_at} class="uk-text-nowrap" />
+		{:else}
+			{getCellValue(item, header)}
+		{/if}
+	{/snippet}
+</DataTable>
