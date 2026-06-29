@@ -1,36 +1,20 @@
 <script lang="ts">
-	import SimpleTable from '$lib/components/SimpleTable.svelte';
+	import DataTable from '$lib/components/DataTable.svelte';
 	import RoleForm from '$lib/components/RoleForm.svelte';
 	import type { iRole } from '$lib/types/models';
-	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
+	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
-	let roles: iRole[] = $state([]);
-	let isLoading = $state(true);
+	let dataTable: DataTable;
 	let editingRole: iRole | null = $state(null);
 	let showModal = $state(false);
-	let pageError = $state('');
+	let deleteError = $state('');
 
-	const headers: SimpleTableHeader[] = [
+	const headers: TableHeader[] = [
 		{ label: 'ID',          field: 'id',          sortable: true  },
 		{ label: 'Name',        field: 'name',        sortable: true  },
 		{ label: 'Permissions', field: 'permissions', sortable: false },
-		{ label: 'Actions',     field: 'actions',     sortable: false }
+		{ label: '',            field: 'actions',     sortable: false }
 	];
-
-	async function loadRoles() {
-		isLoading = true;
-		try {
-			const res = await fetch('/x-api/roles');
-			if (res.ok) {
-				const data = await res.json();
-				roles = data.data ?? [];
-			}
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	loadRoles();
 
 	function openAdd() {
 		editingRole = null;
@@ -44,114 +28,109 @@
 
 	function onFormSuccess() {
 		showModal = false;
-		loadRoles();
+		dataTable.loadData();
 	}
 
 	async function deleteRole(role: iRole) {
-		pageError = '';
+		deleteError = '';
 		if (!confirm(`Delete role "${role.name}"?`)) return;
 		const res = await fetch(`/x-api/roles/${role.id}`, { method: 'DELETE' });
 		if (!res.ok) {
 			const body = await res.json().catch(() => ({}));
-			pageError = body.detail ?? 'Failed to delete role.';
+			deleteError = body.detail ?? 'Failed to delete role.';
 			return;
 		}
-		loadRoles();
+		dataTable.loadData();
 	}
 </script>
 
-<div class="uk-section uk-section-xsmall">
-	<div class="page-header">
-		<h2 class="uk-h3" style="margin: 0;">Roles</h2>
+{#if deleteError}
+	<div class="uk-alert uk-alert-danger uk-margin-small-bottom" role="alert">
+		{deleteError}
 		<button
 			type="button"
-			class="uk-button uk-button-primary uk-button-small"
-			onclick={openAdd}
-		>
-			+ Add Role
-		</button>
+			class="uk-alert-close"
+			onclick={() => (deleteError = '')}
+			aria-label="Close"
+		></button>
 	</div>
-
-	{#if pageError}
-		<div class="uk-alert uk-alert-danger uk-margin-small-top" role="alert">
-			{pageError}
-			<button
-				type="button"
-				class="uk-alert-close"
-				onclick={() => (pageError = '')}
-				aria-label="Close"
-			></button>
-		</div>
-	{/if}
-
-	{#if isLoading}
-		<div class="uk-text-center uk-padding">
-			<div uk-spinner></div>
-		</div>
-	{:else}
-		<SimpleTable {headers} items={roles} emptyText="No roles yet. Create one to get started.">
-			{#snippet cell(item: RowItem, header: SimpleTableHeader, getCellValue: Function)}
-				{#if header.field === 'permissions'}
-					<div class="perm-badges">
-						{#each (item as iRole).permissions as perm}
-							<span class="perm-badge">{perm}</span>
-						{:else}
-							<span class="uk-text-muted uk-text-small">none</span>
-						{/each}
-					</div>
-				{:else if header.field === 'actions'}
-					<div class="action-btns">
-						<button
-							type="button"
-							class="uk-icon-button"
-							uk-icon="pencil"
-							title="Edit"
-							onclick={() => openEdit(item as iRole)}
-						></button>
-						<button
-							type="button"
-							class="uk-icon-button uk-icon-button-danger"
-							uk-icon="trash"
-							title="Delete"
-							onclick={() => deleteRole(item as iRole)}
-						></button>
-					</div>
-				{:else}
-					{getCellValue(item, header)}
-				{/if}
-			{/snippet}
-		</SimpleTable>
-	{/if}
-</div>
-
-{#if showModal}
-	<div id="role-modal" class="uk-modal uk-open" style="display: block;">
-		<div class="uk-modal-dialog uk-modal-body">
-			<button
-				class="uk-modal-close-default"
-				type="button"
-				uk-close
-				onclick={() => (showModal = false)}
-			></button>
-			<h2 class="uk-modal-title">{editingRole ? 'Edit Role' : 'New Role'}</h2>
-			<RoleForm
-				role={editingRole}
-				onsuccess={onFormSuccess}
-				oncancel={() => (showModal = false)}
-			/>
-		</div>
-	</div>
-	<div class="uk-modal-overlay" onclick={() => (showModal = false)}></div>
 {/if}
 
-<style>
-	.page-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 16px;
-	}
+<DataTable
+	bind:this={dataTable}
+	url="/x-api/roles"
+	headers={headers}
+	filters={{}}
+	title="Roles"
+	clientSort={true}
+>
+	{#snippet titleActions()}
+		<button
+			type="button"
+			class="uk-icon-button"
+			uk-icon="icon: plus-circle"
+			style="border: none;"
+			title="Add role"
+			aria-label="Add role"
+			onclick={openAdd}
+		></button>
+	{/snippet}
 
+	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
+		{#if header.field === 'permissions'}
+			<div class="perm-badges">
+				{#each (item as iRole).permissions as perm}
+					<span class="perm-badge">{perm}</span>
+				{:else}
+					<span class="uk-text-muted uk-text-small">—</span>
+				{/each}
+			</div>
+		{:else if header.field === 'actions'}
+			<div class="action-btns">
+				<button
+					type="button"
+					class="uk-icon-button"
+					uk-icon="pencil"
+					title="Edit"
+					onclick={() => openEdit(item as iRole)}
+				></button>
+				<button
+					type="button"
+					class="uk-icon-button uk-icon-button-danger"
+					uk-icon="trash"
+					title="Delete"
+					onclick={() => deleteRole(item as iRole)}
+				></button>
+			</div>
+		{:else}
+			{getCellValue(item, header)}
+		{/if}
+	{/snippet}
+
+	{#snippet afterTable()}
+		{#if showModal}
+			<div id="role-modal" class="uk-modal uk-open" style="display: block;">
+				<div class="uk-modal-dialog uk-modal-body">
+					<button
+						class="uk-modal-close-default"
+						type="button"
+						uk-close
+						onclick={() => (showModal = false)}
+					></button>
+					<h2 class="uk-modal-title">{editingRole ? 'Edit Role' : 'New Role'}</h2>
+					<RoleForm
+						role={editingRole}
+						onsuccess={onFormSuccess}
+						oncancel={() => (showModal = false)}
+					/>
+				</div>
+			</div>
+			<div class="uk-modal-overlay" onclick={() => (showModal = false)}></div>
+		{/if}
+	{/snippet}
+</DataTable>
+
+<style>
 	.perm-badges {
 		display: flex;
 		flex-wrap: wrap;
