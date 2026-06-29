@@ -6,6 +6,9 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	let isProcessing = $state(false);
 	let currentPassword = $state('');
@@ -35,7 +38,7 @@
 			<span class="header-icon" uk-icon="icon: lock; ratio: 1.1"></span>
 			<div>
 				<div class="card-title">Change Password</div>
-				<div class="card-subtitle">Verify your current password before setting a new one</div>
+				<div class="card-subtitle">Signed in as <strong>{data.user?.username}</strong></div>
 			</div>
 		</div>
 
