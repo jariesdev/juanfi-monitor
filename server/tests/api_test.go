@@ -319,7 +319,8 @@ func TestListUsers_Search(t *testing.T) {
 
 func TestListUsers_Forbidden(t *testing.T) {
 	// A user without a role (no PermUsers) should get 403.
-	noRoleUser := &models.User{Username: "noroleuser", Password: "norolepass", IsActive: true}
+	noRoleHash, _ := bcrypt.GenerateFromPassword([]byte("norolepass"), bcrypt.DefaultCost)
+	noRoleUser := &models.User{Username: "noroleuser", Password: string(noRoleHash), IsActive: true}
 	db.Create(noRoleUser)
 	token := mustLogin("noroleuser", "norolepass")
 
@@ -789,7 +790,8 @@ func TestDeleteRole(t *testing.T) {
 }
 
 func TestRoles_Forbidden(t *testing.T) {
-	noRoleUser := &models.User{Username: "noroleuser2", Password: "pass2", IsActive: true}
+	noRoleHash2, _ := bcrypt.GenerateFromPassword([]byte("pass2"), bcrypt.DefaultCost)
+	noRoleUser := &models.User{Username: "noroleuser2", Password: string(noRoleHash2), IsActive: true}
 	db.Create(noRoleUser)
 	token := mustLogin("noroleuser2", "pass2")
 
