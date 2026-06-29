@@ -14,6 +14,7 @@ type UserRepositoryInterface interface {
 	CheckUser(username, password string) (*models.User, error)
 	GetByUsername(username string) (*models.User, error)
 	Create(user *models.User) error
+	UpdatePassword(userID uint, newPassword string) error
 }
 
 // VendoRepositoryInterface manages vendo machine records.

@@ -32,6 +32,34 @@ func (u *UserController) List(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": []interface{}{}})
 }
 
+// ChangePassword handles PUT /users/me/password.
+// The current password is verified before the new one is saved.
+func (u *UserController) ChangePassword(c *gin.Context) {
+	currentUser, _ := c.Get(middleware.CurrentUserKey)
+	user := currentUser.(*models.User)
+
+	var body struct {
+		CurrentPassword string `json:"current_password" binding:"required"`
+		NewPassword     string `json:"new_password"     binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"detail": "current_password and new_password are required"})
+		return
+	}
+
+	if _, err := u.userRepo.CheckUser(user.Username, body.CurrentPassword); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"detail": "current password is incorrect"})
+		return
+	}
+
+	if err := u.userRepo.UpdatePassword(user.ID, body.NewPassword); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": "failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "password updated"})
+}
+
 // Get handles GET /users/:id — returns a single user by ID.
 func (u *UserController) Get(c *gin.Context) {
 	idStr := c.Param("id")

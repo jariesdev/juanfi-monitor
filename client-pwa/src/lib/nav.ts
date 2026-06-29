@@ -21,5 +21,6 @@ export const navItems: NavItem[] = [
 			{ href: '/withdrawals', label: 'Withdrawals' }
 		]
 	},
-	{ href: '/logs', icon: 'list', label: 'Logs' }
+	{ href: '/logs', icon: 'list', label: 'Logs' },
+	{ href: '/account', icon: 'user', label: 'Account' }
 ];

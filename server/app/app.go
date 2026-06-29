@@ -103,6 +103,7 @@ func buildRouter(
 	auth.Use(middleware.Auth(userRepo, jwtSecret))
 
 	auth.GET("/users/me", userCtrl.Me)
+	auth.PUT("/users/me/password", userCtrl.ChangePassword)
 	auth.GET("/users", userCtrl.List)
 	auth.GET("/users/:id", userCtrl.Get)
 

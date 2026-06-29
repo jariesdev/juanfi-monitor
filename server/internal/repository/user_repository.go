@@ -41,3 +41,8 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 func (r *UserRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
 }
+
+// UpdatePassword sets a new password for the given user ID.
+func (r *UserRepository) UpdatePassword(userID uint, newPassword string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("password", newPassword).Error
+}
