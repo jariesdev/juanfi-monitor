@@ -14,7 +14,7 @@
 	const tableHeaders: TableHeader[] = [
 		{ label: 'ID',         field: 'id',         sortable: true  },
 		{ label: 'Username',   field: 'username',   sortable: true  },
-		{ label: 'Role',       field: 'role'                        },
+		{ label: 'Roles',      field: 'roles'                       },
 		{ label: 'Active',     field: 'is_active',  sortable: true  },
 		{ label: 'Created',    field: 'created_at', sortable: true  },
 		{ label: '',           field: 'actions'                     }
@@ -98,9 +98,13 @@
 	{/snippet}
 
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
-		{#if header.field === 'role'}
-			{#if (item as iUser).role}
-				<span class="role-badge">{(item as iUser).role!.name}</span>
+		{#if header.field === 'roles'}
+			{#if (item as iUser).roles?.length}
+				<div class="role-badges">
+					{#each (item as iUser).roles as role}
+						<span class="role-badge">{role.name}</span>
+					{/each}
+				</div>
 			{:else}
 				<span class="uk-text-muted uk-text-small">—</span>
 			{/if}
@@ -164,6 +168,12 @@
 		display: flex;
 		gap: 4px;
 		align-items: center;
+	}
+
+	.role-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
 	}
 
 	.role-badge {

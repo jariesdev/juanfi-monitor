@@ -17,10 +17,14 @@
 	let form = $state({
 		username: user?.username ?? '',
 		password: '',
-		role_id: user?.role_id ?? null as number | null,
+		role_ids: user?.roles?.map((r) => r.id) ?? [] as number[],
 		is_active: user?.is_active ?? true,
 		vendo_ids: user?.vendos?.map((v) => v.id) ?? [] as number[]
 	});
+
+	const allVendosSelected = $derived(
+		vendos.length > 0 && vendos.every((v) => form.vendo_ids.includes(v.id))
+	);
 
 	function toggleVendo(id: number) {
 		if (form.vendo_ids.includes(id)) {
@@ -30,13 +34,21 @@
 		}
 	}
 
+	function toggleAllVendos() {
+		if (allVendosSelected) {
+			form.vendo_ids = [];
+		} else {
+			form.vendo_ids = vendos.map((v) => v.id);
+		}
+	}
+
 	async function submit() {
 		error = '';
 		isProcessing = true;
 
 		const body: Record<string, unknown> = {
 			username: form.username,
-			role_id: form.role_id ?? null,
+			role_ids: form.role_ids,
 			is_active: form.is_active,
 			vendo_ids: form.vendo_ids
 		};
@@ -101,13 +113,28 @@
 	</div>
 
 	<div class="uk-margin-small-bottom">
-		<label class="uk-form-label" for="uf-role">Role</label>
-		<select bind:value={form.role_id} id="uf-role" class="uk-select">
-			<option value={null}>— No role (dashboard & account only) —</option>
+		<label class="uk-form-label">Roles</label>
+		<div class="vendo-list">
 			{#each roles as role}
-				<option value={role.id}>{role.name}</option>
+				<label class="vendo-item">
+					<input
+						type="checkbox"
+						class="uk-checkbox"
+						checked={form.role_ids.includes(role.id)}
+						onchange={() => {
+							if (form.role_ids.includes(role.id)) {
+								form.role_ids = form.role_ids.filter((id) => id !== role.id);
+							} else {
+								form.role_ids = [...form.role_ids, role.id];
+							}
+						}}
+					/>
+					<span>{role.name}</span>
+				</label>
+			{:else}
+				<span class="uk-text-muted uk-text-small">No roles available.</span>
 			{/each}
-		</select>
+		</div>
 	</div>
 
 	<div class="uk-margin-small-bottom">
@@ -124,7 +151,12 @@
 
 	{#if vendos.length > 0}
 		<div class="uk-margin-small-bottom">
-			<label class="uk-form-label">Assign Vendos</label>
+			<div class="vendo-header">
+				<label class="uk-form-label" style="margin: 0;">Assign Vendos</label>
+				<button type="button" class="select-all-btn" onclick={toggleAllVendos}>
+					{allVendosSelected ? 'Deselect All' : 'Select All'}
+				</button>
+			</div>
 			<div class="vendo-list">
 				{#each vendos as vendo}
 					<label class="vendo-item">
@@ -154,6 +186,29 @@
 </form>
 
 <style>
+	.vendo-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 6px;
+	}
+
+	.select-all-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--color-theme-1);
+		cursor: pointer;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.select-all-btn:hover {
+		opacity: 0.75;
+	}
+
 	.vendo-list {
 		display: flex;
 		flex-direction: column;

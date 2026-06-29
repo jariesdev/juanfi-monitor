@@ -55,8 +55,7 @@ export interface iUser {
 	id: number;
 	username: string;
 	is_active: boolean;
-	role_id: number | null;
-	role: iRole | null;
+	roles: iRole[];
 	vendos?: iVendo[];
 	created_at: string;
 	updated_at: string | null;
