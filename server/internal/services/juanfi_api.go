@@ -158,6 +158,37 @@ func (j *JuanfiAPI) ComputeLogTime(timeSinceStartup int64) time.Time {
 	return time.UnixMilli(absMs)
 }
 
+// ActiveUser represents a single connected user returned by api/getActiveUsers.
+type ActiveUser struct {
+	NodeID      string `json:"node_id"`
+	User        string `json:"user"`
+	MacAddress  string `json:"mac_address"`
+	SessionLeft string `json:"session_left"`
+}
+
+// GetActiveUsers fetches the list of currently connected users from the device.
+func (j *JuanfiAPI) GetActiveUsers() ([]ActiveUser, error) {
+	body, err := j.sendRequest("api/getActiveUsers", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []ActiveUser
+	for _, row := range strings.Split(body, "|") {
+		fields := strings.Split(row, "#")
+		if len(fields) < 4 {
+			continue
+		}
+		users = append(users, ActiveUser{
+			NodeID:      fields[0],
+			User:        fields[1],
+			MacAddress:  fields[2],
+			SessionLeft: fields[3],
+		})
+	}
+	return users, nil
+}
+
 // ResetCurrentSales calls the Juanfi API to reset the current sales counter.
 func (j *JuanfiAPI) ResetCurrentSales() error {
 	_, err := j.sendRequest("api/resetStatistic", map[string]string{"type": "coinCount"})

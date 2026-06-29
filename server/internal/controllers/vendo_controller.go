@@ -157,6 +157,26 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": withdrawal})
 }
 
+// ActiveUsers handles GET /vendo-machines/:id/active-users — live connected users.
+func (v *VendoController) ActiveUsers(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		return
+	}
+	vendo, err := v.vendoRepo.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
+		return
+	}
+
+	users, err := services.NewJuanfiAPI(vendo).GetActiveUsers()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": users})
+}
+
 // SetStatus handles POST /vendo-machines/:id/set-status.
 // Request body: {"status": true|false}
 func (v *VendoController) SetStatus(c *gin.Context) {
