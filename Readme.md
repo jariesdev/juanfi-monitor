@@ -1,51 +1,56 @@
 
+# VendoReport
 
 ## Dev
-* Docker
-  * Start python server in Pycharm
-  * connect to http://localhost:8000
-* .venv
-  * Initialize venv `python3 -m venv .venv`
-  * Activate `source .venv/bin/activate` 
-  * Run this in the background `uvicorn main:app --port 8000 --reload`
-  * connect to http://localhost:8000
-* Database Migration
-  * Create models in sql_app/models
-  * Auto generate migration file `alembic revision --autogenerate -m "Descriptive message for your migration"`
-  * Update the file if needed
-  * Run migration `alembic upgrade head`
-  * to rollback, `alembic downgrade <target_revision_id>`
-* Frontend
-  * Start Vite Dev in Pycharm
-  * Open http://localhost:5173/
+
+### API Server (Go)
+- Copy `server/.env.example` to `server/.env` and fill in values
+- `cd server && go run cmd/main.go` — starts on http://localhost:8000
+- Requires `gcc` for CGO (`brew install gcc` on macOS)
+
+### Frontend (SvelteKit)
+- `cd client-pwa && pnpm install --frozen-lockfile`
+- `pnpm run dev` — starts on http://localhost:5173
+
+### Docker (both services)
+- `docker compose up --build`
+
+---
 
 ## Production
-* API Server
-  * Create Project Directory and Virtual Environment `python3 -m venv .venv` (`sudo apt install python3-venv`)
-  * If running in .venv activate first `source .venv/bin/activate`
-  * Run migration, `alembic upgrade head`
-  * Single instance: Run this in the background `uvicorn main:app --port 8000 --reload`
-  * Multiple instance: `gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app -b 127.0.0.1:8000 --reload`
-    * /etc/systemd/system/gunicorn.service
-      ```
-        [Unit]
-        Description=Gunicorn daemon for VendorReport
-        After=network.target
-    
-        [Service]
-        User=root
-        Group=root
-        WorkingDirectory=/opt/vendoreport
-        ExecStart=/project/path/.venv/bin/gunicorn -w 2 -k uvicorn.workers.UvicornWorker main:app --bind 127.0.0.1:8000 --reload
-        EnvironmentFile=/opt/vendoreport/.env
-    
-        [Install]
-        WantedBy=multi-user.target
-        ```
 
-* Frontend
-  * Build, `cd client-pwa && ./node_modules/.bin/vite build`
-    * Use pm2 
-      * `PORT=8001 API_URL=http://localhost:8001 pm2 start build/index.js --interpreter node --watch --name pwifi`
-    * PORT: Backend API port
-    * API_URL: API URL to be use by Frontend
+### API Server
+- Build: `cd server && CGO_ENABLED=1 go build -o vendoreport ./cmd`
+- Deploy the `vendoreport` binary and `server/.env` to the server
+- Systemd service example:
+  ```
+  [Unit]
+  Description=VendoReport API
+  After=network.target
+
+  [Service]
+  User=www-data
+  WorkingDirectory=/opt/vendoreport
+  ExecStart=/opt/vendoreport/vendoreport
+  EnvironmentFile=/opt/vendoreport/.env
+  Restart=on-failure
+
+  [Install]
+  WantedBy=multi-user.target
+  ```
+- `systemctl enable --now vendoreport`
+
+### Frontend
+- Build: `cd client-pwa && pnpm run build` → outputs to `client-pwa/build/`
+- Serve with Node/pm2:
+  ```
+  pm2 start client-pwa/build/index.js --name vendo-app
+  ```
+
+---
+
+## Database
+
+Schema is managed directly via SQL against `app.db` (SQLite). No migration tool is used — changes to the schema should be applied manually or via a SQL script.
+
+For MySQL, set `DB_DRIVER=mysql` and `DB_DSN=<dsn>` in `server/.env`; GORM AutoMigrate runs automatically on startup.
