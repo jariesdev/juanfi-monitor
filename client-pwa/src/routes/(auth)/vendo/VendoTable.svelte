@@ -40,12 +40,20 @@
 		{:else if header.field === 'recent_status.created_at'}
 			<DateTime date={item.recent_status?.created_at} />
 		{:else if header.field === 'actions'}
-			<a
-				href={`/vendo/${item.id}/status`}
-				class="uk-icon-button uk-button-primary"
-				uk-icon="info"
-				aria-label="View details"
-			></a>
+			<div class="action-btns">
+				<a
+					href={`/vendo/${item.id}/status`}
+					class="uk-icon-button uk-button-primary"
+					uk-icon="info"
+					aria-label="View details"
+				></a>
+				<a
+					href={`/vendo/${item.id}/active-users`}
+					class="uk-icon-button"
+					uk-icon="users"
+					aria-label="View active users"
+				></a>
+			</div>
 		{:else}
 			{getCellValue(item, header)}
 		{/if}
@@ -75,3 +83,11 @@
 		</div>
 	{/snippet}
 </DataTable>
+
+<style>
+	.action-btns {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+	}
+</style>
