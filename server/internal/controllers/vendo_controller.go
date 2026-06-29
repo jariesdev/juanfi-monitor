@@ -26,6 +26,24 @@ func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawa
 	}
 }
 
+// canAccessVendo returns true if the current user is an admin or has the given vendo assigned.
+func (v *VendoController) canAccessVendo(c *gin.Context, vendoID uint) bool {
+	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
+	if currentUser.HasPermission(models.PermUsers) {
+		return true
+	}
+	ids, err := v.userRepo.GetVendoIDs(currentUser.ID)
+	if err != nil {
+		return false
+	}
+	for _, id := range ids {
+		if id == vendoID {
+			return true
+		}
+	}
+	return false
+}
+
 // All handles GET /vendo-machines — list/search vendo machines.
 // Non-admin users (lacking PermUsers) only see their assigned vendos.
 // Query params: q (name search), is_active (bool filter).
@@ -69,6 +87,10 @@ func (v *VendoController) All(c *gin.Context) {
 func (v *VendoController) Get(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !v.canAccessVendo(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -124,6 +146,10 @@ func (v *VendoController) Status(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	if !v.canAccessVendo(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+		return
+	}
 	vendo, err := v.vendoRepo.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
@@ -143,6 +169,10 @@ func (v *VendoController) Status(c *gin.Context) {
 func (v *VendoController) Withdraw(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !v.canAccessVendo(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -178,6 +208,10 @@ func (v *VendoController) ActiveUsers(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	if !v.canAccessVendo(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+		return
+	}
 	vendo, err := v.vendoRepo.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
@@ -197,6 +231,10 @@ func (v *VendoController) ActiveUsers(c *gin.Context) {
 func (v *VendoController) SetStatus(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !v.canAccessVendo(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
 

@@ -16,7 +16,7 @@ func NewVendoStatusRepository(db *gorm.DB) *VendoStatusRepository {
 // GetHourlyStatus returns status snapshots grouped by hour, vendo, and optionally
 // filtered by vendo_id, date range, and active-only flag.
 // Mirrors the Python get_hourly_status() aggregation.
-func (r *VendoStatusRepository) GetHourlyStatus(vendoID *uint, from, to *string, activeOnly bool) ([]HourlyStatusRow, error) {
+func (r *VendoStatusRepository) GetHourlyStatus(vendoID *uint, from, to *string, activeOnly bool, assignedIDs []uint) ([]HourlyStatusRow, error) {
 	var rows []HourlyStatusRow
 
 	query := r.db.
@@ -41,6 +41,9 @@ func (r *VendoStatusRepository) GetHourlyStatus(vendoID *uint, from, to *string,
 	}
 	if activeOnly {
 		query = query.Where("vendos.is_active = 1")
+	}
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_status.vendo_id IN ?", assignedIDs)
 	}
 
 	err := query.

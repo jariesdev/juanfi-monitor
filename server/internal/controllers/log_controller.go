@@ -15,11 +15,12 @@ import (
 type LogController struct {
 	logRepo   repository.LogRepositoryInterface
 	vendoRepo repository.VendoRepositoryInterface
-	db        *gorm.DB // needed by the Refresh handler to construct JuanfiLogger
+	userRepo  repository.UserRepositoryInterface
+	db        *gorm.DB
 }
 
-func NewLogController(db *gorm.DB, logRepo repository.LogRepositoryInterface, vendoRepo repository.VendoRepositoryInterface) *LogController {
-	return &LogController{db: db, logRepo: logRepo, vendoRepo: vendoRepo}
+func NewLogController(db *gorm.DB, logRepo repository.LogRepositoryInterface, vendoRepo repository.VendoRepositoryInterface, userRepo repository.UserRepositoryInterface) *LogController {
+	return &LogController{db: db, logRepo: logRepo, vendoRepo: vendoRepo, userRepo: userRepo}
 }
 
 // Search handles GET /logs — paginated log search.
@@ -46,7 +47,13 @@ func (l *LogController) Search(c *gin.Context) {
 		}
 	}
 
-	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, page, size)
+	ids, err := assignedVendoIDs(c, l.userRepo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+		return
+	}
+
+	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, ids, page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

@@ -18,7 +18,7 @@ func NewLogRepository(db *gorm.DB) *LogRepository {
 
 // Search returns a paginated list of vendo logs with optional filters.
 // Logs are ordered by log_time descending (most recent first).
-func (r *LogRepository) Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoLog], error) {
+func (r *LogRepository) Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int) (*PageResult[models.VendoLog], error) {
 	var logs []models.VendoLog
 	var total int64
 
@@ -32,6 +32,9 @@ func (r *LogRepository) Search(q *string, date *string, vendoID *uint, page, siz
 	}
 	if vendoID != nil {
 		query = query.Where("vendo_id = ?", *vendoID)
+	}
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_id IN ?", assignedIDs)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

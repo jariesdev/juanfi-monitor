@@ -11,10 +11,11 @@ import (
 // WithdrawalController handles withdrawal record endpoints.
 type WithdrawalController struct {
 	withdrawalRepo repository.WithdrawalRepositoryInterface
+	userRepo       repository.UserRepositoryInterface
 }
 
-func NewWithdrawalController(withdrawalRepo repository.WithdrawalRepositoryInterface) *WithdrawalController {
-	return &WithdrawalController{withdrawalRepo: withdrawalRepo}
+func NewWithdrawalController(withdrawalRepo repository.WithdrawalRepositoryInterface, userRepo repository.UserRepositoryInterface) *WithdrawalController {
+	return &WithdrawalController{withdrawalRepo: withdrawalRepo, userRepo: userRepo}
 }
 
 // Search handles GET /withdrawals — list withdrawal records, optionally filtered by vendo_id.
@@ -30,7 +31,13 @@ func (w *WithdrawalController) Search(c *gin.Context) {
 		vendoID = &uid
 	}
 
-	withdrawals, err := w.withdrawalRepo.Search(vendoID)
+	ids, err := assignedVendoIDs(c, w.userRepo)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+		return
+	}
+
+	withdrawals, err := w.withdrawalRepo.Search(vendoID, ids)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

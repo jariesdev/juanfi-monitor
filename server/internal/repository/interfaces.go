@@ -47,24 +47,28 @@ type VendoRepositoryInterface interface {
 
 // LogRepositoryInterface provides access to vendo system logs.
 type LogRepositoryInterface interface {
-	Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoLog], error)
+	// assignedIDs: when non-empty, results are filtered to those vendo IDs.
+	Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int) (*PageResult[models.VendoLog], error)
 }
 
 // SaleRepositoryInterface provides access to voucher sale transactions.
 type SaleRepositoryInterface interface {
-	Search(q *string, date *string, vendoID *uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error)
-	GetDailySales(from, to time.Time) ([]DailySaleRow, error)
-	GetMonthlySales(from, to time.Time) ([]MonthlySaleRow, error)
+	// assignedIDs: when non-empty, results are filtered to those vendo IDs.
+	Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error)
+	GetDailySales(from, to time.Time, assignedIDs []uint) ([]DailySaleRow, error)
+	GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error)
 }
 
 // VendoStatusRepositoryInterface aggregates historical status snapshots.
 type VendoStatusRepositoryInterface interface {
-	GetHourlyStatus(vendoID *uint, from, to *string, activeOnly bool) ([]HourlyStatusRow, error)
+	// assignedIDs: when non-empty, results are filtered to those vendo IDs.
+	GetHourlyStatus(vendoID *uint, from, to *string, activeOnly bool, assignedIDs []uint) ([]HourlyStatusRow, error)
 }
 
 // WithdrawalRepositoryInterface manages withdrawal records.
 type WithdrawalRepositoryInterface interface {
-	Search(vendoID *uint) ([]models.Withdrawal, error)
+	// assignedIDs: when non-empty, results are filtered to those vendo IDs.
+	Search(vendoID *uint, assignedIDs []uint) ([]models.Withdrawal, error)
 	Add(vendoID uint, amount float64, userID *uint) (*models.Withdrawal, error)
 }
 
