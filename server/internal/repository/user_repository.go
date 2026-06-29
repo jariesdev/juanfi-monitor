@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/jariesdev/vendoreport/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -15,14 +16,14 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 // CheckUser returns the user if the username and password match.
-// NOTE: passwords are stored as plain text to match the existing Python app.
 func (r *UserRepository) CheckUser(username, password string) (*models.User, error) {
 	var user models.User
-	result := r.db.
-		Where("username = ? AND password = ?", username, password).
-		First(&user)
+	result := r.db.Where("username = ?", username).First(&user)
 	if result.Error != nil {
 		return nil, result.Error
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, err
 	}
 	return &user, nil
 }
@@ -42,7 +43,11 @@ func (r *UserRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
 }
 
-// UpdatePassword sets a new password for the given user ID.
+// UpdatePassword hashes newPassword and saves it for the given user ID.
 func (r *UserRepository) UpdatePassword(userID uint, newPassword string) error {
-	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("password", newPassword).Error
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("password", string(hash)).Error
 }

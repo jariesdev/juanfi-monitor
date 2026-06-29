@@ -19,6 +19,7 @@ import (
 	"github.com/jariesdev/vendoreport/app"
 	"github.com/jariesdev/vendoreport/internal/database"
 	"github.com/jariesdev/vendoreport/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -60,7 +61,8 @@ func TestMain(m *testing.M) {
 // seed inserts the minimum set of records required by the test suite.
 func seed(db *gorm.DB) {
 	// User
-	db.Create(&models.User{Username: "testuser", Password: "testpass", IsActive: true})
+	hash, _ := bcrypt.GenerateFromPassword([]byte("testpass"), bcrypt.DefaultCost)
+	db.Create(&models.User{Username: "testuser", Password: string(hash), IsActive: true})
 
 	// Vendo
 	apiURL := "http://192.168.42.10:8081"
@@ -217,7 +219,8 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_WrongPassword(t *testing.T) {
 	// Seed a dedicated user so this test doesn't depend on global seed order.
-	db.Create(&models.User{Username: "wrongpwduser", Password: "correctpass", IsActive: true})
+	correctHash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+	db.Create(&models.User{Username: "wrongpwduser", Password: string(correctHash), IsActive: true})
 
 	form := url.Values{}
 	form.Set("username", "wrongpwduser")
