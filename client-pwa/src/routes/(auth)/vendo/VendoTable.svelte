@@ -43,7 +43,7 @@
 			<div class="action-btns">
 				<a
 					href={`/vendo/${item.id}/status`}
-					class="uk-icon-button uk-button-primary"
+					class="uk-icon-button"
 					uk-icon="info"
 					aria-label="View details"
 				></a>
