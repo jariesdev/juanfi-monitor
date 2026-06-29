@@ -9,7 +9,19 @@
 	let { permissions = [] }: Props = $props();
 
 	const visibleItems = $derived(
-		navItems.filter((item) => !item.requiredPermission || permissions.includes(item.requiredPermission))
+		navItems
+			.map((item) => {
+				if (!item.children) return item;
+				const visibleChildren = item.children.filter(
+					(c) => !c.requiredPermission || permissions.includes(c.requiredPermission)
+				);
+				return { ...item, children: visibleChildren };
+			})
+			.filter((item) => {
+				if (item.requiredPermission && !permissions.includes(item.requiredPermission)) return false;
+				if (item.children) return item.children.length > 0;
+				return true;
+			})
 	);
 
 	let openGroups: Record<string, boolean> = $state({});

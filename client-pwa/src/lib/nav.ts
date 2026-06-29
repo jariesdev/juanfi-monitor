@@ -1,6 +1,7 @@
 export interface NavChild {
 	href: string;
 	label: string;
+	requiredPermission?: string;
 }
 
 export interface NavItem {
@@ -12,17 +13,17 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-	{ href: '/home', icon: 'home', label: 'Home' },
-	{ href: '/vendo', icon: 'server', label: 'Vendo' },
+	{ href: '/home', icon: 'home', label: 'Home', requiredPermission: 'dashboard' },
+	{ href: '/vendo', icon: 'server', label: 'Vendo', requiredPermission: 'vendos' },
 	{
 		icon: 'cart',
 		label: 'Sales',
 		children: [
-			{ href: '/sales', label: 'Sales Records' },
-			{ href: '/withdrawals', label: 'Withdrawals' }
+			{ href: '/sales', label: 'Sales Records', requiredPermission: 'sales' },
+			{ href: '/withdrawals', label: 'Withdrawals', requiredPermission: 'withdrawals' }
 		]
 	},
-	{ href: '/logs', icon: 'list', label: 'Logs' },
+	{ href: '/logs', icon: 'list', label: 'Logs', requiredPermission: 'logs' },
 	{
 		icon: 'users',
 		label: 'Users',
@@ -32,5 +33,5 @@ export const navItems: NavItem[] = [
 			{ href: '/roles', label: 'Roles' }
 		]
 	},
-	{ href: '/account', icon: 'user', label: 'Account' }
+	{ href: '/account', icon: 'user', label: 'Account', requiredPermission: 'account' }
 ];
