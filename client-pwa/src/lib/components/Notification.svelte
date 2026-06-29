@@ -7,7 +7,7 @@
 	const {message, onHide}: iProps = $props()
 
 	let timer: number = 10
-	let intervalId: number
+	let intervalId: ReturnType<typeof setTimeout>
 	let isVisible: boolean = $derived(!!message)
 
 	$effect(() => {

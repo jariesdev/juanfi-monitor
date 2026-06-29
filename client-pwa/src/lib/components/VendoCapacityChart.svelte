@@ -1,24 +1,25 @@
 <script lang="ts">
 	import Chart from 'chart.js/auto';
 	import { onDestroy, onMount } from 'svelte';
-	import { baseApiUrl } from '$lib/env';
-	import type { ChartConfiguration } from 'chart.js';
-	import 'chartjs-adapter-moment';
-	import type { Plugin } from 'chart.js/dist/types';
 
-	let chartData: any[] = [];
+	import type { ChartConfiguration, Plugin } from 'chart.js';
+	import 'chartjs-adapter-moment';
+
+	let chartData: any = {};
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
-	let isLoading: boolean = false;
+	let isLoading: boolean = true;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	const horizontalLinePlugin: Plugin = {
-		afterDraw: function(chartInstance) {
+		id: 'horizontalLine',
+		afterDraw: function(chartInstance: Chart) {
 			const { ctx, canvas } = chartInstance;
 			const yScale = chartInstance.scales.y;
 
-			const { horizontalLine } = chartInstance.options;
+			const { horizontalLine } = (chartInstance.options as any);
 			if (horizontalLine && yScale) {
 				let textOffset = -2;
 				for (let index = 0; index < horizontalLine.length; index++) {
@@ -60,7 +61,7 @@
 			labels: [],
 			datasets: []
 		};
-		const chartConfig: ChartConfiguration = {
+		const chartConfig = {
 			type: 'bar',
 			data: chartData,
 			options: {
@@ -80,7 +81,14 @@
 				scales: {
 					y: {
 						min: 0,
-						max: 5500
+						max: 5500,
+							ticks: {
+								stepSize: 1,
+								callback: function(value: string | number) {
+									const n = Number(value)
+									return '₱ ' + n.toLocaleString();
+								}
+							}
 					}
 				},
 				interaction: {
@@ -88,7 +96,7 @@
 					mode: 'index'
 				},
 				plugins: {
-					legend: false
+					legend: { display: false }
 					// 	tooltip: {
 					// 		enabled: true,
 					// 		position: 'nearest',
@@ -103,7 +111,7 @@
 			},
 			plugins: [horizontalLinePlugin]
 		};
-		chart = new Chart(canvas, chartConfig);
+		chart = new Chart(canvas, chartConfig as any);
 	}
 
 	function loadChartData(): void {
@@ -111,7 +119,7 @@
 		const signal = controller.signal;
 
 		const request = new Request(
-			`${baseApiUrl}/vendo-machines?` + (new URLSearchParams({is_active: true}).toString()),
+			`/x-api/vendo-machines?` + (new URLSearchParams({is_active: 'true'}).toString()),
 			{
 				method: 'GET',
 				signal: signal
@@ -127,12 +135,21 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
-					const datasets = [{
-						label: 'Current Sales',
-						data: data.map((d) => d?.recent_status.current_sales | 0)
-					}];
-					chart.data.labels = data.map((d) => d.name);
-					chart.data.datasets = datasets;
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
+					const newLabels = data.map((d: any) => d.name);
+					const newValues = data.map((d: any) => d?.recent_status.current_sales | 0);
+
+					chart.data.labels = newLabels;
+
+					if (chart.data.datasets.length > 0) {
+						chart.data.datasets[0].data = newValues;
+					} else {
+						chart.data.datasets = [{ label: 'Current Sales', data: newValues }];
+					}
+
 					chart.update();
 				}
 			})
@@ -158,4 +175,28 @@
 	});
 </script>
 
-<canvas bind:this={canvas} />
+<div class="chart-wrapper">
+	<canvas bind:this={canvas}></canvas>
+	{#if isLoading}
+		<div class="chart-skeleton"></div>
+	{/if}
+</div>
+
+<style>
+	.chart-wrapper {
+		position: relative;
+		min-height: 200px;
+	}
+	.chart-skeleton {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+		border-radius: 6px;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>

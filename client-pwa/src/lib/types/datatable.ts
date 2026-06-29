@@ -13,6 +13,11 @@
 		field: string;
 	}
 
+	export interface SimpleTableHeader extends TableHeader {
+		align?: 'left' | 'center' | 'right';
+		sortable?: boolean;
+	}
+
 	export interface RowItem {
 		[key: string]: any;
 	}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import moment from 'moment';
-	import { baseApiUrl } from '$lib/env';
+
 	import {changeVendoStatus, getVendoInfo} from "$lib/remote/vendo.remote";
 	import type {iVendo} from "$lib/types/models";
 
@@ -14,20 +14,21 @@
 	// export let vendoId: number;
 	const {vendoId} = $props()
 	let statuses: iStatus[] = $state([]);
-	let isLoading: boolean = $state(false);
+	let isLoading: boolean = $state(true);
 	let systemUptime: number = $state(0);
 	let serverTime: number = $state(0);
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
-	let isWithdrawing: boolean = false;
+	let isWithdrawing: boolean = $state(false);
 
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
 
 	function loadStatuses(): void {
+		isLoading = true;
 		controller = new AbortController();
 		const signal = controller.signal;
-		const request = new Request(`${baseApiUrl}/vendo-machines/${vendoId}/status?nosw=1`, {
+		const request = new Request(`/x-api/vendo-machines/${vendoId}/status?nosw=1`, {
 			method: 'GET',
 			signal: signal
 		});
@@ -84,7 +85,7 @@
 		}
 
 		isWithdrawing = true;
-		let url = `${baseApiUrl}/vendo-machines/${vendoId}/withdraw-current-sales`;
+		let url = `/x-api/vendo-machines/${vendoId}/withdraw-current-sales`;
 		controller = new AbortController();
 		const signal = controller.signal;
 		const request: Request = new Request(url, { method: 'POST', signal });
@@ -140,7 +141,16 @@
 </script>
 
 <div class="uk-card uk-card-default uk-card-body uk-margin-small-bottom">
-	{#if statuses.length > 0}
+	{#if isLoading}
+		<ul class="uk-list uk-list-divider">
+			{#each { length: 6 } as _}
+				<li class="uk-flex uk-flex-between uk-flex-middle">
+					<div class="skeleton skeleton-label"></div>
+					<div class="skeleton skeleton-value"></div>
+				</li>
+			{/each}
+		</ul>
+	{:else if statuses.length > 0}
 		<ul class="uk-list uk-list-divider">
 			<li class="uk-flex uk-flex-between">
 				<span>System Uptime</span>
@@ -161,7 +171,7 @@
 								type="button"
 								onclick={withdrawCurrenSale}
 							>
-								<i uk-icon="icon: credit-card" class="uk-margin-small-right" />
+								<i uk-icon="icon: credit-card" class="uk-margin-small-right"></i>
 								Withdraw
 							</button>
 							<span class="uk-margin-small-left">{status.text}</span>
@@ -176,6 +186,27 @@
 		<p class="uk-text-info">Status not available yet.</p>
 	{/if}
 </div>
+
+<style>
+	.skeleton {
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+		border-radius: 4px;
+	}
+	.skeleton-label {
+		width: 140px;
+		height: 14px;
+	}
+	.skeleton-value {
+		width: 80px;
+		height: 14px;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>
 
 <div class="uk-card uk-card-default uk-card-body">
 	{#if vendo}
