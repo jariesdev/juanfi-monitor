@@ -1,27 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { navItems, type NavItem } from '$lib/nav';
+	import { getVisibleNavItems, type NavItem } from '$lib/nav';
 
 	interface Props {
 		permissions?: string[];
 	}
 	let { permissions = [] }: Props = $props();
 
-	const visibleItems = $derived(
-		navItems
-			.map((item) => {
-				if (!item.children) return item;
-				const visibleChildren = item.children.filter(
-					(c) => !c.requiredPermission || permissions.includes(c.requiredPermission)
-				);
-				return { ...item, children: visibleChildren };
-			})
-			.filter((item) => {
-				if (item.requiredPermission && !permissions.includes(item.requiredPermission)) return false;
-				if (item.children) return item.children.length > 0;
-				return true;
-			})
-	);
+	const visibleItems = $derived(getVisibleNavItems(permissions));
 
 	let activeSheet: NavItem | null = $state(null);
 	let tooltip: { label: string; x: number } | null = $state(null);
