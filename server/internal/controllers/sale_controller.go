@@ -12,11 +12,10 @@ import (
 // SaleController handles voucher sale data endpoints.
 type SaleController struct {
 	saleRepo repository.SaleRepositoryInterface
-	userRepo repository.UserRepositoryInterface
 }
 
-func NewSaleController(saleRepo repository.SaleRepositoryInterface, userRepo repository.UserRepositoryInterface) *SaleController {
-	return &SaleController{saleRepo: saleRepo, userRepo: userRepo}
+func NewSaleController(saleRepo repository.SaleRepositoryInterface) *SaleController {
+	return &SaleController{saleRepo: saleRepo}
 }
 
 // Search handles GET /sales — paginated sale search.
@@ -45,13 +44,7 @@ func (s *SaleController) Search(c *gin.Context) {
 		}
 	}
 
-	ids, err := assignedVendoIDs(c, s.userRepo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-		return
-	}
-
-	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, ids, page, size, sortBy, sortDir)
+	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, assignedVendoIDs(c), page, size, sortBy, sortDir)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -63,14 +56,7 @@ func (s *SaleController) Search(c *gin.Context) {
 // Query params: from_date, to_date (YYYY-MM-DD, both optional – defaults to last 30 days).
 func (s *SaleController) DailySales(c *gin.Context) {
 	from, to := parseDateRange(c)
-
-	ids, err := assignedVendoIDs(c, s.userRepo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-		return
-	}
-
-	rows, err := s.saleRepo.GetDailySales(from, to, ids)
+	rows, err := s.saleRepo.GetDailySales(from, to, assignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -82,14 +68,7 @@ func (s *SaleController) DailySales(c *gin.Context) {
 // Query params: from_date, to_date (YYYY-MM-DD, both optional – defaults to last 12 months).
 func (s *SaleController) MonthlySales(c *gin.Context) {
 	from, to := parseDateRange(c)
-
-	ids, err := assignedVendoIDs(c, s.userRepo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-		return
-	}
-
-	rows, err := s.saleRepo.GetMonthlySales(from, to, ids)
+	rows, err := s.saleRepo.GetMonthlySales(from, to, assignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

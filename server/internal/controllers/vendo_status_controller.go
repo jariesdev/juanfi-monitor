@@ -11,11 +11,10 @@ import (
 // VendoStatusController handles vendo status history endpoints.
 type VendoStatusController struct {
 	statusRepo repository.VendoStatusRepositoryInterface
-	userRepo   repository.UserRepositoryInterface
 }
 
-func NewVendoStatusController(statusRepo repository.VendoStatusRepositoryInterface, userRepo repository.UserRepositoryInterface) *VendoStatusController {
-	return &VendoStatusController{statusRepo: statusRepo, userRepo: userRepo}
+func NewVendoStatusController(statusRepo repository.VendoStatusRepositoryInterface) *VendoStatusController {
+	return &VendoStatusController{statusRepo: statusRepo}
 }
 
 // Search handles GET /vendo-status-history.
@@ -41,13 +40,7 @@ func (v *VendoStatusController) Search(c *gin.Context) {
 		toPtr = &toDate
 	}
 
-	ids, err := assignedVendoIDs(c, v.userRepo)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-		return
-	}
-
-	rows, err := v.statusRepo.GetHourlyStatus(vendoIDPtr, fromPtr, toPtr, activeOnly, ids)
+	rows, err := v.statusRepo.GetHourlyStatus(vendoIDPtr, fromPtr, toPtr, activeOnly, assignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

@@ -46,10 +46,10 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	userCtrl := controllers.NewUserController(userRepo)
 	roleCtrl := controllers.NewRoleController(roleRepo)
 	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo, userRepo)
-	logCtrl := controllers.NewLogController(db, logRepo, vendoRepo, userRepo)
-	saleCtrl := controllers.NewSaleController(saleRepo, userRepo)
-	statusCtrl := controllers.NewVendoStatusController(statusRepo, userRepo)
-	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo, userRepo)
+	logCtrl := controllers.NewLogController(db, logRepo, vendoRepo)
+	saleCtrl := controllers.NewSaleController(saleRepo)
+	statusCtrl := controllers.NewVendoStatusController(statusRepo)
+	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()

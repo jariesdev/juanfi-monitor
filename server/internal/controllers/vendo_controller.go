@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jariesdev/vendoreport/internal/middleware"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -27,14 +26,11 @@ func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawa
 }
 
 // canAccessVendo returns true if the current user is an admin or has the given vendo assigned.
+// Uses the vendos already preloaded on the user by the auth middleware.
 func (v *VendoController) canAccessVendo(c *gin.Context, vendoID uint) bool {
-	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
-	if currentUser.HasPermission(models.PermUsers) {
-		return true
-	}
-	ids, err := v.userRepo.GetVendoIDs(currentUser.ID)
-	if err != nil {
-		return false
+	ids := assignedVendoIDs(c)
+	if ids == nil {
+		return true // admin: unrestricted
 	}
 	for _, id := range ids {
 		if id == vendoID {
@@ -64,18 +60,7 @@ func (v *VendoController) All(c *gin.Context) {
 		}
 	}
 
-	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
-	var assignedIDs []uint
-	if !currentUser.HasPermission(models.PermUsers) {
-		ids, err := v.userRepo.GetVendoIDs(currentUser.ID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
-			return
-		}
-		assignedIDs = ids
-	}
-
-	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, assignedIDs)
+	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, assignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
