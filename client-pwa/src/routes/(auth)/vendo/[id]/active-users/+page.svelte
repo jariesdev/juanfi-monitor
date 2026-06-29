@@ -44,10 +44,12 @@
 		<div class="card">
 			<div class="card-header">
 				<span class="header-icon" uk-icon="icon: users; ratio: 1"></span>
-				<span class="card-title">Active Users</span>
-				<button class="refresh-btn" onclick={loadData} disabled={isLoading} title="Refresh">
-					<span uk-icon="icon: refresh; ratio: 0.9"></span>
-				</button>
+				<div class="header-left">
+					<span class="card-title">Active Users</span>
+					<button class="refresh-btn" onclick={loadData} disabled={isLoading} title="Refresh">
+						<span uk-icon="icon: refresh; ratio: 0.9"></span>
+					</button>
+				</div>
 			</div>
 
 			{#if isLoading}
@@ -69,8 +71,6 @@
 						{/each}
 					</tbody>
 				</table>
-			{:else if users.length === 0}
-				<p class="empty">No active users.</p>
 			{:else}
 				<table class="users-table">
 					<thead>
@@ -81,13 +81,19 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each users as u (u.node_id)}
+						{#if users.length === 0}
 							<tr>
-								<td class="user-cell">{u.user}</td>
-								<td class="mono">{u.mac_address}</td>
-								<td>{u.session_left}</td>
+								<td colspan="3" class="empty">No active users.</td>
 							</tr>
-						{/each}
+						{:else}
+							{#each users as u (u.node_id)}
+								<tr>
+									<td class="user-cell">{u.user}</td>
+									<td class="mono">{u.mac_address}</td>
+									<td>{u.session_left}</td>
+								</tr>
+							{/each}
+						{/if}
 					</tbody>
 				</table>
 			{/if}
@@ -111,6 +117,13 @@
 		border-bottom: 1px solid #f0f0f0;
 	}
 
+	.header-left {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex: 1;
+	}
+
 	.header-icon {
 		display: flex;
 		align-items: center;
@@ -127,7 +140,6 @@
 		font-size: 0.88rem;
 		font-weight: 700;
 		color: #1a1a1a;
-		flex: 1;
 	}
 
 	.refresh-btn {
@@ -194,7 +206,7 @@
 		font-size: 0.82rem;
 		color: #bbb;
 		font-style: italic;
-		margin: 0;
+		text-align: center;
 	}
 
 	.skeleton {
