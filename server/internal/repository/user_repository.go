@@ -34,7 +34,7 @@ func (r *UserRepository) CheckUser(username, password string) (*models.User, err
 func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 	var user models.User
 	result := r.db.
-		Preload("Role").
+		Preload("Roles").
 		Preload("Vendos").
 		Where("username = ?", username).
 		First(&user)
@@ -47,7 +47,7 @@ func (r *UserRepository) GetByUsername(username string) (*models.User, error) {
 // GetByID returns a single user by primary key, preloading role and vendos.
 func (r *UserRepository) GetByID(id uint) (*models.User, error) {
 	var user models.User
-	if err := r.db.Preload("Role").Preload("Vendos").First(&user, id).Error; err != nil {
+	if err := r.db.Preload("Roles").Preload("Vendos").First(&user, id).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -57,7 +57,7 @@ func (r *UserRepository) GetByID(id uint) (*models.User, error) {
 func (r *UserRepository) List(q string, sortBy, sortDir string) ([]models.User, error) {
 	var users []models.User
 
-	query := r.db.Preload("Role")
+	query := r.db.Preload("Roles")
 	if q != "" {
 		query = query.Where("username LIKE ?", "%"+q+"%")
 	}
@@ -101,6 +101,18 @@ func (r *UserRepository) UpdatePassword(userID uint, newPassword string) error {
 		return err
 	}
 	return r.db.Model(&models.User{}).Where("id = ?", userID).Update("password", string(hash)).Error
+}
+
+// AssignRoles replaces the user's role assignments with the given role IDs.
+func (r *UserRepository) AssignRoles(userID uint, roleIDs []uint) error {
+	user := models.User{ID: userID}
+	var roles []models.Role
+	if len(roleIDs) > 0 {
+		if err := r.db.Find(&roles, roleIDs).Error; err != nil {
+			return err
+		}
+	}
+	return r.db.Model(&user).Association("Roles").Replace(roles)
 }
 
 // AssignVendos replaces the user's vendo assignments with the given vendo IDs.

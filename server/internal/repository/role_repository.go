@@ -44,6 +44,8 @@ func (r *RoleRepository) Delete(id uint) error {
 
 func (r *RoleRepository) CountUsersWithRole(roleID uint) (int64, error) {
 	var count int64
-	err := r.db.Model(&models.User{}).Where("role_id = ?", roleID).Count(&count).Error
+	err := r.db.Raw(
+		"SELECT COUNT(DISTINCT user_id) FROM user_roles WHERE role_id = ?", roleID,
+	).Scan(&count).Error
 	return count, err
 }

@@ -12,7 +12,7 @@ import (
 
 var userAssignRoleCmd = &cobra.Command{
 	Use:   "user-assign-role",
-	Short: "Assign a role to an existing user",
+	Short: "Assign one or more roles to an existing user (replaces current roles)",
 	Run: func(cmd *cobra.Command, args []string) {
 		initDB()
 
@@ -31,7 +31,7 @@ var userAssignRoleCmd = &cobra.Command{
 
 		fmt.Println("Available roles:")
 		for _, r := range roles {
-			fmt.Printf("  [%d] %s  (%s)\n", r.ID, r.Name, strings.Join(r.GetPermissions(), ", "))
+			fmt.Printf("  %s  (%s)\n", r.Name, strings.Join(r.GetPermissions(), ", "))
 		}
 
 		reader := bufio.NewReader(os.Stdin)
@@ -46,29 +46,48 @@ var userAssignRoleCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		fmt.Print("Enter role name: ")
-		roleName, _ := reader.ReadString('\n')
-		roleName = strings.TrimSpace(roleName)
+		if len(user.Roles) > 0 {
+			var current []string
+			for _, r := range user.Roles {
+				current = append(current, r.Name)
+			}
+			fmt.Printf("Current roles: %s\n", strings.Join(current, ", "))
+		} else {
+			fmt.Println("Current roles: (none)")
+		}
 
-		var matchedRoleID *uint
-		for _, r := range roles {
-			if strings.EqualFold(r.Name, roleName) {
-				id := r.ID
-				matchedRoleID = &id
-				break
+		fmt.Print("Enter role names to assign (comma-separated, leave empty to clear): ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+
+		var roleIDs []uint
+		if input != "" {
+			for _, name := range strings.Split(input, ",") {
+				name = strings.TrimSpace(name)
+				found := false
+				for _, r := range roles {
+					if strings.EqualFold(r.Name, name) {
+						roleIDs = append(roleIDs, r.ID)
+						found = true
+						break
+					}
+				}
+				if !found {
+					fmt.Fprintf(os.Stderr, "error: role %q not found\n", name)
+					os.Exit(1)
+				}
 			}
 		}
-		if matchedRoleID == nil {
-			fmt.Fprintf(os.Stderr, "error: role %q not found\n", roleName)
-			os.Exit(1)
-		}
 
-		user.RoleID = matchedRoleID
-		if err := userRepo.Update(user); err != nil {
+		if err := userRepo.AssignRoles(user.ID, roleIDs); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Role %q assigned to user %q.\n", roleName, username)
+		if len(roleIDs) == 0 {
+			fmt.Printf("All roles cleared for user %q.\n", username)
+		} else {
+			fmt.Printf("Roles assigned to user %q.\n", username)
+		}
 	},
 }

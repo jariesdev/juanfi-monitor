@@ -67,7 +67,9 @@ func seed(db *gorm.DB) {
 
 	// User — assigned the admin role so it can hit /users and /roles endpoints
 	hash, _ := bcrypt.GenerateFromPassword([]byte("testpass"), bcrypt.DefaultCost)
-	db.Create(&models.User{Username: "testuser", Password: string(hash), IsActive: true, RoleID: &adminRole.ID})
+	testUser := &models.User{Username: "testuser", Password: string(hash), IsActive: true}
+	db.Create(testUser)
+	db.Model(testUser).Association("Roles").Replace([]models.Role{*adminRole})
 
 	// Vendo
 	apiURL := "http://192.168.42.10:8081"

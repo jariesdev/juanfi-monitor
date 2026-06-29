@@ -56,14 +56,14 @@ func (u *UserController) Get(c *gin.Context) {
 }
 
 // Create handles POST /users — creates a new user.
-// Body: {username, password, role_id?, vendo_ids?, is_active?}
+// Body: {username, password, role_ids?, vendo_ids?, is_active?}
 func (u *UserController) Create(c *gin.Context) {
 	var body struct {
-		Username string  `json:"username" binding:"required"`
-		Password string  `json:"password" binding:"required"`
-		RoleID   *uint   `json:"role_id"`
-		VendoIDs []uint  `json:"vendo_ids"`
-		IsActive *bool   `json:"is_active"`
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
+		RoleIDs  []uint `json:"role_ids"`
+		VendoIDs []uint `json:"vendo_ids"`
+		IsActive *bool  `json:"is_active"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
@@ -79,11 +79,17 @@ func (u *UserController) Create(c *gin.Context) {
 		Username: body.Username,
 		Password: body.Password,
 		IsActive: isActive,
-		RoleID:   body.RoleID,
 	}
 	if err := u.userRepo.Create(user); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"detail": "username already exists or invalid data"})
 		return
+	}
+
+	if len(body.RoleIDs) > 0 {
+		if err := u.userRepo.AssignRoles(user.ID, body.RoleIDs); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"detail": "user created but failed to assign roles"})
+			return
+		}
 	}
 
 	if len(body.VendoIDs) > 0 {
@@ -98,7 +104,7 @@ func (u *UserController) Create(c *gin.Context) {
 }
 
 // Update handles PUT /users/:id — updates an existing user.
-// Body: {username?, password?, role_id?, vendo_ids?, is_active?}
+// Body: {username?, password?, role_ids?, vendo_ids?, is_active?}
 func (u *UserController) Update(c *gin.Context) {
 	id, err := parseUintParam(c, "id")
 	if err != nil {
@@ -112,11 +118,11 @@ func (u *UserController) Update(c *gin.Context) {
 	}
 
 	var body struct {
-		Username *string `json:"username"`
-		Password *string `json:"password"`
-		RoleID   *uint   `json:"role_id"`
-		VendoIDs *[]uint `json:"vendo_ids"`
-		IsActive *bool   `json:"is_active"`
+		Username *string  `json:"username"`
+		Password *string  `json:"password"`
+		RoleIDs  *[]uint  `json:"role_ids"`
+		VendoIDs *[]uint  `json:"vendo_ids"`
+		IsActive *bool    `json:"is_active"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
@@ -129,20 +135,24 @@ func (u *UserController) Update(c *gin.Context) {
 	if body.Password != nil && *body.Password != "" {
 		user.Password = *body.Password
 	}
-	if body.RoleID != nil {
-		user.RoleID = body.RoleID
-	}
 	if body.IsActive != nil {
 		user.IsActive = *body.IsActive
 	}
 
 	// Clear associations before Save to avoid GORM preload conflicts.
-	user.Role = nil
+	user.Roles = nil
 	user.Vendos = nil
 
 	if err := u.userRepo.Update(user); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"detail": "failed to update user"})
 		return
+	}
+
+	if body.RoleIDs != nil {
+		if err := u.userRepo.AssignRoles(user.ID, *body.RoleIDs); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"detail": "user updated but failed to assign roles"})
+			return
+		}
 	}
 
 	if body.VendoIDs != nil {

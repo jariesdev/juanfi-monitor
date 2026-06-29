@@ -19,6 +19,7 @@ type UserRepositoryInterface interface {
 	Update(user *models.User) error
 	Delete(id uint) error
 	UpdatePassword(userID uint, newPassword string) error
+	AssignRoles(userID uint, roleIDs []uint) error
 	AssignVendos(userID uint, vendoIDs []uint) error
 	GetVendoIDs(userID uint) ([]uint, error)
 }
