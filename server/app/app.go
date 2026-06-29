@@ -27,8 +27,10 @@ type App struct {
 // New wires all repositories, controllers, and middleware, then returns an App.
 // jwtSecret is the HS256 signing key used to issue and validate Bearer tokens.
 // isProd disables request logging to avoid the per-request stdout overhead in production.
+// trustedProxies is the list of IPs/CIDRs of upstream proxies (e.g. HAProxy) so Gin
+// reads X-Forwarded-For correctly; pass nil to trust no proxies.
 // Pass startScheduler=false in tests to skip cron jobs.
-func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, startScheduler bool) *App {
+func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, startScheduler bool, trustedProxies []string) *App {
 	// ── Repositories ─────────────────────────────────────────────────────────
 	userRepo := repository.NewUserRepository(db)
 	vendoRepo := repository.NewVendoRepository(db)
@@ -60,7 +62,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, hub, authCtrl, userCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -69,6 +71,7 @@ func buildRouter(
 	allowedOrigins []string,
 	jwtSecret string,
 	isProd bool,
+	trustedProxies []string,
 	hub *ws.Hub,
 	authCtrl *controllers.AuthController,
 	userCtrl *controllers.UserController,
@@ -80,6 +83,7 @@ func buildRouter(
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
+	router.SetTrustedProxies(trustedProxies)
 	if !isProd {
 		// Request logging is skipped in production to avoid per-request stdout overhead.
 		router.Use(gin.Logger())
