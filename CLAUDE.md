@@ -6,8 +6,9 @@
 VendoReport/
 ├── server/          # Go REST API (Gin + GORM + SQLite/MySQL)
 ├── client-pwa/      # SvelteKit 5 PWA frontend
-├── app.db           # SQLite database (shared by server)
-└── migrations/      # Alembic migrations (schema source of truth for SQLite)
+├── docker/          # Dockerfiles (node/)
+├── docker-compose.yml
+└── app.db           # SQLite database (shared by server)
 ```
 
 ---
@@ -23,7 +24,7 @@ go build -o vendoreport ./cmd
 ```
 
 ### Key rules
-- **SQLite schema is owned by Alembic** — never run `AutoMigrate` against the real `app.db`. `database.Connect()` takes a `migrate bool`; pass `false` for SQLite, `true` for MySQL and tests.
+- **SQLite schema** — `database.Connect()` takes a `migrate bool`; pass `false` for SQLite (schema managed manually or via SQL), `true` for MySQL and tests.
 - **JWT secret** — must not be `change_me_in_production` when `APP_ENV=production`; the app will fatal on startup.
 - **CGO required** — `mattn/go-sqlite3` needs gcc. Set `CGO_ENABLED=1` when building for deployment.
 - All authenticated routes expect `Authorization: Bearer <JWT>` (HS256, 1-hour expiry).
