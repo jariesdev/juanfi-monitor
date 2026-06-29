@@ -46,7 +46,7 @@ type VendoStatusRepositoryInterface interface {
 
 // WithdrawalRepositoryInterface manages withdrawal records.
 type WithdrawalRepositoryInterface interface {
-	Search() ([]models.Withdrawal, error)
+	Search(vendoID *uint) ([]models.Withdrawal, error)
 	Add(vendoID uint, amount float64, userID *uint) (*models.Withdrawal, error)
 }
 
