@@ -43,10 +43,36 @@ export interface iSale {
 	vendo: iVendo;
 }
 
+export interface iRole {
+	id: number;
+	name: string;
+	permissions: string[];
+	created_at: string;
+	updated_at: string | null;
+}
+
 export interface iUser {
+	id: number;
 	username: string;
 	is_active: boolean;
+	role_id: number | null;
+	role: iRole | null;
+	vendos?: iVendo[];
+	created_at: string;
+	updated_at: string | null;
 }
+
+export const ALL_PERMISSIONS = [
+	'dashboard',
+	'account',
+	'vendos',
+	'sales',
+	'logs',
+	'withdrawals',
+	'users'
+] as const;
+
+export type Permission = (typeof ALL_PERMISSIONS)[number];
 
 export interface iNotification {
 	id: number

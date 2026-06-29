@@ -8,6 +8,7 @@ export interface NavItem {
 	icon: string;
 	label: string;
 	children?: NavChild[];
+	requiredPermission?: string;
 }
 
 export const navItems: NavItem[] = [
@@ -22,5 +23,14 @@ export const navItems: NavItem[] = [
 		]
 	},
 	{ href: '/logs', icon: 'list', label: 'Logs' },
-	{ href: '/account', icon: 'user', label: 'Account' }
+	{ href: '/account', icon: 'user', label: 'Account' },
+	{
+		icon: 'settings',
+		label: 'Admin',
+		requiredPermission: 'users',
+		children: [
+			{ href: '/users', label: 'Users' },
+			{ href: '/roles', label: 'Roles' }
+		]
+	}
 ];

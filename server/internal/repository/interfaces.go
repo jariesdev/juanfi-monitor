@@ -13,13 +13,30 @@ import (
 type UserRepositoryInterface interface {
 	CheckUser(username, password string) (*models.User, error)
 	GetByUsername(username string) (*models.User, error)
+	GetByID(id uint) (*models.User, error)
+	List(q string, sortBy, sortDir string) ([]models.User, error)
 	Create(user *models.User) error
+	Update(user *models.User) error
+	Delete(id uint) error
 	UpdatePassword(userID uint, newPassword string) error
+	AssignVendos(userID uint, vendoIDs []uint) error
+	GetVendoIDs(userID uint) ([]uint, error)
+}
+
+// RoleRepositoryInterface manages named permission roles.
+type RoleRepositoryInterface interface {
+	List() ([]models.Role, error)
+	GetByID(id uint) (*models.Role, error)
+	Create(role *models.Role) error
+	Update(role *models.Role) error
+	Delete(id uint) error
+	CountUsersWithRole(roleID uint) (int64, error)
 }
 
 // VendoRepositoryInterface manages vendo machine records.
 type VendoRepositoryInterface interface {
-	Search(q *string, isActive *bool) ([]models.Vendo, error)
+	// assignedIDs: when non-empty, results are filtered to only those IDs.
+	Search(q *string, isActive *bool, assignedIDs []uint) ([]models.Vendo, error)
 	GetByID(id uint) (*models.Vendo, error)
 	Create(v *models.Vendo) error
 	Delete(id uint) error

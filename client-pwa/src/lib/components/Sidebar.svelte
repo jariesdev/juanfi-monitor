@@ -3,6 +3,15 @@
 	import { navCollapsed } from '$lib/store';
 	import { navItems, type NavItem } from '$lib/nav';
 
+	interface Props {
+		permissions?: string[];
+	}
+	let { permissions = [] }: Props = $props();
+
+	const visibleItems = $derived(
+		navItems.filter((item) => !item.requiredPermission || permissions.includes(item.requiredPermission))
+	);
+
 	let openGroups: Record<string, boolean> = $state({});
 
 	function toggleGroup(label: string) {
@@ -16,7 +25,7 @@
 
 	// Auto-open the group that contains the current page
 	$effect(() => {
-		navItems.forEach((item) => {
+		visibleItems.forEach((item) => {
 			if (item.children?.some((c) => $page.url.pathname === c.href)) {
 				openGroups[item.label] = true;
 			}
@@ -41,7 +50,7 @@
 
 	<!-- Nav items -->
 	<nav>
-		{#each navItems as item}
+		{#each visibleItems as item}
 			{#if item.children}
 				<!-- Parent with children -->
 				<div class="nav-group" class:collapsed={$navCollapsed}>

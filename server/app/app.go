@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jariesdev/vendoreport/internal/controllers"
 	"github.com/jariesdev/vendoreport/internal/middleware"
+	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/scheduler"
 	ws "github.com/jariesdev/vendoreport/internal/websocket"
@@ -38,11 +39,13 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	saleRepo := repository.NewSaleRepository(db)
 	statusRepo := repository.NewVendoStatusRepository(db)
 	withdrawalRepo := repository.NewWithdrawalRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
 
 	// ── Controllers ──────────────────────────────────────────────────────────
 	authCtrl := controllers.NewAuthController(userRepo, jwtSecret)
 	userCtrl := controllers.NewUserController(userRepo)
-	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo)
+	roleCtrl := controllers.NewRoleController(roleRepo)
+	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo, userRepo)
 	logCtrl := controllers.NewLogController(db, logRepo, vendoRepo)
 	saleCtrl := controllers.NewSaleController(saleRepo)
 	statusCtrl := controllers.NewVendoStatusController(statusRepo)
@@ -62,7 +65,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -75,6 +78,7 @@ func buildRouter(
 	hub *ws.Hub,
 	authCtrl *controllers.AuthController,
 	userCtrl *controllers.UserController,
+	roleCtrl *controllers.RoleController,
 	vendoCtrl *controllers.VendoController,
 	logCtrl *controllers.LogController,
 	saleCtrl *controllers.SaleController,
@@ -106,8 +110,20 @@ func buildRouter(
 
 	auth.GET("/users/me", userCtrl.Me)
 	auth.PUT("/users/me/password", userCtrl.ChangePassword)
-	auth.GET("/users", userCtrl.List)
-	auth.GET("/users/:id", userCtrl.Get)
+
+	// User management — requires users permission
+	usersAdmin := auth.Group("/")
+	usersAdmin.Use(middleware.RequirePermission(models.PermUsers))
+	usersAdmin.GET("/users", userCtrl.List)
+	usersAdmin.GET("/users/:id", userCtrl.Get)
+	usersAdmin.POST("/users", userCtrl.Create)
+	usersAdmin.PUT("/users/:id", userCtrl.Update)
+	usersAdmin.DELETE("/users/:id", userCtrl.Delete)
+	usersAdmin.GET("/roles", roleCtrl.List)
+	usersAdmin.GET("/roles/:id", roleCtrl.Get)
+	usersAdmin.POST("/roles", roleCtrl.Create)
+	usersAdmin.PUT("/roles/:id", roleCtrl.Update)
+	usersAdmin.DELETE("/roles/:id", roleCtrl.Delete)
 
 	auth.GET("/logs", logCtrl.Search)
 	auth.POST("/log/refresh", logCtrl.Refresh)

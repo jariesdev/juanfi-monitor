@@ -4,23 +4,31 @@
 	import Notifications from '$lib/components/Notifications.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { navCollapsed } from '$lib/store';
+	import type { Snippet } from 'svelte';
+
+	interface LayoutData {
+		user: unknown;
+		permissions: string[];
+	}
+
+	let { data, children }: { data: LayoutData; children: Snippet } = $props();
 </script>
 
 <!-- Desktop sidebar (hidden on mobile via CSS) -->
 <div class="desktop-nav">
-	<Sidebar />
+	<Sidebar permissions={data.permissions} />
 </div>
 
 <!-- Main content — offset matches sidebar width on desktop -->
 <main class="auth-content" class:sidebar-expanded={!$navCollapsed} class:sidebar-collapsed={$navCollapsed}>
 	<div class="content-inner uk-margin-auto-left uk-margin-auto-right">
-		<slot />
+		{@render children()}
 	</div>
 </main>
 
 <!-- Mobile bottom nav (hidden on desktop via CSS) -->
 <div class="mobile-nav">
-	<BottomNav />
+	<BottomNav permissions={data.permissions} />
 </div>
 
 <Notifications />

@@ -69,13 +69,14 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             maxAge: 60 * 60 * 24 * 30,
         })
 
-        // if `user` exists set `events.local`
+        // if `user` exists set `events.locals`
         if (response.user) {
             locals.user = {
                 id: response.user.id,
-                name: response.user.username,
+                username: response.user.username,
                 role: null,
             }
+            locals.permissions = ['dashboard', 'account'];
         }
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'An error occurred';
