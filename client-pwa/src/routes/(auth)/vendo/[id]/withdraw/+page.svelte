@@ -87,8 +87,8 @@
 			{#if isLoading}
 				<div class="sales-skeleton"></div>
 			{:else}
-				<div class="sales-amount">{currentCoinCount}</div>
-				<div class="sales-unit">coins collected</div>
+				<div class="sales-amount">₱{currentCoinCount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+				<div class="sales-unit">current sales</div>
 			{/if}
 			<div class="live-badge">
 				<span class="live-dot"></span>
