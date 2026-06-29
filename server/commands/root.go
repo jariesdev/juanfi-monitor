@@ -23,6 +23,7 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(dbSeedCmd)
 	RootCmd.AddCommand(userAddCmd)
 	RootCmd.AddCommand(userAssignRoleCmd)
 	RootCmd.AddCommand(vendoAddCmd)
