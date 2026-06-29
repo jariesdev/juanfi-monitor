@@ -147,6 +147,12 @@
 		loadData();
 	}
 
+	export function refresh() {
+		currentPage = 1;
+		tableItems = [];
+		loadData();
+	}
+
 	function getCellValue(item: RowItem, header: TableHeader) {
 		return get(item, header.field, '');
 	}

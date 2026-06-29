@@ -57,12 +57,12 @@
 			deleteError = body.detail ?? 'Failed to delete user.';
 			return;
 		}
-		dataTable.loadData();
+		dataTable.refresh();
 	}
 
 	function onFormSuccess() {
 		showModal = false;
-		dataTable.loadData();
+		dataTable.refresh();
 	}
 </script>
 

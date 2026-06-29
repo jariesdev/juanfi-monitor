@@ -28,7 +28,7 @@
 
 	function onFormSuccess() {
 		showModal = false;
-		dataTable.loadData();
+		dataTable.refresh();
 	}
 
 	async function deleteRole(role: iRole) {
@@ -40,7 +40,7 @@
 			deleteError = body.detail ?? 'Failed to delete role.';
 			return;
 		}
-		dataTable.loadData();
+		dataTable.refresh();
 	}
 </script>
 
