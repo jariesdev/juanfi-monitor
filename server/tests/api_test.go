@@ -216,9 +216,12 @@ func TestLogin_Success(t *testing.T) {
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
+	// Seed a dedicated user so this test doesn't depend on global seed order.
+	db.Create(&models.User{Username: "wrongpwduser", Password: "correctpass", IsActive: true})
+
 	form := url.Values{}
-	form.Set("username", "testuser")
-	form.Set("password", "wrongpass")
+	form.Set("username", "wrongpwduser")
+	form.Set("password", "badpass")
 
 	w := doRequest(http.MethodPost, "/token", strings.NewReader(form.Encode()),
 		map[string]string{"Content-Type": "application/x-www-form-urlencoded"})
@@ -226,7 +229,8 @@ func TestLogin_WrongPassword(t *testing.T) {
 }
 
 func TestLogin_MissingCredentials(t *testing.T) {
-	w := doRequest(http.MethodPost, "/token", strings.NewReader(""), nil)
+	w := doRequest(http.MethodPost, "/token", strings.NewReader(""),
+		map[string]string{"Content-Type": "application/x-www-form-urlencoded"})
 	assertStatus(t, w, http.StatusBadRequest)
 }
 
@@ -324,7 +328,15 @@ func TestGetVendoMachine(t *testing.T) {
 }
 
 func TestGetVendoMachine_NotFound(t *testing.T) {
-	w := doRequest(http.MethodGet, "/vendo-machines/999999", nil, authHeader())
+	// Create a vendo to confirm the DB is live, then query a definitely absent ID.
+	apiURL := "http://192.168.99.99:8081"
+	v := &models.Vendo{Name: "NotFound Probe", APIURL: &apiURL, IsActive: 1}
+	if err := db.Create(v).Error; err != nil {
+		t.Fatalf("setup: failed to create probe vendo: %v", err)
+	}
+
+	absentID := fmt.Sprintf("%d", v.ID+999999)
+	w := doRequest(http.MethodGet, "/vendo-machines/"+absentID, nil, authHeader())
 	assertStatus(t, w, http.StatusNotFound)
 }
 
@@ -380,10 +392,15 @@ func TestWithdrawCurrentSales_NoConnection(t *testing.T) {
 }
 
 func TestDeleteVendoMachine(t *testing.T) {
-	// Create a vendo specifically for deletion.
+	// Create a vendo specifically for deletion and surface any DB errors immediately.
 	apiURL := "http://10.0.0.1:8081"
 	v := &models.Vendo{Name: "Delete Me", APIURL: &apiURL, IsActive: 1}
-	db.Create(v)
+	if err := db.Create(v).Error; err != nil {
+		t.Fatalf("setup: failed to create vendo for deletion: %v", err)
+	}
+	if v.ID == 0 {
+		t.Fatal("setup: created vendo has zero ID")
+	}
 
 	path := fmt.Sprintf("/vendo-machines/%d", v.ID)
 	w := doRequest(http.MethodDelete, path, nil, authHeader())
