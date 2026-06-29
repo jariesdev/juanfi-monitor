@@ -132,9 +132,6 @@ func (u *UserController) Update(c *gin.Context) {
 	if body.Username != nil {
 		user.Username = *body.Username
 	}
-	if body.Password != nil && *body.Password != "" {
-		user.Password = *body.Password
-	}
 	if body.IsActive != nil {
 		user.IsActive = *body.IsActive
 	}
@@ -146,6 +143,13 @@ func (u *UserController) Update(c *gin.Context) {
 	if err := u.userRepo.Update(user); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"detail": "failed to update user"})
 		return
+	}
+
+	if body.Password != nil && *body.Password != "" {
+		if err := u.userRepo.UpdatePassword(user.ID, *body.Password); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"detail": "user updated but failed to update password"})
+			return
+		}
 	}
 
 	if body.RoleIDs != nil {
