@@ -20,8 +20,6 @@
 	let controller: AbortController | undefined = undefined;
 	let intervalId: any;
 	let timeIntervalId: any;
-	let isWithdrawing: boolean = $state(false);
-
 	let vendo: iVendo|null = $derived(await getVendoInfo(+vendoId))
 
 	function loadStatuses(): void {
@@ -75,30 +73,6 @@
 		timeIntervalId = setInterval(() => {
 			systemUptime += 1000;
 		}, 1000);
-	}
-
-	function withdrawCurrenSale(): void {
-		const confirmed = confirm('This will reset the current sales counter to 0. Proceed?');
-
-		if (!confirmed) {
-			return;
-		}
-
-		isWithdrawing = true;
-		let url = `/x-api/vendo-machines/${vendoId}/withdraw-current-sales`;
-		controller = new AbortController();
-		const signal = controller.signal;
-		const request: Request = new Request(url, { method: 'POST', signal });
-		fetch(request)
-			.then((response) => {
-				if (response.ok) {
-					return response.json();
-				}
-				throw new Error(response.statusText);
-			})
-			.finally(() => {
-				isWithdrawing = false;
-			});
 	}
 
 	function toRelativeTime(time: number): string {
@@ -170,15 +144,16 @@
 					<span class="status-key">{status.label}</span>
 					<div class="status-val-wrap">
 						{#if status.key === 'current_coin_count'}
-							<button
-								disabled={isWithdrawing || parseFloat(status.text || '0') === 0}
+							<a
+								href="/vendo/{vendoId}/withdraw"
 								class="withdraw-btn"
-								type="button"
-								onclick={withdrawCurrenSale}
+								class:withdraw-btn-disabled={parseFloat(status.text || '0') === 0}
+								aria-disabled={parseFloat(status.text || '0') === 0}
+								onclick={(e) => { if (parseFloat(status.text || '0') === 0) e.preventDefault(); }}
 							>
 								<span uk-icon="icon: credit-card; ratio: 0.8"></span>
 								Withdraw
-							</button>
+							</a>
 							<span class="status-val">{status.text}</span>
 						{:else}
 							<span class="status-val">{status.text}</span>
@@ -300,12 +275,19 @@
 		font-weight: 600;
 		font-family: inherit;
 		cursor: pointer;
+		text-decoration: none;
 		transition: opacity 0.15s;
 	}
 
-	.withdraw-btn:disabled {
+	.withdraw-btn:hover {
+		opacity: 0.88;
+		color: #fff;
+	}
+
+	.withdraw-btn-disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+		pointer-events: none;
 	}
 
 	/* Toggle card */

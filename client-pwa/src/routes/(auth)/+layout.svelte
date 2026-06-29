@@ -2,6 +2,7 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Notifications from '$lib/components/Notifications.svelte';
+	import Toast from '$lib/components/Toast.svelte';
 	import { navCollapsed } from '$lib/store';
 </script>
 
@@ -23,6 +24,7 @@
 </div>
 
 <Notifications />
+<Toast />
 
 <style>
 	/* Desktop sidebar wrapper — visible only on desktop */
