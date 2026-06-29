@@ -37,7 +37,8 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
 						return response.json();
 					}
 
-					throw new Error(await response.text());
+					const errorData = await response.json().catch(() => null);
+					throw new Error(errorData?.detail ?? 'An error occurred');
 				});
 
         // set auth token cookie
