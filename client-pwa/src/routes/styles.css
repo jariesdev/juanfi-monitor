@@ -120,3 +120,52 @@ button:focus:not(:focus-visible) {
 	width: 1px;
 	white-space: nowrap;
 }
+
+/* ── Global button overrides ─────────────────────────────────────────────── */
+
+.uk-button {
+	border-radius: 7px !important;
+	font-weight: 600 !important;
+	font-size: 0.875rem !important;
+	padding: 0 18px !important;
+	height: 38px !important;
+	line-height: 38px !important;
+	transition: opacity 0.15s, background 0.15s, border-color 0.15s !important;
+	cursor: pointer !important;
+}
+
+.uk-button:disabled,
+.uk-button[disabled] {
+	opacity: 0.5 !important;
+	cursor: not-allowed !important;
+}
+
+.uk-button-primary {
+	background: var(--color-theme-1) !important;
+	color: #fff !important;
+	border: none !important;
+}
+
+.uk-button-primary:hover:not(:disabled):not([disabled]) {
+	background: #e03500 !important;
+	color: #fff !important;
+}
+
+.uk-button-default {
+	background: #f5f5f5 !important;
+	color: #444 !important;
+	border: 1px solid #e0e0e0 !important;
+}
+
+.uk-button-default:hover:not(:disabled):not([disabled]) {
+	background: #ebebeb !important;
+	color: #222 !important;
+	border-color: #d0d0d0 !important;
+}
+
+.uk-button-small {
+	height: 30px !important;
+	line-height: 30px !important;
+	padding: 0 12px !important;
+	font-size: 0.8rem !important;
+}
