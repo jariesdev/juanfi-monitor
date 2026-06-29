@@ -29,12 +29,12 @@ func Start(db *gorm.DB, hub *ws.Hub) *cron.Cron {
 
 	// Every 5 minutes: fetch system logs and sales from all active vendos.
 	c.AddFunc("*/5 * * * *", func() {
-		safeRun("refresh_vendo_logs", func() { refreshVendoLogs(db) })
+		safeRun("refresh_vendo_logs", func() { RefreshVendoLogs(db) })
 	})
 
 	// Every 5 minutes: snapshot current system status for all active vendos.
 	c.AddFunc("*/5 * * * *", func() {
-		safeRun("update_vendo_status", func() { updateVendoStatus(db) })
+		safeRun("update_vendo_status", func() { UpdateVendoStatus(db) })
 	})
 
 	c.Start()
@@ -67,9 +67,9 @@ func broadcastNotifications(db *gorm.DB, hub *ws.Hub) {
 	}
 }
 
-// refreshVendoLogs iterates all active vendos and runs the JuanfiLogger to
+// RefreshVendoLogs iterates all active vendos and runs the JuanfiLogger to
 // pull new logs and sales from each machine.
-func refreshVendoLogs(db *gorm.DB) {
+func RefreshVendoLogs(db *gorm.DB) {
 	vendos := activeVendos(db)
 	for i := range vendos {
 		v := &vendos[i]
@@ -80,9 +80,9 @@ func refreshVendoLogs(db *gorm.DB) {
 	}
 }
 
-// updateVendoStatus iterates all active vendos, records a status snapshot only
+// UpdateVendoStatus iterates all active vendos, records a status snapshot only
 // when metrics have changed, and keeps is_online in sync.
-func updateVendoStatus(db *gorm.DB) {
+func UpdateVendoStatus(db *gorm.DB) {
 	vendos := activeVendos(db)
 	for i := range vendos {
 		v := &vendos[i]
