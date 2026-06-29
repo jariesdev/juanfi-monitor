@@ -27,7 +27,7 @@ func init() {
 	RootCmd.AddCommand(userAddCmd)
 	RootCmd.AddCommand(userAssignRoleCmd)
 	RootCmd.AddCommand(vendoAddCmd)
-	RootCmd.AddCommand(vendoLoggerCmd)
+
 }
 
 // initDB loads config and opens the database. Called by sub-commands that need DB access.
