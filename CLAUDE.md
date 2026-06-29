@@ -105,3 +105,6 @@ Required GitHub secret: `SSH_PRIVATE_KEY`
 ## Branch & release conventions
 - Feature branches → `release/x.y.z` → `main`
 - Tags trigger production deployment of the Go server binary
+
+## Commit conventions
+- Do **not** include a `Co-Authored-By` trailer in commit messages.
