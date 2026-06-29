@@ -19,11 +19,13 @@ func NewSaleController(saleRepo repository.SaleRepositoryInterface) *SaleControl
 }
 
 // Search handles GET /sales — paginated sale search.
-// Query params: q (mac_address/voucher filter), date (YYYY-MM-DD), vendo_id, page, size.
+// Query params: q, date (YYYY-MM-DD), vendo_id, page, size, sort_by, sort_dir.
 func (s *SaleController) Search(c *gin.Context) {
 	q := c.Query("q")
 	date := c.Query("date")
 	vendoIDStr := c.Query("vendo_id")
+	sortBy := c.Query("sort_by")
+	sortDir := c.Query("sort_dir")
 	page, size := paginationParams(c)
 
 	var qPtr *string
@@ -42,7 +44,7 @@ func (s *SaleController) Search(c *gin.Context) {
 		}
 	}
 
-	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, page, size)
+	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, page, size, sortBy, sortDir)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

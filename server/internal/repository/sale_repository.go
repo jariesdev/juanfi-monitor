@@ -2,11 +2,21 @@ package repository
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
 	"gorm.io/gorm"
 )
+
+// saleAllowedSort maps client sort_by values to safe SQL column expressions.
+var saleAllowedSort = map[string]string{
+	"sale_time":   "sale_time",
+	"mac_address": "mac_address",
+	"amount":      "amount",
+	"voucher":     "voucher",
+	"vendo_name":  "vendos.name",
+}
 
 // SaleRepository is the concrete implementation of SaleRepositoryInterface.
 type SaleRepository struct {
@@ -17,13 +27,24 @@ func NewSaleRepository(db *gorm.DB) *SaleRepository {
 	return &SaleRepository{db: db}
 }
 
-// Search returns paginated sales with optional mac_address/voucher text filter,
-// date filter, and vendo filter. Results are ordered by sale_time descending.
-func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoSale], error) {
+// Search returns paginated sales with optional filters and sort order.
+func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error) {
 	var sales []models.VendoSale
 	var total int64
 
-	query := r.db.Model(&models.VendoSale{}).Preload("Vendo").Order("sale_time DESC")
+	col, ok := saleAllowedSort[sortBy]
+	if !ok {
+		col = "sale_time"
+	}
+	dir := "DESC"
+	if strings.ToUpper(sortDir) == "ASC" {
+		dir = "ASC"
+	}
+
+	query := r.db.Model(&models.VendoSale{}).Preload("Vendo").Order(col + " " + dir)
+	if sortBy == "vendo_name" {
+		query = query.Joins("LEFT JOIN vendos ON vendos.id = vendo_sales.vendo_id")
+	}
 
 	if q != nil && *q != "" {
 		query = query.Where("mac_address LIKE ? OR voucher LIKE ?", "%"+*q+"%", "%"+*q+"%")

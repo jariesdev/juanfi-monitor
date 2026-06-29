@@ -34,7 +34,7 @@ type LogRepositoryInterface interface {
 
 // SaleRepositoryInterface provides access to voucher sale transactions.
 type SaleRepositoryInterface interface {
-	Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoSale], error)
+	Search(q *string, date *string, vendoID *uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error)
 	GetDailySales(from, to time.Time) ([]DailySaleRow, error)
 	GetMonthlySales(from, to time.Time) ([]MonthlySaleRow, error)
 }
