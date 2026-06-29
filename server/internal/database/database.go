@@ -4,6 +4,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/jariesdev/vendoreport/internal/models"
 	"gorm.io/driver/mysql"
@@ -43,7 +44,13 @@ func Connect(dsn, driver string, migrate bool) (*gorm.DB, error) {
 func dialector(driver, dsn string) (gorm.Dialector, error) {
 	switch driver {
 	case "sqlite":
-		return sqlite.Open(dsn), nil
+		// _busy_timeout=5000: wait up to 5 s instead of immediately returning SQLITE_BUSY
+		// when the scheduler and HTTP handlers write concurrently.
+		sep := "?"
+		if strings.Contains(dsn, "?") {
+			sep = "&"
+		}
+		return sqlite.Open(dsn + sep + "_busy_timeout=5000"), nil
 	case "mysql":
 		// Ensure parseTime=True is present so time.Time fields deserialise correctly.
 		return mysql.Open(dsn), nil
