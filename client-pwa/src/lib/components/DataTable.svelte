@@ -185,91 +185,287 @@
 	<span>No record yet.</span>
 {/snippet}
 
-<div class="uk-card uk-card-default uk-card-body">
-	<div class="uk-margin-small-top uk-grid uk-grid-small" style="row-gap: 15px;">
-		<div class="uk-width-2-3@s uk-flex uk-flex-middle" style="gap: 8px;">
-			<h3 class="uk-card-title" style="margin: 0;">{title}</h3>
-				<button
-					class="uk-icon-button"
-					disabled={isRefreshing}
-					onclick={handleRefresh}
-					title="Refresh"
-					style:border="none"
-				>
-					<img src="{refreshIcon}" class:spinning={isRefreshing}  alt="Refresh" style:margin="3px"/>
-				</button>
-				{@render titleActions?.()}
+<div class="card">
+	<!-- Card header -->
+	<div class="card-header">
+		<div class="header-left">
+			<span class="card-title">{title}</span>
+			<button
+				class="refresh-btn"
+				disabled={isRefreshing}
+				onclick={handleRefresh}
+				title="Refresh"
+				aria-label="Refresh"
+			>
+				<img src="{refreshIcon}" class:spinning={isRefreshing} alt="" />
+			</button>
+			{@render titleActions?.()}
 		</div>
-		<div class="uk-width-1-3@s">
-			<input
-				bind:value={searchInput}
-				class="uk-input uk-form-small"
-				type="search"
-				placeholder="Search"
-				aria-label="Input"
-			/>
+		<div class="header-right">
+			<div class="search-wrap">
+				<span class="search-icon" uk-icon="icon: search; ratio: 0.8"></span>
+				<input
+					bind:value={searchInput}
+					class="search-input"
+					type="search"
+					placeholder="Search…"
+					aria-label="Search"
+				/>
+			</div>
 		</div>
 	</div>
-	<div>
-		{@render beforeTable?.()}
-	</div>
-	<div class="uk-overflow-auto uk-margin-bottom">
-		<table class="uk-table uk-table-divider">
+
+	<!-- Filters -->
+	{#if beforeTable}
+		<div class="filters-row">
+			{@render beforeTable()}
+		</div>
+	{/if}
+
+	<!-- Table -->
+	<div class="table-wrap">
+		<table class="data-table">
 			<thead>
-			<tr>
-				{#each headers as header}
-					<th>{header.label}</th>
-				{/each}
-			</tr>
+				<tr>
+					{#each headers as header}
+						<th>{header.label}</th>
+					{/each}
+				</tr>
 			</thead>
 			<tbody>
-
-			{#if isLoading && isFirstLoad}
-				{#each { length: 5 } as _}
+				{#if isLoading && isFirstLoad}
+					{#each { length: 5 } as _}
+						<tr>
+							{#each headers as _}
+								<td><div class="skeleton-cell"></div></td>
+							{/each}
+						</tr>
+					{/each}
+				{:else if tableItems.length === 0}
 					<tr>
-						{#each headers as _}
-							<td><div class="skeleton-cell"></div></td>
-						{/each}
+						<td colspan="99" class="empty-cell">
+							{@render (empty || emptyFallback)()}
+						</td>
 					</tr>
-				{/each}
-			{:else if tableItems.length === 0}
-				<tr>
-					<td colspan="99" class="uk-text-center uk-text-italic uk-text-muted uk-text-small">
-						{@render (empty || emptyFallback)()}
-					</td>
-				</tr>
-			{:else}
-				{#each tableItems as item}
-					{@render (row || rowFallback)(item) }
-				{/each}
-			{/if}
-
+				{:else}
+					{#each tableItems as item}
+						{@render (row || rowFallback)(item)}
+					{/each}
+				{/if}
 			</tbody>
 		</table>
 	</div>
-	<div>
-		{@render afterTable?.()}
+
+	{@render afterTable?.()}
+
+	<!-- Footer -->
+	<div class="card-footer">
+		<span class="total-label">Total</span>
+		<span class="total-count" use:countupInt={totalItems}></span>
 	</div>
-	<div class="uk-text-muted">
-		Total items: <span use:countupInt={totalItems}></span>
-	</div>
+
 	<div bind:this={infiniteScrollEl}></div>
 </div>
 
 <style>
+	/* Card */
+	.card {
+		background: #fff;
+		border: 1px solid #e8e8e8;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
+	/* Header */
+	.card-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 14px 18px;
+		border-bottom: 1px solid #f0f0f0;
+		flex-wrap: wrap;
+	}
+
+	.header-left {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.header-right {
+		flex-shrink: 0;
+	}
+
+	.card-title {
+		font-size: 0.88rem;
+		font-weight: 700;
+		color: #1a1a1a;
+		white-space: nowrap;
+	}
+
+	.refresh-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: none;
+		border: none;
+		padding: 4px;
+		border-radius: 6px;
+		cursor: pointer;
+		color: #999;
+		transition: background 0.15s;
+		flex-shrink: 0;
+	}
+
+	.refresh-btn:hover:not(:disabled) {
+		background: #f5f5f5;
+		color: #333;
+	}
+
+	.refresh-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	/* Search */
+	.search-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 8px;
+		color: #bbb;
+		pointer-events: none;
+		display: flex;
+		align-items: center;
+	}
+
+	.search-input {
+		padding: 6px 10px 6px 28px;
+		border: 1px solid #e8e8e8;
+		border-radius: 7px;
+		font-size: 0.8rem;
+		font-family: inherit;
+		color: #333;
+		background: #fafafa;
+		width: 180px;
+		outline: none;
+		transition: border-color 0.15s, background 0.15s;
+	}
+
+	.search-input:focus {
+		border-color: #ccc;
+		background: #fff;
+	}
+
+	.search-input::placeholder {
+		color: #ccc;
+	}
+
+	/* Filters slot */
+	.filters-row {
+		padding: 10px 18px;
+		border-bottom: 1px solid #f6f6f6;
+		background: #fafafa;
+	}
+
+	/* Table */
+	.table-wrap {
+		overflow-x: auto;
+	}
+
+	.data-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.85rem;
+	}
+
+	.data-table thead tr {
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.data-table th {
+		padding: 9px 16px;
+		text-align: left;
+		font-size: 0.72rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: #aaa;
+		white-space: nowrap;
+		background: #fafafa;
+	}
+
+	.data-table td {
+		padding: 10px 16px;
+		color: #333;
+		border-bottom: 1px solid #f6f6f6;
+		vertical-align: middle;
+	}
+
+	.data-table tbody tr:last-child td {
+		border-bottom: none;
+	}
+
+	.data-table tbody tr:hover td {
+		background: #fafafa;
+	}
+
+	.empty-cell {
+		text-align: center;
+		color: #bbb;
+		font-size: 0.82rem;
+		font-style: italic;
+		padding: 32px 16px !important;
+	}
+
+	/* Footer */
+	.card-footer {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 18px;
+		border-top: 1px solid #f0f0f0;
+		background: #fafafa;
+	}
+
+	.total-label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #bbb;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.total-count {
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: #666;
+	}
+
+	/* Animations */
 	.spinning {
 		animation: spin 0.7s linear infinite;
 	}
+
 	@keyframes spin {
 		to { transform: rotate(360deg); }
 	}
+
 	.skeleton-cell {
-		height: 16px;
+		height: 14px;
 		border-radius: 4px;
 		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
 		background-size: 200% 100%;
 		animation: shimmer 1.4s infinite;
 	}
+
 	@keyframes shimmer {
 		0% { background-position: 200% 0; }
 		100% { background-position: -200% 0; }
