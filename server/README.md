@@ -14,6 +14,7 @@ A REST API server for managing Juanfi vending machines. Built with **Go**, **Gin
 - [CLI Commands](#cli-commands)
 - [API Reference](#api-reference)
 - [Authentication](#authentication)
+- [Roles & Permissions](#roles--permissions)
 - [Cron Jobs](#cron-jobs)
 - [Running Tests](#running-tests)
 - [Production Deployment](#production-deployment)
@@ -233,11 +234,25 @@ All protected endpoints require a `Bearer` token in the `Authorization` header.
 
 ### Users
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/users/me` | Yes | Get currently authenticated user |
-| `GET` | `/users` | Yes | List users |
-| `GET` | `/users/:id` | Yes | Get user by ID |
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/users/me` | Yes | any | Get currently authenticated user |
+| `PUT` | `/users/me/password` | Yes | any | Change current user's password |
+| `GET` | `/users` | Yes | `users` | List users (supports `?q=&sort_by=&sort_dir=`) |
+| `GET` | `/users/:id` | Yes | `users` | Get user by ID |
+| `POST` | `/users` | Yes | `users` | Create a user (`{username, password, role_id?, vendo_ids?, is_active?}`) |
+| `PUT` | `/users/:id` | Yes | `users` | Update a user (all fields optional; cannot change own password here) |
+| `DELETE` | `/users/:id` | Yes | `users` | Delete a user (self-delete returns 422) |
+
+### Roles
+
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/roles` | Yes | `users` | List all roles |
+| `GET` | `/roles/:id` | Yes | `users` | Get role by ID |
+| `POST` | `/roles` | Yes | `users` | Create a role (`{name, permissions: string[]}`) |
+| `PUT` | `/roles/:id` | Yes | `users` | Update a role |
+| `DELETE` | `/roles/:id` | Yes | `users` | Delete a role (returns 422 if assigned to any user) |
 
 ### Vendo Machines
 
@@ -309,6 +324,48 @@ curl -H "Authorization: Bearer <access_token>" \
 
 ---
 
+## Roles & Permissions
+
+Access to most endpoints is gated by a **permission** attached to the user's role. Roles are created dynamically via the API — there are no hardcoded role names.
+
+### Permission list
+
+| Permission | Grants access to |
+|---|---|
+| `dashboard` | Dashboard page (default for all users) |
+| `account` | Account / profile page (default for all users) |
+| `vendos` | Vendo machine list, status, and active-users pages |
+| `sales` | Sales reports and daily/monthly aggregates |
+| `logs` | System logs |
+| `withdrawals` | Withdrawal records |
+| `users` | User management, role management, and all `/users` + `/roles` endpoints |
+
+### Default permissions
+
+A user with **no role assigned** implicitly receives `dashboard` and `account`. All other permissions must be granted through an assigned role.
+
+### Vendo scoping
+
+Users who lack the `users` permission only see the vendo machines explicitly assigned to them. Users with the `users` permission see all vendo machines.
+
+### Creating an admin role
+
+```bash
+# 1. Create the role
+curl -X POST http://localhost:8000/roles \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Admin","permissions":["dashboard","account","vendos","sales","logs","withdrawals","users"]}'
+
+# 2. Assign the role to a user (role_id from the response above)
+curl -X PUT http://localhost:8000/users/1 \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"role_id":1}'
+```
+
+---
+
 ## Cron Jobs
 
 The scheduler runs automatically inside the server process — no external cron setup required.
@@ -342,7 +399,7 @@ PASS
 ok  github.com/jariesdev/vendoreport/tests  20.6s
 ```
 
-**43 tests** covering all endpoints, authentication, pagination, filters, and error cases.
+**57 tests** covering all endpoints, authentication, pagination, filters, permission enforcement, and error cases.
 
 ---
 
