@@ -234,6 +234,24 @@ func TestLogin_MissingCredentials(t *testing.T) {
 	assertStatus(t, w, http.StatusBadRequest)
 }
 
+func TestTokenRefresh(t *testing.T) {
+	// Valid token → new access_token and expiry returned
+	w := doRequest(http.MethodPost, "/token/refresh", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["access_token"].(string); !ok {
+		t.Error("expected access_token string in refresh response")
+	}
+	if _, ok := resp["expiry"]; !ok {
+		t.Error("expected expiry in refresh response")
+	}
+
+	// No token → 401
+	w2 := doRequest(http.MethodPost, "/token/refresh", nil, nil)
+	assertStatus(t, w2, http.StatusUnauthorized)
+}
+
 // ── Auth middleware ───────────────────────────────────────────────────────────
 
 func TestProtectedRoute_NoToken(t *testing.T) {
