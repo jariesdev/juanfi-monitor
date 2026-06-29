@@ -25,10 +25,10 @@ func (c *Config) IsProduction() bool {
 	return c.AppEnv == "production"
 }
 
-// ShouldMigrate returns true for MySQL (fresh schema) and false for SQLite
-// (schema is managed by Alembic — GORM must not alter it).
+// ShouldMigrate returns true for all drivers now that the Python/Alembic app
+// has been removed and there is no cross-app migration conflict.
 func (c *Config) ShouldMigrate() bool {
-	return c.DBDriver == "mysql"
+	return true
 }
 
 var instance *Config

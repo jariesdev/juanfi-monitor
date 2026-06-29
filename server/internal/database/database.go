@@ -14,9 +14,8 @@ import (
 )
 
 // Connect opens a GORM connection using the specified driver ("sqlite" or "mysql").
-// Pass migrate=true to run AutoMigrate — use this for fresh or test databases.
-// Pass migrate=false when connecting to an existing Alembic-managed SQLite database
-// to prevent GORM's column-recreation quirks from altering live data.
+// Pass migrate=true to run AutoMigrate on startup (the default for all environments
+// now that the Python/Alembic app has been removed).
 func Connect(dsn, driver string, migrate bool) (*gorm.DB, error) {
 	dial, err := dialector(driver, dsn)
 	if err != nil {
