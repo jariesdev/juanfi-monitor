@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/middleware"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -14,16 +15,19 @@ import (
 type VendoController struct {
 	vendoRepo      repository.VendoRepositoryInterface
 	withdrawalRepo repository.WithdrawalRepositoryInterface
+	userRepo       repository.UserRepositoryInterface
 }
 
-func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface) *VendoController {
+func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface, userRepo repository.UserRepositoryInterface) *VendoController {
 	return &VendoController{
 		vendoRepo:      vendoRepo,
 		withdrawalRepo: withdrawalRepo,
+		userRepo:       userRepo,
 	}
 }
 
 // All handles GET /vendo-machines — list/search vendo machines.
+// Non-admin users (lacking PermUsers) only see their assigned vendos.
 // Query params: q (name search), is_active (bool filter).
 func (v *VendoController) All(c *gin.Context) {
 	q := c.Query("q")
@@ -42,7 +46,18 @@ func (v *VendoController) All(c *gin.Context) {
 		}
 	}
 
-	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr)
+	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
+	var assignedIDs []uint
+	if !currentUser.HasPermission(models.PermUsers) {
+		ids, err := v.userRepo.GetVendoIDs(currentUser.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+			return
+		}
+		assignedIDs = ids
+	}
+
+	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, assignedIDs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

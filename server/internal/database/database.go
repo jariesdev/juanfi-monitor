@@ -63,6 +63,7 @@ func dialector(driver, dsn string) (gorm.Dialector, error) {
 // Safe to call on MySQL. Do NOT call on the Alembic-managed SQLite app.db.
 func autoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
+		&models.Role{},
 		&models.User{},
 		&models.Vendo{},
 		&models.VendoLog{},
