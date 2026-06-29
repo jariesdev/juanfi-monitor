@@ -37,7 +37,7 @@ func main() {
 	}
 
 	// ── App (router + scheduler + websocket hub) ──────────────────────────────
-	application := app.New(db, cfg.CORSOrigins, cfg.JWTSecret, cfg.IsProduction(), true)
+	application := app.New(db, cfg.CORSOrigins, cfg.JWTSecret, cfg.IsProduction(), true, cfg.TrustedProxies)
 	defer application.StopScheduler()
 
 	// ── Start Server ──────────────────────────────────────────────────────────
