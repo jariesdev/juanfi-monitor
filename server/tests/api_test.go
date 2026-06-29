@@ -330,7 +330,7 @@ func TestGetVendoMachine(t *testing.T) {
 func TestGetVendoMachine_NotFound(t *testing.T) {
 	// Create a vendo to confirm the DB is live, then query a definitely absent ID.
 	apiURL := "http://192.168.99.99:8081"
-	v := &models.Vendo{Name: "NotFound Probe", APIURL: &apiURL, IsActive: 1}
+	v := &models.Vendo{Name: "NotFound Probe", APIURL: &apiURL, IsActive: 0}
 	if err := db.Create(v).Error; err != nil {
 		t.Fatalf("setup: failed to create probe vendo: %v", err)
 	}
