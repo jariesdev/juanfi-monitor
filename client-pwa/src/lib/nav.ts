@@ -23,10 +23,9 @@ export const navItems: NavItem[] = [
 		]
 	},
 	{ href: '/logs', icon: 'list', label: 'Logs' },
-	{ href: '/account', icon: 'user', label: 'Account' },
 	{
-		icon: 'settings',
-		label: 'Admin',
+		icon: 'users',
+		label: 'Users',
 		requiredPermission: 'users',
 		children: [
 			{ href: '/users', label: 'Users' },
