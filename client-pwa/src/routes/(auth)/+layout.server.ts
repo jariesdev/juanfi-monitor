@@ -67,7 +67,11 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
     }
 
     const user = await meRes.json();
-    const permissions: string[] = user?.role?.permissions ?? [];
+    const permissions: string[] = [
+        ...new Set<string>(
+            (user?.roles ?? []).flatMap((r: { permissions: string[] }) => r.permissions ?? [])
+        )
+    ];
 
     return { user, permissions };
 };
