@@ -11,12 +11,13 @@ import (
 
 // Config holds all runtime configuration values loaded from the .env file.
 type Config struct {
-	DBDriver    string   // "sqlite" or "mysql"
-	DBPath      string   // DSN — file path for SQLite, connection string for MySQL
-	AppPort     string   // HTTP server port (default: 8000)
-	CORSOrigins []string // Allowed CORS origins
-	JWTSecret   string   // HS256 signing secret for JWT tokens
-	AppEnv      string   // "development" or "production"
+	DBDriver       string   // "sqlite" or "mysql"
+	DBPath         string   // DSN — file path for SQLite, connection string for MySQL
+	AppPort        string   // HTTP server port (default: 8000)
+	CORSOrigins    []string // Allowed CORS origins
+	JWTSecret      string   // HS256 signing secret for JWT tokens
+	AppEnv         string   // "development" or "production"
+	TrustedProxies []string // IPs/CIDRs of trusted reverse proxies (e.g. HAProxy)
 }
 
 // IsProduction returns true when APP_ENV=production.
@@ -75,13 +76,25 @@ func Load(envPath string) *Config {
 		dbDriver = "sqlite"
 	}
 
+	proxiesRaw := os.Getenv("TRUSTED_PROXIES")
+	var trustedProxies []string
+	if proxiesRaw != "" {
+		for _, p := range strings.Split(proxiesRaw, ",") {
+			trimmed := strings.TrimSpace(p)
+			if trimmed != "" {
+				trustedProxies = append(trustedProxies, trimmed)
+			}
+		}
+	}
+
 	instance = &Config{
-		DBDriver:    dbDriver,
-		DBPath:      os.Getenv("DB_DSN"),
-		AppPort:     port,
-		CORSOrigins: origins,
-		JWTSecret:   jwtSecret,
-		AppEnv:      appEnv,
+		DBDriver:       dbDriver,
+		DBPath:         os.Getenv("DB_DSN"),
+		AppPort:        port,
+		CORSOrigins:    origins,
+		JWTSecret:      jwtSecret,
+		AppEnv:         appEnv,
+		TrustedProxies: trustedProxies,
 	}
 	return instance
 }
