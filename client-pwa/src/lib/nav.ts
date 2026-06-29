@@ -31,5 +31,6 @@ export const navItems: NavItem[] = [
 			{ href: '/users', label: 'Users' },
 			{ href: '/roles', label: 'Roles' }
 		]
-	}
+	},
+	{ href: '/account', icon: 'user', label: 'Account' }
 ];

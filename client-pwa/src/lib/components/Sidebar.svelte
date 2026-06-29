@@ -117,19 +117,8 @@
 		{/each}
 	</nav>
 
-	<!-- Footer: Account + Logout -->
+	<!-- Logout -->
 	<div class="sidebar-footer">
-		<a
-			href="/account"
-			class="nav-item"
-			class:active={$page.url.pathname === '/account'}
-			title="Account"
-		>
-			<span class="nav-icon" uk-icon="icon: user"></span>
-			{#if !$navCollapsed}
-				<span class="nav-label">Account</span>
-			{/if}
-		</a>
 		<form action="/logout" method="POST">
 			<button type="submit" class="nav-item logout-btn" title="Logout">
 				<span class="nav-icon" uk-icon="icon: sign-out"></span>
