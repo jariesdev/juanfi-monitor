@@ -19,6 +19,7 @@ export interface iVendo {
 	is_online: number;
 	total_sales: number;
 	current_sales: number;
+	active_users: number;
 	created_at: string;
 	is_active: boolean;
 	recent_status?: iVendoStatus;

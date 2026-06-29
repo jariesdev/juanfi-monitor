@@ -1,0 +1,52 @@
+package repository
+
+import (
+	"gorm.io/gorm"
+)
+
+// VendoStatusRepository is the concrete implementation of VendoStatusRepositoryInterface.
+type VendoStatusRepository struct {
+	db *gorm.DB
+}
+
+func NewVendoStatusRepository(db *gorm.DB) *VendoStatusRepository {
+	return &VendoStatusRepository{db: db}
+}
+
+// GetHourlyStatus returns status snapshots grouped by hour, vendo, and optionally
+// filtered by vendo_id, date range, and active-only flag.
+// Mirrors the Python get_hourly_status() aggregation.
+func (r *VendoStatusRepository) GetHourlyStatus(vendoID *uint, from, to *string, activeOnly bool) ([]HourlyStatusRow, error) {
+	var rows []HourlyStatusRow
+
+	query := r.db.
+		Table("vendo_status").
+		Select(`
+			strftime('%Y-%m-%d %H:00:00', vendo_status.created_at) AS time,
+			MAX(active_users)                                        AS average_active_users,
+			AVG(free_heap)                                           AS average_free_heap,
+			vendo_status.vendo_id,
+			vendos.name                                              AS vendo_name
+		`).
+		Joins("JOIN vendos ON vendos.id = vendo_status.vendo_id")
+
+	if vendoID != nil {
+		query = query.Where("vendo_status.vendo_id = ?", *vendoID)
+	}
+	if from != nil && *from != "" {
+		query = query.Where("DATE(vendo_status.created_at) >= ?", *from)
+	}
+	if to != nil && *to != "" {
+		query = query.Where("DATE(vendo_status.created_at) <= ?", *to)
+	}
+	if activeOnly {
+		query = query.Where("vendos.is_active = 1")
+	}
+
+	err := query.
+		Group("strftime('%Y-%m-%d %H:00:00', vendo_status.created_at), vendo_status.vendo_id").
+		Order("time ASC").
+		Scan(&rows).Error
+
+	return rows, err
+}

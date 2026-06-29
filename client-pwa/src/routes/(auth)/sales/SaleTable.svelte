@@ -1,7 +1,7 @@
 <script lang="ts">
 	import DataTable from '$lib/components/DataTable.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
-	import { baseApiUrl } from '$lib/env';
+
 	import {getVendos} from "$lib/remote/vendo.remote";
 	import type {RowItem, TableHeader} from "$lib/types/datatable";
 
@@ -25,7 +25,7 @@
   }
 </script>
 
-<DataTable bind:this={dataTable} url={`${baseApiUrl}/sales`} {headers} filters={tableFilters} title="Sales">
+<DataTable bind:this={dataTable} url={`/x-api/sales`} {headers} filters={tableFilters} title="Sales">
 
 	{#snippet beforeTable()}
 		<div>

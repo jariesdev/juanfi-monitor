@@ -4,16 +4,17 @@
 	import map from 'lodash/map';
 	import groupBy from 'lodash/groupBy';
 	import keyBy from 'lodash/keyBy';
-	import { baseApiUrl } from '$lib/env';
+
 	import moment from 'moment';
 	import 'chartjs-adapter-moment';
 
-	let chartData: any[] = [];
+	let chartData: any = {};
 	let canvas: HTMLCanvasElement;
 	let intervalId: any;
-	let isLoading: boolean = false;
+	let isLoading: boolean = true;
 	let chart: Chart;
 	let controller: AbortController | undefined = undefined;
+	let lastDataHash: string = '';
 
 	interface iMonthlySale {
 		month: string;
@@ -45,11 +46,11 @@
 						enabled: true,
 						position: 'nearest',
 						callbacks: {
-							title: function(tooltipItems: TooltipItem[]) {
+							title: function(tooltipItems: any[]) {
 								const { raw } = tooltipItems[0];
 								return moment(raw.date).format('MMMM Y');
 							},
-							footer: function(tooltipItems: TooltipItem[]) {
+							footer: function(tooltipItems: any[]) {
 								const total = tooltipItems.map(i => i.raw.total)
 									.reduce((carry: number, value: number) => carry + value, 0);
 								const formatTotal = new Intl.NumberFormat().format(total);
@@ -66,13 +67,17 @@
 				scales: {
 					x: {
 						type: 'time',
+						time: {
+							unit: 'month'
+						}
 					},
 					y: {
+						min: 0,
 						ticks: {
-							beginAtZero: true,
 							stepSize: 1,
-							callback: function(value: string) {
-								return 'PHP ' + value;
+							callback: function(value: string | number) {
+								const n = Number(value)
+								return '₱ ' + n.toLocaleString();
 							}
 						}
 					}
@@ -90,9 +95,9 @@
 		// request
 		const fromDate = new Date(new Date().getFullYear() - 1, new Date().getMonth(), 1)
 		const fromDateStr = fromDate.toISOString().split('T')[0]
-		const toDate = new Date(new Date().getFullYear(), new Date().getMonth(), 31)
+		const toDate = new Date(new Date().getFullYear(), new Date().getMonth(), 0)
 		const toDateStr = toDate.toISOString().split('T')[0]
-		let url = `/api/monthly-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
+		let url = `/x-api/monthly-sales?from_date=${fromDateStr}&to_date=${toDateStr}`
 		const request = new Request(url, { method: 'GET', signal: signal });
 
 		// send request to API
@@ -106,23 +111,27 @@
 			})
 			.then(({ data }) => {
 				if (chart) {
+					const dataHash = JSON.stringify(data);
+					if (dataHash === lastDataHash) return;
+					lastDataHash = dataHash;
+
 					const byVendo = groupBy(data, 'vendo_id');
-					const datasets = map(byVendo, (sales: iMonthlySale[]) => {
-						const data = [];
+					const newDatasets = map(byVendo, (sales: iMonthlySale[]) => {
+						const points = [];
 						const vendoSales2 = keyBy(sales, (o: iMonthlySale) => o.month);
 						const sDate = new Date(fromDate);
 						const eDate = new Date(toDate);
 						while (sDate <= eDate) {
-							const dKey = `${sDate.getFullYear()}-${sDate.getMonth() + 1}`;
+							const dKey = `${sDate.getFullYear()}-${String(sDate.getMonth() + 1).padStart(2, '0')}`;
 							const dt = sDate;
 
 							if (vendoSales2[dKey]) {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: vendoSales2[dKey].total
 								});
 							} else {
-								data.push({
+								points.push({
 									date: moment(dt).startOf('day').toDate(),
 									total: null
 								});
@@ -133,20 +142,23 @@
 						const vendoName = sales[0].vendo_name;
 						return {
 							label: vendoName,
-							data: data,
+							data: points,
 							borderWidth: 1,
 							tension: 0.4,
 							fill: false
 						};
 					});
 
-					const startDate = moment(fromDate).startOf('day');
-					chart.data.labels = [];
-					while (startDate.isSameOrBefore(toDate)) {
-						chart.data.labels.push(startDate.toDate());
-						startDate.add(1, 'day');
-					}
-					chart.data.datasets = datasets;
+					const existingByLabel = keyBy(chart.data.datasets, 'label');
+					chart.data.datasets = (newDatasets as any[]).map((newDs) => {
+						const existing = existingByLabel[newDs.label];
+						if (existing) {
+							existing.data = newDs.data;
+							return existing;
+						}
+						return newDs;
+					});
+
 					chart.update();
 				}
 			})
@@ -172,4 +184,28 @@
 	});
 </script>
 
-<canvas bind:this={canvas} />
+<div class="chart-wrapper">
+	<canvas bind:this={canvas}></canvas>
+	{#if isLoading}
+		<div class="chart-skeleton"></div>
+	{/if}
+</div>
+
+<style>
+	.chart-wrapper {
+		position: relative;
+		min-height: 200px;
+	}
+	.chart-skeleton {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.4s infinite;
+		border-radius: 6px;
+	}
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
+	}
+</style>

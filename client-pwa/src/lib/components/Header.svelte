@@ -1,9 +1,9 @@
-<script>
-	import { page } from '$app/stores';
+<script lang="ts">
+	import { page } from '$app/state';
 </script>
 
 <header>
-	<div class="corner" />
+	<div class="corner"></div>
 
 	<nav>
 		<div class="left-wing">
@@ -12,19 +12,19 @@
 			</svg>
 		</div>
 		<ul>
-			<li aria-current={$page.url.pathname === '/home' ? 'page' : undefined}>
+			<li aria-current={page.url.pathname === '/home' ? 'page' : undefined}>
 				<a href="/home">Home</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/vendo' ? 'page' : undefined}>
+			<li aria-current={page.url.pathname === '/vendo' ? 'page' : undefined}>
 				<a href="/vendo">Vendo</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/sales' ? 'page' : undefined}>
+			<li aria-current={page.url.pathname === '/sales' ? 'page' : undefined}>
 				<a href="/sales">Sales</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/logs' ? 'page' : undefined}>
+			<li aria-current={page.url.pathname === '/logs' ? 'page' : undefined}>
 				<a href="/logs">Logs</a>
 			</li>
-			<li aria-current={$page.url.pathname === '/logout' ? 'page' : undefined} class="uk-flex uk-align-center">
+			<li aria-current={page.url.pathname === '/logout' ? 'page' : undefined} class="uk-flex uk-align-center">
 				<form action="/logout" method="POST">
 				  <button type="submit" class="uk-button-link" style="border: none; cursor: pointer">
 					  <i uk-icon="icon: sign-out"></i>
@@ -39,7 +39,7 @@
 		</div>
 	</nav>
 
-	<div class="corner" />
+	<div class="corner"></div>
 </header>
 
 <style>

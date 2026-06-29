@@ -32,14 +32,13 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
     try {
         // try login to API
         const request: Request = new Request(`${baseApiUrl}/token`, {method: 'POST', body: formData})
-        let response = await fetch(request)
-            .then((response) => {
-                if (response.ok) {
-                    return response.json()
-                }
+        let response = await fetch(request).then(async (response) => {
+					if (response.ok) {
+						return response.json();
+					}
 
-                throw new Error(response.statusText)
-            })
+					throw new Error(await response.text());
+				});
 
         // set auth token cookie
         cookies.set('auth_token', response.access_token, {
@@ -79,7 +78,8 @@ const defaultAction: Action = async ({cookies, request, fetch, locals}) => {
             }
         }
     } catch (e: unknown) {
-        return fail(400, {message: e.message, invalid: true})
+        const message = e instanceof Error ? e.message : 'An error occurred';
+        return fail(400, {message, invalid: true})
     }
 
     // redirect the user
