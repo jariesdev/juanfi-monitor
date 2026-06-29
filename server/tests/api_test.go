@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 
 	// Build the router without starting cron jobs. Use a fixed test secret.
 	// isProd=false so request logs are visible during test runs.
-	application := app.New(db, []string{"*"}, "test-secret-key", false, false)
+	application := app.New(db, []string{"*"}, "test-secret-key", false, false, nil)
 	router = application.Router
 
 	// Obtain an auth token once and reuse it across all tests.
