@@ -11,6 +11,8 @@
 	export interface TableHeader {
 		label: string;
 		field: string;
+		sortable?: boolean;
+		sortKey?: string; // API param name; defaults to field when omitted
 	}
 
 	export interface SimpleTableHeader extends TableHeader {

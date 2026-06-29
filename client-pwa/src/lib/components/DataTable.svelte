@@ -14,6 +14,7 @@
 		filters: Filter
 		title: string
 		perPage?: number
+		clientSort?: boolean   // sort loaded items in memory instead of via query params
 
 		// snippets
 		titleActions?: Snippet
@@ -24,7 +25,7 @@
 		cell?: Snippet<[RowItem, TableHeader, Function]>
 	}
 
-	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, clientSort = false, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
 
 	// states
 	let isRefreshing: boolean = $state(false);
@@ -34,8 +35,37 @@
 	let isLoading: boolean = $state(true);
 	let tableItems: RowItem[] = $state([]);
 	let searchInput: string = $state('');
+	let sortField: string = $state('');
+	let sortDir: 'asc' | 'desc' = $state('asc');
 	let controller: AbortController | undefined = undefined;
 	let infiniteScrollEl: HTMLDivElement;
+
+	function toggleSort(header: TableHeader) {
+		if (!header.sortable) return;
+		const key = header.sortKey ?? header.field;
+		if (sortField === key) {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+		} else {
+			sortField = key;
+			sortDir = 'asc';
+		}
+		if (!clientSort) {
+			currentPage = 1;
+			tableItems = [];
+		}
+	}
+
+	// client-side sorted view (used only when clientSort=true)
+	const displayItems: RowItem[] = $derived.by(() => {
+		if (!clientSort || !sortField) return tableItems;
+		const dir = sortDir === 'asc' ? 1 : -1;
+		return [...tableItems].sort((a, b) => {
+			const av = get(a, sortField, '');
+			const bv = get(b, sortField, '');
+			if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+			return String(av).localeCompare(String(bv)) * dir;
+		});
+	});
 
 	const queryParams: Filter = $derived.by(() => {
 		let params: Filter = {};
@@ -46,12 +76,20 @@
 			}
 		});
 
-		return {
+		const base: Filter = {
 			...params,
 			q: searchInput,
 			page: currentPage,
 			size: perPage
+		};
+
+		// include sort params for server-side sort only
+		if (!clientSort && sortField) {
+			base['sort_by']  = sortField;
+			base['sort_dir'] = sortDir;
 		}
+
+		return base;
 	})
 
 	const isFirstLoad: boolean = $derived(currentPage == 1 && tableItems.length === 0)
@@ -228,7 +266,21 @@
 			<thead>
 				<tr>
 					{#each headers as header}
-						<th>{header.label}</th>
+						{@const key = header.sortKey ?? header.field}
+						{@const isActive = sortField === key}
+						<th
+							class:sortable={header.sortable}
+							onclick={() => toggleSort(header)}
+						>
+							{header.label}
+							{#if header.sortable}
+								<span
+									class="sort-icon"
+									class:active={isActive}
+									uk-icon="icon: {isActive && sortDir === 'desc' ? 'chevron-down' : 'chevron-up'}; ratio: 0.75"
+								></span>
+							{/if}
+						</th>
 					{/each}
 				</tr>
 			</thead>
@@ -248,7 +300,7 @@
 						</td>
 					</tr>
 				{:else}
-					{#each tableItems as item}
+					{#each (clientSort ? displayItems : tableItems) as item}
 						{@render (row || rowFallback)(item)}
 					{/each}
 				{/if}
@@ -400,6 +452,27 @@
 		color: #aaa;
 		white-space: nowrap;
 		background: #fafafa;
+		user-select: none;
+	}
+
+	.data-table th.sortable {
+		cursor: pointer;
+	}
+
+	.data-table th.sortable:hover {
+		color: #555;
+	}
+
+	.sort-icon {
+		display: inline-flex;
+		vertical-align: middle;
+		margin-left: 2px;
+		opacity: 0.25;
+	}
+
+	.sort-icon.active {
+		opacity: 1;
+		color: var(--color-theme-1);
 	}
 
 	.data-table td {

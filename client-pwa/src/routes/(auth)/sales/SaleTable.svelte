@@ -7,11 +7,11 @@
 
 	let dataTable: DataTable
 	let headers = [
-		{ label: 'Time', field: 'sale_time' },
-		{ label: 'MAC Address', field: 'mac_address' },
-		{ label: 'Vendo', field: 'vendo.name' },
-		{ label: 'Amount', field: 'amount' },
-		{ label: 'Voucher', field: 'voucher' }
+		{ label: 'Time',        field: 'sale_time',   sortable: true, sortKey: 'sale_time'   },
+		{ label: 'MAC Address', field: 'mac_address', sortable: true, sortKey: 'mac_address' },
+		{ label: 'Vendo',       field: 'vendo.name',  sortable: true, sortKey: 'vendo_name'  },
+		{ label: 'Amount',      field: 'amount',      sortable: true, sortKey: 'amount'      },
+		{ label: 'Voucher',     field: 'voucher',     sortable: true, sortKey: 'voucher'     },
 	];
 	let vendoId: number|undefined = $state(undefined);
 	let saleTime: string = $state('');
