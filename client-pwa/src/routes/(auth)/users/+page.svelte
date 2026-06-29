@@ -28,7 +28,8 @@
 
 	async function openEdit(user: iUser) {
 		await loadFormData();
-		editingUser = user;
+		const res = await fetch(`/x-api/users/${user.id}`);
+		editingUser = res.ok ? await res.json() : user;
 		showModal = true;
 	}
 
