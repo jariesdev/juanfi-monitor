@@ -131,6 +131,7 @@ All configuration is loaded from `server/.env`. Copy `.env.example` to get start
 | `APP_PORT` | No | `8000` | HTTP server port |
 | `JWT_SECRET` | Yes | insecure default | HS256 signing secret for JWT tokens |
 | `CORS_ORIGINS` | No | — | Comma-separated list of allowed CORS origins |
+| `TRUSTED_PROXIES` | No | — | Comma-separated IPs/CIDRs of upstream proxies (e.g. HAProxy). Enables correct `X-Forwarded-For` parsing. Leave empty when running without a reverse proxy |
 
 **Generating a secure `JWT_SECRET`:**
 ```bash
@@ -366,7 +367,7 @@ cp .env.example .env
 
 ### 3. Run with systemd
 
-Create `/etc/systemd/system/vendoreport.service`:
+Create `/etc/systemd/system/vendoreportapi.service`:
 
 ```ini
 [Unit]
@@ -375,9 +376,9 @@ After=network.target
 
 [Service]
 User=www-data
-WorkingDirectory=/opt/vendoreport/server
-ExecStart=/opt/vendoreport/server/vendoreport
-EnvironmentFile=/opt/vendoreport/server/.env
+WorkingDirectory=/app/path
+ExecStart=/app/path/go_app_be
+EnvironmentFile=/app/path/.env
 Restart=always
 RestartSec=5
 
@@ -387,9 +388,9 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable vendoreport
-sudo systemctl start vendoreport
-sudo systemctl status vendoreport
+sudo systemctl enable vendoreportapi
+sudo systemctl start vendoreportapi
+sudo systemctl status vendoreportapi
 ```
 
 ### 4. Run with pm2
@@ -417,6 +418,7 @@ The workflow at `.github/workflows/server.yml` automates testing and deployment.
 |---|---|
 | Push to any branch | `test` only |
 | Pull request | `test` only |
+| Push to `release/*` branch | `test` → `build` → `deploy` |
 | Tag pushed (e.g. `v1.0.17`) | `test` → `build` → `deploy` |
 
 ### GitHub Variables
