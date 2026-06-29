@@ -2,6 +2,15 @@
 	import { page } from '$app/stores';
 	import { navItems, type NavItem } from '$lib/nav';
 
+	interface Props {
+		permissions?: string[];
+	}
+	let { permissions = [] }: Props = $props();
+
+	const visibleItems = $derived(
+		navItems.filter((item) => !item.requiredPermission || permissions.includes(item.requiredPermission))
+	);
+
 	let activeSheet: NavItem | null = $state(null);
 	let tooltip: { label: string; x: number } | null = $state(null);
 	let tooltipTimer: ReturnType<typeof setTimeout>;
@@ -80,7 +89,7 @@
 
 <!-- Bottom nav bar -->
 <nav class="bottom-nav" aria-label="Main navigation">
-	{#each navItems as item}
+	{#each visibleItems as item}
 		{#if item.children}
 			<button
 				class="nav-btn"
