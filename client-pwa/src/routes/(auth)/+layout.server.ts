@@ -22,16 +22,19 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
         throw redirect(302, '/login');
     }
 
+    const base = VITE_INTERNAL_API.replace(/\/$/, '');
+    const opts = {
+        path: '/',
+        httpOnly: true,
+        sameSite: 'strict' as const,
+        secure: NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 30
+    };
+
+    let activeToken = token;
+
     if (expiryTime - now < REFRESH_THRESHOLD) {
         // Proactively refresh while the token is still valid
-        const base = VITE_INTERNAL_API.replace(/\/$/, '');
-        const opts = {
-            path: '/',
-            httpOnly: true,
-            sameSite: 'strict' as const,
-            secure: NODE_ENV === 'production',
-            maxAge: 60 * 60 * 24 * 30
-        };
         try {
             const res = await fetch(`${base}/token/refresh`, {
                 method: 'POST',
@@ -39,6 +42,7 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
             });
             if (res.ok) {
                 const data = await res.json();
+                activeToken = data.access_token;
                 cookies.set('auth_token', data.access_token, opts);
                 cookies.set('auth_token_expiry', String(data.expiry), opts);
             } else {
@@ -51,4 +55,19 @@ export const load: LayoutServerLoad = async ({ cookies }) => {
             if (e && typeof e === 'object' && 'status' in e) throw e;
         }
     }
+
+    const meRes = await fetch(`${base}/users/me`, {
+        headers: { Authorization: `Bearer ${activeToken}` }
+    });
+
+    if (!meRes.ok) {
+        cookies.delete('auth_token', { path: '/' });
+        cookies.delete('auth_token_expiry', { path: '/' });
+        throw redirect(302, '/login');
+    }
+
+    const user = await meRes.json();
+    const permissions: string[] = user?.role?.permissions ?? [];
+
+    return { user, permissions };
 };
