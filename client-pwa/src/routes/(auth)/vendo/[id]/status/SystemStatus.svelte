@@ -140,86 +140,216 @@
 	});
 </script>
 
-<div class="uk-card uk-card-default uk-card-body uk-margin-small-bottom">
+<div class="card">
+	<div class="card-header">
+		<span class="header-icon" uk-icon="icon: settings; ratio: 1"></span>
+		<span class="card-title">System Status</span>
+	</div>
+
 	{#if isLoading}
-		<ul class="uk-list uk-list-divider">
+		<div class="status-list">
 			{#each { length: 6 } as _}
-				<li class="uk-flex uk-flex-between uk-flex-middle">
+				<div class="status-row">
 					<div class="skeleton skeleton-label"></div>
 					<div class="skeleton skeleton-value"></div>
-				</li>
+				</div>
 			{/each}
-		</ul>
+		</div>
 	{:else if statuses.length > 0}
-		<ul class="uk-list uk-list-divider">
-			<li class="uk-flex uk-flex-between">
-				<span>System Uptime</span>
-				<span>{toRelativeTime(systemUptime)}</span>
-			</li>
-			<li class="uk-flex uk-flex-between">
-				<span>Server Time</span>
-				<span>{serverTimeString()}</span>
-			</li>
+		<div class="status-list">
+			<div class="status-row">
+				<span class="status-key">System Uptime</span>
+				<span class="status-val">{toRelativeTime(systemUptime)}</span>
+			</div>
+			<div class="status-row">
+				<span class="status-key">Server Time</span>
+				<span class="status-val">{serverTimeString()}</span>
+			</div>
 			{#each statuses as status}
-				<li class="uk-flex uk-flex-between">
-					<div>{status.label}</div>
-					<div class="uk-flex uk-flex-center uk-flex-right uk-flex-wrap">
+				<div class="status-row">
+					<span class="status-key">{status.label}</span>
+					<div class="status-val-wrap">
 						{#if status.key === 'current_coin_count'}
 							<button
 								disabled={isWithdrawing || parseFloat(status.text || '0') === 0}
-								class="uk-button uk-button-primary uk-button-small uk-border-rounded"
+								class="withdraw-btn"
 								type="button"
 								onclick={withdrawCurrenSale}
 							>
-								<i uk-icon="icon: credit-card" class="uk-margin-small-right"></i>
+								<span uk-icon="icon: credit-card; ratio: 0.8"></span>
 								Withdraw
 							</button>
-							<span class="uk-margin-small-left">{status.text}</span>
+							<span class="status-val">{status.text}</span>
 						{:else}
-							<span>{status.text}</span>
+							<span class="status-val">{status.text}</span>
 						{/if}
 					</div>
-				</li>
+				</div>
 			{/each}
-		</ul>
+		</div>
 	{:else}
-		<p class="uk-text-info">Status not available yet.</p>
+		<p class="status-empty">Status not available yet.</p>
 	{/if}
 </div>
 
+{#if vendo}
+	<div class="card toggle-card">
+		<button
+			class="toggle-btn"
+			class:toggle-btn-danger={vendo.is_active}
+			type="button"
+			onclick={async () => { changeVendoStatus({id: vendo.id, status: !vendo.is_active}).then(() => getVendoInfo(+vendoId).refresh())}}
+		>
+			<span uk-icon="icon: {vendo.is_active ? 'ban' : 'check'}; ratio: 0.85"></span>
+			{vendo.is_active ? 'Disable' : 'Enable'} {vendo.name}
+		</button>
+	</div>
+{/if}
+
 <style>
+	.card {
+		background: #fff;
+		border: 1px solid #e8e8e8;
+		border-radius: 10px;
+		overflow: hidden;
+		margin-bottom: 12px;
+	}
+
+	.card-header {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 14px 18px;
+		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.header-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		background: #fff4f1;
+		border-radius: 7px;
+		color: var(--color-theme-1);
+		flex-shrink: 0;
+	}
+
+	.card-title {
+		font-size: 0.88rem;
+		font-weight: 700;
+		color: #1a1a1a;
+	}
+
+	/* Status rows */
+	.status-list {
+		padding: 4px 0;
+	}
+
+	.status-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 18px;
+		border-bottom: 1px solid #f6f6f6;
+		gap: 12px;
+	}
+
+	.status-row:last-child {
+		border-bottom: none;
+	}
+
+	.status-key {
+		font-size: 0.82rem;
+		color: #666;
+		font-weight: 500;
+	}
+
+	.status-val {
+		font-size: 0.82rem;
+		color: #1a1a1a;
+		font-weight: 600;
+		text-align: right;
+	}
+
+	.status-val-wrap {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.status-empty {
+		padding: 20px 18px;
+		font-size: 0.82rem;
+		color: #bbb;
+		font-style: italic;
+		margin: 0;
+	}
+
+	/* Withdraw button */
+	.withdraw-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 5px 10px;
+		background: var(--color-theme-1);
+		color: #fff;
+		border: none;
+		border-radius: 6px;
+		font-size: 0.78rem;
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+
+	.withdraw-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	/* Toggle card */
+	.toggle-card {
+		padding: 14px 18px;
+	}
+
+	.toggle-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 14px;
+		background: #22a06b;
+		color: #fff;
+		border: none;
+		border-radius: 7px;
+		font-size: 0.82rem;
+		font-weight: 600;
+		font-family: inherit;
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+
+	.toggle-btn-danger {
+		background: #c0392b;
+	}
+
+	.toggle-btn:hover {
+		opacity: 0.88;
+	}
+
+	/* Skeletons */
 	.skeleton {
 		background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
 		background-size: 200% 100%;
 		animation: shimmer 1.4s infinite;
 		border-radius: 4px;
 	}
-	.skeleton-label {
-		width: 140px;
-		height: 14px;
-	}
-	.skeleton-value {
-		width: 80px;
-		height: 14px;
-	}
+
+	.skeleton-label { width: 130px; height: 13px; }
+	.skeleton-value { width: 70px; height: 13px; }
+
 	@keyframes shimmer {
 		0% { background-position: 200% 0; }
 		100% { background-position: -200% 0; }
 	}
 </style>
-
-<div class="uk-card uk-card-default uk-card-body">
-	{#if vendo}
-		<button
-			class="uk-button uk-button-small uk-border-rounded"
-			class:uk-button-primary={!vendo.is_active}
-			class:uk-button-danger={vendo.is_active}
-			type="button"
-			onclick={async () => { changeVendoStatus({id: vendo.id, status: !vendo.is_active}).then(() => getVendoInfo(+vendoId).refresh())}}
-		>
-		<span>
-			{vendo.is_active ? 'Disable' : 'Enable'} {vendo?.name} Vendo
-		</span>
-		</button>
-	{/if}
-</div>
