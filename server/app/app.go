@@ -102,6 +102,8 @@ func buildRouter(
 	auth := router.Group("/")
 	auth.Use(middleware.Auth(userRepo, jwtSecret))
 
+	auth.POST("/token/refresh", authCtrl.Refresh)
+
 	auth.GET("/users/me", userCtrl.Me)
 	auth.PUT("/users/me/password", userCtrl.ChangePassword)
 	auth.GET("/users", userCtrl.List)
