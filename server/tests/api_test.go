@@ -59,8 +59,13 @@ func TestMain(m *testing.M) {
 
 // seed inserts the minimum set of records required by the test suite.
 func seed(db *gorm.DB) {
-	// User
-	db.Create(&models.User{Username: "testuser", Password: "testpass", IsActive: true})
+	// Admin role with all permissions
+	adminRole := &models.Role{Name: "Admin"}
+	adminRole.SetPermissions(models.AllPermissions())
+	db.Create(adminRole)
+
+	// User — assigned the admin role so it can hit /users and /roles endpoints
+	db.Create(&models.User{Username: "testuser", Password: "testpass", IsActive: true, RoleID: &adminRole.ID})
 
 	// Vendo
 	apiURL := "http://192.168.42.10:8081"
@@ -286,11 +291,122 @@ func TestGetCurrentUser(t *testing.T) {
 func TestListUsers(t *testing.T) {
 	w := doRequest(http.MethodGet, "/users", nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["items"]; !ok {
+		t.Error("expected 'items' key in response")
+	}
+	if _, ok := resp["total"]; !ok {
+		t.Error("expected 'total' key in response")
+	}
+}
+
+func TestListUsers_Search(t *testing.T) {
+	w := doRequest(http.MethodGet, "/users?q=testuser", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	items, _ := resp["items"].([]interface{})
+	if len(items) == 0 {
+		t.Error("expected search to return testuser")
+	}
+}
+
+func TestListUsers_Forbidden(t *testing.T) {
+	// A user without a role (no PermUsers) should get 403.
+	noRoleUser := &models.User{Username: "noroleuser", Password: "norolepass", IsActive: true}
+	db.Create(noRoleUser)
+	token := mustLogin("noroleuser", "norolepass")
+
+	w := doRequest(http.MethodGet, "/users", nil, map[string]string{
+		"Authorization": token,
+		"Content-Type":  "application/json",
+	})
+	assertStatus(t, w, http.StatusForbidden)
 }
 
 func TestGetUserByID(t *testing.T) {
 	w := doRequest(http.MethodGet, "/users/1", nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["username"] == nil {
+		t.Error("expected username in user response")
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"username": "newuser",
+		"password": "newpass",
+		"is_active": true,
+	})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["username"] != "newuser" {
+		t.Errorf("expected username 'newuser', got %v", resp["username"])
+	}
+}
+
+func TestCreateUser_DuplicateUsername(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"username": "testuser", // already exists
+		"password": "pass",
+	})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestUpdateUser(t *testing.T) {
+	// Create a user to update
+	body := jsonBody(map[string]interface{}{"username": "updateme", "password": "pass"})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	updateBody := jsonBody(map[string]interface{}{"is_active": false})
+	w2 := doRequest(http.MethodPut, fmt.Sprintf("/users/%d", id), updateBody, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+
+	var updated map[string]interface{}
+	decodeJSON(t, w2.Body, &updated)
+	if updated["is_active"] != false {
+		t.Error("expected is_active to be false")
+	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"username": "deleteme", "password": "pass"})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	w2 := doRequest(http.MethodDelete, fmt.Sprintf("/users/%d", id), nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestDeleteUser_Self(t *testing.T) {
+	// testuser (id=1) tries to delete itself — must be refused
+	w := doRequest(http.MethodDelete, "/users/1", nil, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["detail"] != "cannot delete your own account" {
+		t.Errorf("unexpected detail: %v", resp["detail"])
+	}
 }
 
 // ── Vendo Machines ────────────────────────────────────────────────────────────
@@ -595,6 +711,90 @@ func TestVendoStatusHistory_DateRange(t *testing.T) {
 	path := fmt.Sprintf("/vendo-status-history?from_date=%s&to_date=%s", from, to)
 	w := doRequest(http.MethodGet, path, nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
+}
+
+// ── Roles ─────────────────────────────────────────────────────────────────────
+
+func TestListRoles(t *testing.T) {
+	w := doRequest(http.MethodGet, "/roles", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["data"]; !ok {
+		t.Error("expected 'data' key in roles response")
+	}
+}
+
+func TestCreateRole(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"name":        "Operator",
+		"permissions": []string{"dashboard", "account", "vendos"},
+	})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["name"] != "Operator" {
+		t.Errorf("expected name 'Operator', got %v", resp["name"])
+	}
+	perms, _ := resp["permissions"].([]interface{})
+	if len(perms) != 3 {
+		t.Errorf("expected 3 permissions, got %d", len(perms))
+	}
+}
+
+func TestCreateRole_DuplicateName(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"name": "Admin", "permissions": []string{}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestUpdateRole(t *testing.T) {
+	// Create a role to update
+	body := jsonBody(map[string]interface{}{"name": "TempRole", "permissions": []string{"dashboard"}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	updateBody := jsonBody(map[string]interface{}{"permissions": []string{"dashboard", "account"}})
+	w2 := doRequest(http.MethodPut, fmt.Sprintf("/roles/%d", id), updateBody, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestDeleteRole_InUse(t *testing.T) {
+	// Admin role (id=1) is assigned to testuser, so deletion must be refused.
+	w := doRequest(http.MethodDelete, "/roles/1", nil, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestDeleteRole(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"name": "DeleteableRole", "permissions": []string{}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	w2 := doRequest(http.MethodDelete, fmt.Sprintf("/roles/%d", id), nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestRoles_Forbidden(t *testing.T) {
+	noRoleUser := &models.User{Username: "noroleuser2", Password: "pass2", IsActive: true}
+	db.Create(noRoleUser)
+	token := mustLogin("noroleuser2", "pass2")
+
+	w := doRequest(http.MethodGet, "/roles", nil, map[string]string{
+		"Authorization": token,
+		"Content-Type":  "application/json",
+	})
+	assertStatus(t, w, http.StatusForbidden)
 }
 
 // ── Withdrawals ───────────────────────────────────────────────────────────────
