@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -22,6 +23,16 @@ func assignedVendoIDs(c *gin.Context) []uint {
 		ids[i] = v.ID
 	}
 	return ids
+}
+
+// canAccessVendo returns true if the current user is an admin or has the given vendo assigned.
+// Uses the vendos already preloaded on the user by the auth middleware.
+func canAccessVendo(c *gin.Context, vendoID uint) bool {
+	ids := assignedVendoIDs(c)
+	if ids == nil {
+		return true // admin: unrestricted
+	}
+	return slices.Contains(ids, vendoID)
 }
 
 // parseUintParam reads a named path parameter as uint, writing a 400 response on error.

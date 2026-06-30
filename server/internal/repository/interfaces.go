@@ -72,6 +72,26 @@ type WithdrawalRepositoryInterface interface {
 	Add(vendoID uint, amount float64, userID *uint) (*models.Withdrawal, error)
 }
 
+// VendoRateRepositoryInterface manages per-vendo rate plans and the shared
+// default template (rows with VendoID == nil).
+type VendoRateRepositoryInterface interface {
+	ListByVendo(vendoID uint) ([]models.VendoRate, error)
+	ListDefault() ([]models.VendoRate, error)
+	GetByID(id uint) (*models.VendoRate, error)
+	Create(rate *models.VendoRate) error
+	Update(rate *models.VendoRate) error
+	Delete(id uint) error
+	// ReplaceForVendo deletes vendoID's existing rows and inserts rates, in one transaction.
+	ReplaceForVendo(vendoID uint, rates []models.VendoRate) error
+	// ReplaceDefault deletes existing default (VendoID == nil) rows and inserts rates.
+	ReplaceDefault(rates []models.VendoRate) error
+	// AppendToDefault inserts rates as additional default rows, keeping existing ones.
+	AppendToDefault(rates []models.VendoRate) error
+	// ApplyDefaultToVendos clones the current default template onto each vendo ID,
+	// replacing that vendo's existing rows.
+	ApplyDefaultToVendos(vendoIDs []uint) error
+}
+
 // NotificationRepositoryInterface manages notification delivery state.
 type NotificationRepositoryInterface interface {
 	PullUnread() ([]models.Notification, error)
