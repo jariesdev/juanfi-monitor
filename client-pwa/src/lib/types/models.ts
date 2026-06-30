@@ -74,6 +74,20 @@ export const ALL_PERMISSIONS = [
 export type Permission = (typeof ALL_PERMISSIONS)[number];
 
 export interface iNotification {
-	id: number
-	message: string
+	id: number;
+	message: string;
+}
+
+export interface iVendoRate {
+	id: number;
+	vendo_id: number | null;
+	name: string;
+	price: number;
+	minutes: number;
+	validity_minutes: number;
+	data_limit_mb: number | null;
+	user_profile: string | null;
+	sort_order: number;
+	created_at: string;
+	updated_at: string | null;
 }

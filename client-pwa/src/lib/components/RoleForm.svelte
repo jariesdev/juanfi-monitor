@@ -31,6 +31,7 @@
 		sales: 'Sales',
 		logs: 'Logs',
 		withdrawals: 'Withdrawals',
+		rates: 'Vendo Rates',
 		users: 'User Management (Admin)'
 	};
 

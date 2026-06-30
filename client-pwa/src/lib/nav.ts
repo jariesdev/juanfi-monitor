@@ -50,5 +50,13 @@ export const navItems: NavItem[] = [
 			{ href: '/roles', label: 'Roles' }
 		]
 	},
+	{
+		icon: 'settings',
+		label: 'Settings',
+		requiredPermission: 'users',
+		children: [
+			{ href: '/settings/default-rates', label: 'Default Rates', requiredPermission: 'rates' }
+		]
+	},
 	{ href: '/account', icon: 'user', label: 'Account', requiredPermission: 'account' }
 ];
