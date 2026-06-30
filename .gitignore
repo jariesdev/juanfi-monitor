@@ -5,3 +5,4 @@ __pycache__
 .env
 client-pwa/.idea/
 .claude/worktrees
+.aider*

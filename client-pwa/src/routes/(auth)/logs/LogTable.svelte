@@ -3,32 +3,48 @@
 	import DateTime from '$lib/components/DateTime.svelte';
 
 	import DataTable from '$lib/components/DataTable.svelte';
-	import type {RowItem, TableHeader} from '$lib/types/datatable';
-	import {getVendos} from "$lib/remote/vendo.remote";
+	import type { RowItem, TableHeader } from '$lib/types/datatable';
+	import { getVendos } from '$lib/remote/vendo.remote';
 
-	let dataTable: DataTable
+	interface Props {
+		initialVendoId?: number;
+	}
+
+	const { initialVendoId }: Props = $props();
+
+	function initialVendoFilter() {
+		return initialVendoId;
+	}
+
+	let dataTable: DataTable;
 	let date: string = $state(moment().format('Y-MM-DD'));
-	let vendoId: number|undefined = $state(undefined);
+	let vendoId: number | undefined = $state(initialVendoFilter());
 
 	const tableHeaders: TableHeader[] = [
-		{label: 'Time', field: 'log_time'},
-		{label: 'Vendo', field: 'vendo.name'},
-		{label: 'Description', field: 'description'},
-		{label: 'Created At', field: 'created_at'},
-	]
+		{ label: 'Time', field: 'log_time' },
+		{ label: 'Vendo', field: 'vendo.name' },
+		{ label: 'Description', field: 'description' },
+		{ label: 'Created At', field: 'created_at' }
+	];
 
 	let tableFilters = $derived({
 		vendo_id: vendoId,
-		date: date,
-	})
+		date: date
+	});
 
 	export function loadData() {
-		dataTable.loadData()
+		dataTable.loadData();
 	}
 </script>
 
-<DataTable bind:this={dataTable} url={`/x-api/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs" showRefresh>
-
+<DataTable
+	bind:this={dataTable}
+	url={`/x-api/logs`}
+	headers={tableHeaders}
+	filters={tableFilters}
+	title="System Logs"
+	showRefresh
+>
 	{#snippet beforeTable()}
 		<div
 			class="uk-margin-small-top uk-grid uk-grid-small uk-child-width-1-2@s uk-child-width-1-3@m"
@@ -60,15 +76,14 @@
 	{/snippet}
 
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
-	<span>
-		{#if header.field === 'log_time'}
-			<DateTime date={item.log_time}></DateTime>
-		{:else if header.field === 'created_at'}
-			<DateTime date={item.created_at}></DateTime>
-		{:else}
-			<span>{getCellValue(item, header)}</span>
-		{/if}
-	</span>
+		<span>
+			{#if header.field === 'log_time'}
+				<DateTime date={item.log_time}></DateTime>
+			{:else if header.field === 'created_at'}
+				<DateTime date={item.created_at}></DateTime>
+			{:else}
+				<span>{getCellValue(item, header)}</span>
+			{/if}
+		</span>
 	{/snippet}
-	
 </DataTable>
