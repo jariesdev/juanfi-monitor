@@ -50,15 +50,11 @@ jobs:
         run: node_modules/.bin/vite build
         working-directory: ./client-pwa
 
-      - name: Compress Build Artifacts
-        run: tar -czf build-artifacts.tar.gz build package.json
-        working-directory: ./client-pwa
-
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: ./client-pwa/build-artifacts.tar.gz
+          path: ./client-pwa/build
           retention-days: 1
 
   deploy:
