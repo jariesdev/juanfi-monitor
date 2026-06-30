@@ -7,6 +7,8 @@ const (
 	PermSales       = "sales"
 	PermLogs        = "logs"
 	PermWithdrawals = "withdrawals"
+	PermRates       = "rates"
+	PermSettings    = "settings"
 	PermUsers       = "users"
 )
 
@@ -19,6 +21,8 @@ func AllPermissions() []string {
 		PermSales,
 		PermLogs,
 		PermWithdrawals,
+		PermRates,
+		PermSettings,
 		PermUsers,
 	}
 }

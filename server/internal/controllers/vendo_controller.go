@@ -25,21 +25,6 @@ func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawa
 	}
 }
 
-// canAccessVendo returns true if the current user is an admin or has the given vendo assigned.
-// Uses the vendos already preloaded on the user by the auth middleware.
-func (v *VendoController) canAccessVendo(c *gin.Context, vendoID uint) bool {
-	ids := assignedVendoIDs(c)
-	if ids == nil {
-		return true // admin: unrestricted
-	}
-	for _, id := range ids {
-		if id == vendoID {
-			return true
-		}
-	}
-	return false
-}
-
 // All handles GET /vendo-machines — list/search vendo machines.
 // Non-admin users (lacking PermUsers) only see their assigned vendos.
 // Query params: q (name search), is_active (bool filter).
@@ -74,7 +59,7 @@ func (v *VendoController) Get(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !v.canAccessVendo(c, id) {
+	if !canAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
@@ -131,7 +116,7 @@ func (v *VendoController) Status(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !v.canAccessVendo(c, id) {
+	if !canAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
@@ -156,7 +141,7 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !v.canAccessVendo(c, id) {
+	if !canAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
@@ -193,7 +178,7 @@ func (v *VendoController) ActiveUsers(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !v.canAccessVendo(c, id) {
+	if !canAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
@@ -218,7 +203,7 @@ func (v *VendoController) SetStatus(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !v.canAccessVendo(c, id) {
+	if !canAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}

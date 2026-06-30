@@ -817,3 +817,160 @@ func TestListWithdrawals(t *testing.T) {
 		t.Error("expected at least one withdrawal record")
 	}
 }
+
+// ── Vendo Rates ───────────────────────────────────────────────────────────────
+
+func TestVendoRates_CreateListUpdateDelete(t *testing.T) {
+	listPath := fmt.Sprintf("/vendo-machines/%d/rates", testVendoID)
+	payload := map[string]interface{}{
+		"name":             "Basic",
+		"price":            1,
+		"minutes":          20,
+		"validity_minutes": 131400,
+	}
+	w := doRequest(http.MethodPost, listPath, jsonBody(payload), authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	data := created["data"].(map[string]interface{})
+	rateID := int(data["id"].(float64))
+
+	w2 := doRequest(http.MethodGet, listPath, nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+	var listResp map[string]interface{}
+	decodeJSON(t, w2.Body, &listResp)
+	if items := listResp["data"].([]interface{}); len(items) == 0 {
+		t.Error("expected at least one rate for the vendo")
+	}
+
+	updatePath := fmt.Sprintf("/vendo-rates/%d", rateID)
+	w3 := doRequest(http.MethodPut, updatePath, jsonBody(map[string]interface{}{"price": 2}), authHeader())
+	assertStatus(t, w3, http.StatusOK)
+	var updated map[string]interface{}
+	decodeJSON(t, w3.Body, &updated)
+	if updatedData := updated["data"].(map[string]interface{}); updatedData["price"] != float64(2) {
+		t.Errorf("expected price 2, got %v", updatedData["price"])
+	}
+
+	w4 := doRequest(http.MethodDelete, updatePath, nil, authHeader())
+	assertStatus(t, w4, http.StatusOK)
+
+	w5 := doRequest(http.MethodGet, listPath, nil, authHeader())
+	assertStatus(t, w5, http.StatusOK)
+	var afterDelete map[string]interface{}
+	decodeJSON(t, w5.Body, &afterDelete)
+	for _, item := range afterDelete["data"].([]interface{}) {
+		if row := item.(map[string]interface{}); int(row["id"].(float64)) == rateID {
+			t.Error("expected deleted rate to be absent from the list")
+		}
+	}
+}
+
+// TestVendoRates_Import_NoConnection calls the live Juanfi API which is
+// unavailable in tests, so we expect a 502 Bad Gateway.
+func TestVendoRates_Import_NoConnection(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/rates/import", testVendoID)
+	w := doRequest(http.MethodPost, path, nil, authHeader())
+	assertStatus(t, w, http.StatusBadGateway)
+}
+
+func TestVendoRates_DefaultTemplate_AdminOnly(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("ratesuserpass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "ratesuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	// Role with the rates permission but not admin (users).
+	ratesRole := &models.Role{Name: "RatesOnly"}
+	ratesRole.SetPermissions([]string{models.PermRates})
+	db.Create(ratesRole)
+	db.Model(user).Association("Roles").Replace([]models.Role{*ratesRole})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("ratesuser", "ratesuserpass")
+	nonAdminHeader := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	// rates permission + assigned vendo → may manage that vendo's own rates.
+	wList := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/rates", testVendoID), nil, nonAdminHeader)
+	assertStatus(t, wList, http.StatusOK)
+
+	// ...but the shared default template remains admin-only.
+	w := doRequest(http.MethodGet, "/vendo-rates/default", nil, nonAdminHeader)
+	assertStatus(t, w, http.StatusForbidden)
+
+	w2 := doRequest(http.MethodPost, "/vendo-rates/default", jsonBody(map[string]interface{}{
+		"name": "X", "price": 1, "minutes": 1, "validity_minutes": 1,
+	}), nonAdminHeader)
+	assertStatus(t, w2, http.StatusForbidden)
+
+	w3 := doRequest(http.MethodPost, "/vendo-rates/apply-to-all", jsonBody(map[string]interface{}{
+		"vendo_ids": []uint{testVendoID},
+	}), nonAdminHeader)
+	assertStatus(t, w3, http.StatusForbidden)
+
+	w4 := doRequest(http.MethodGet, "/vendo-rates/default", nil, authHeader())
+	assertStatus(t, w4, http.StatusOK)
+}
+
+// TestVendoRates_RequiresRatesPermission verifies that vendo access alone is not
+// enough to reach the rate endpoints — the rates permission is required.
+func TestVendoRates_RequiresRatesPermission(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("noratespass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "noratesuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	// Role with vendo access but without the rates permission.
+	role := &models.Role{Name: "VendosNoRates"}
+	role.SetPermissions([]string{models.PermVendos})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("noratesuser", "noratespass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/rates", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoRates_ApplyToAll_Replaces(t *testing.T) {
+	apiURL := "http://192.168.50.50:8081"
+	otherVendo := &models.Vendo{Name: "Other Vendo", APIURL: &apiURL, IsActive: 1}
+	if err := db.Create(otherVendo).Error; err != nil {
+		t.Fatalf("setup: failed to create other vendo: %v", err)
+	}
+	otherRatePath := fmt.Sprintf("/vendo-machines/%d/rates", otherVendo.ID)
+	doRequest(http.MethodPost, otherRatePath, jsonBody(map[string]interface{}{
+		"name": "Old Rate", "price": 99, "minutes": 99, "validity_minutes": 99,
+	}), authHeader())
+
+	w := doRequest(http.MethodPost, "/vendo-rates/default", jsonBody(map[string]interface{}{
+		"name": "Default Tier", "price": 5, "minutes": 60, "validity_minutes": 131400,
+	}), authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	w2 := doRequest(http.MethodPost, "/vendo-rates/apply-to-all", jsonBody(map[string]interface{}{
+		"vendo_ids": []uint{testVendoID, otherVendo.ID},
+	}), authHeader())
+	assertStatus(t, w2, http.StatusOK)
+
+	w3 := doRequest(http.MethodGet, otherRatePath, nil, authHeader())
+	assertStatus(t, w3, http.StatusOK)
+	var resp map[string]interface{}
+	decodeJSON(t, w3.Body, &resp)
+	items := resp["data"].([]interface{})
+
+	foundDefault := false
+	for _, item := range items {
+		row := item.(map[string]interface{})
+		if row["name"] == "Old Rate" {
+			t.Error("expected apply-to-all to replace the vendo's old rates")
+		}
+		if row["name"] == "Default Tier" {
+			foundDefault = true
+		}
+	}
+	if !foundDefault {
+		t.Error("expected the default tier to be applied to the other vendo")
+	}
+}

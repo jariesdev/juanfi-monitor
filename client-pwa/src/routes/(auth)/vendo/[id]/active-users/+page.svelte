@@ -47,7 +47,7 @@
 				<div class="header-left">
 					<span class="card-title">Active Users</span>
 					<button class="refresh-btn" onclick={loadData} disabled={isLoading} title="Refresh">
-						<span uk-icon="icon: refresh; ratio: 0.9"></span>
+						<span uk-icon="icon: refresh; ratio: 0.8"></span>
 					</button>
 				</div>
 			</div>
@@ -140,6 +140,7 @@
 		font-size: 0.88rem;
 		font-weight: 700;
 		color: #1a1a1a;
+		margin-right: auto;
 	}
 
 	.refresh-btn {

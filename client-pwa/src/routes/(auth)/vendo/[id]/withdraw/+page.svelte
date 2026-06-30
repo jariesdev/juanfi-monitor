@@ -118,10 +118,10 @@
 				onclick={confirmWithdraw}
 			>
 				{#if isWithdrawing}
-					<span uk-icon="icon: refresh; ratio: 0.9"></span>
+					<span uk-icon="icon: refresh; ratio: 0.8"></span>
 					Processing…
 				{:else}
-					<span uk-icon="icon: credit-card; ratio: 0.9"></span>
+					<span uk-icon="icon: credit-card; ratio: 0.8"></span>
 					Withdraw {currentCoinCount} coins
 				{/if}
 			</button>

@@ -31,7 +31,9 @@
 		sales: 'Sales',
 		logs: 'Logs',
 		withdrawals: 'Withdrawals',
-		users: 'User Management (Admin)'
+		rates: 'Vendo Rates',
+		settings: 'Settings',
+		users: 'User Management'
 	};
 
 	async function submit() {

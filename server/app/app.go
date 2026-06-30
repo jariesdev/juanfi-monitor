@@ -40,6 +40,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	statusRepo := repository.NewVendoStatusRepository(db)
 	withdrawalRepo := repository.NewWithdrawalRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
+	rateRepo := repository.NewVendoRateRepository(db)
 
 	// ── Controllers ──────────────────────────────────────────────────────────
 	authCtrl := controllers.NewAuthController(userRepo, jwtSecret)
@@ -50,6 +51,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	saleCtrl := controllers.NewSaleController(saleRepo)
 	statusCtrl := controllers.NewVendoStatusController(statusRepo)
 	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
+	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -65,7 +67,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -84,6 +86,7 @@ func buildRouter(
 	saleCtrl *controllers.SaleController,
 	statusCtrl *controllers.VendoStatusController,
 	withdrawalCtrl *controllers.WithdrawalController,
+	rateCtrl *controllers.VendoRateController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -142,6 +145,22 @@ func buildRouter(
 	auth.DELETE("/vendo-machines/:id", vendoCtrl.Delete)
 	auth.POST("/vendo-machines/:id/withdraw-current-sales", vendoCtrl.Withdraw)
 	auth.POST("/vendo-machines/:id/set-status", vendoCtrl.SetStatus)
+
+	// Vendo rates — require the rates permission. Controllers further enforce
+	// per-vendo access (canAccessVendo) and admin-only operations on the shared
+	// default template / apply-to-all (isAdmin).
+	rates := auth.Group("/")
+	rates.Use(middleware.RequirePermission(models.PermRates))
+	rates.GET("/vendo-machines/:id/rates", rateCtrl.ListForVendo)
+	rates.POST("/vendo-machines/:id/rates", rateCtrl.Create)
+	rates.POST("/vendo-machines/:id/rates/import", rateCtrl.ImportFromMachine)
+	rates.POST("/vendo-machines/:id/rates/sync", rateCtrl.SyncToMachine)
+	rates.POST("/vendo-machines/:id/rates/set-as-default", rateCtrl.SetAsDefault)
+	rates.PUT("/vendo-rates/:rateId", rateCtrl.Update)
+	rates.DELETE("/vendo-rates/:rateId", rateCtrl.Delete)
+	rates.GET("/vendo-rates/default", rateCtrl.ListDefault)
+	rates.POST("/vendo-rates/default", rateCtrl.CreateDefault)
+	rates.POST("/vendo-rates/apply-to-all", rateCtrl.ApplyToAll)
 
 	auth.GET("/withdrawals", withdrawalCtrl.Search)
 

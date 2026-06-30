@@ -5,16 +5,22 @@
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
 	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
+	interface Props {
+		canManageRates?: boolean;
+	}
+
+	const { canManageRates = false }: Props = $props();
+
 	let dataTable: DataTable;
 
 	const tableHeaders: TableHeader[] = [
-		{ label: 'Name',         field: 'name',                       sortable: true  },
-		{ label: 'API URL',      field: 'api_url'                                     },
-		{ label: 'Total Sales',  field: 'recent_status.total_sales',  sortable: true  },
-		{ label: 'Current Sales',field: 'recent_status.current_sales',sortable: true  },
-		{ label: 'Users',        field: 'recent_status.active_users', sortable: true  },
-		{ label: 'Last Reported',field: 'recent_status.created_at',   sortable: true  },
-		{ label: '',             field: 'actions'                                     },
+		{ label: 'Name', field: 'name', sortable: true },
+		{ label: 'API URL', field: 'api_url' },
+		{ label: 'Total Sales', field: 'recent_status.total_sales', sortable: true },
+		{ label: 'Current Sales', field: 'recent_status.current_sales', sortable: true },
+		{ label: 'Users', field: 'recent_status.active_users', sortable: true },
+		{ label: 'Last Reported', field: 'recent_status.created_at', sortable: true },
+		{ label: '', field: 'actions' }
 	];
 
 	export function loadData() {
@@ -53,6 +59,14 @@
 					uk-icon="users"
 					aria-label="View active users"
 				></a>
+				{#if canManageRates}
+					<a
+						href={`/vendo/${item.id}/rates`}
+						class="uk-icon-button"
+						uk-icon="tag"
+						aria-label="Manage rates"
+					></a>
+				{/if}
 			</div>
 		{:else}
 			{getCellValue(item, header)}

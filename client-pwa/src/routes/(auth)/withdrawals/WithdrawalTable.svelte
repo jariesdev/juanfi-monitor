@@ -192,12 +192,14 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
+		flex: 1;
 	}
 
 	.card-title {
 		font-size: 0.88rem;
 		font-weight: 700;
 		color: #1a1a1a;
+		margin-right: auto;
 	}
 
 	.refresh-btn {

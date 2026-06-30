@@ -27,7 +27,7 @@
 	}
 </script>
 
-<DataTable bind:this={dataTable} url={`/x-api/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs">
+<DataTable bind:this={dataTable} url={`/x-api/logs`} headers={tableHeaders} filters={tableFilters} title="System Logs" showRefresh>
 
 	{#snippet beforeTable()}
 		<div

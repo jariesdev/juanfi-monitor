@@ -5,10 +5,13 @@
 
 <script lang="ts">
 	import VendoTable from './VendoTable.svelte';
+
+	const { data } = $props();
+	const canManageRates = $derived(data.permissions?.includes('rates') ?? false);
 </script>
 
 <div class="uk-section">
 	<div class="uk-container">
-		<VendoTable />
+		<VendoTable {canManageRates} />
 	</div>
 </div>

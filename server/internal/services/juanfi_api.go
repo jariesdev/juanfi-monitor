@@ -195,6 +195,64 @@ func (j *JuanfiAPI) ResetCurrentSales() error {
 	return err
 }
 
+// Rate is a single pricing tier as configured on the device.
+type Rate struct {
+	Name         string
+	Price        float64
+	Minutes      int
+	ValidityMins int
+	DataLimitMB  *int   // nil when the device leaves the field blank
+	UserProfile  string // "default" (Mikrotik's default hotspot profile) when the device leaves the field blank
+}
+
+// GetRates fetches and parses the rate plans configured on the device.
+func (j *JuanfiAPI) GetRates() ([]Rate, error) {
+	body, err := j.sendRequest("api/getRates", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var rates []Rate
+	for _, chunk := range strings.Split(body, "|") {
+		if chunk == "" {
+			continue
+		}
+
+		fields := strings.Split(chunk, "#")
+		if len(fields) < 4 {
+			continue
+		}
+
+		price, _ := strconv.ParseFloat(fields[1], 64)
+		minutes, _ := strconv.Atoi(fields[2])
+		validity, _ := strconv.Atoi(fields[3])
+
+		var dataLimit *int
+		if len(fields) > 4 && fields[4] != "" {
+			if v, err := strconv.Atoi(fields[4]); err == nil {
+				dataLimit = &v
+			}
+		}
+
+		// "default" is Mikrotik's default hotspot user profile, used by the
+		// device whenever a rate doesn't specify an override profile.
+		userProfile := "default"
+		if len(fields) > 5 && fields[5] != "" {
+			userProfile = fields[5]
+		}
+
+		rates = append(rates, Rate{
+			Name:         fields[0],
+			Price:        price,
+			Minutes:      minutes,
+			ValidityMins: validity,
+			DataLimitMB:  dataLimit,
+			UserProfile:  userProfile,
+		})
+	}
+	return rates, nil
+}
+
 // FormatLogMessage renders a log type template with the provided parameters.
 // Templates are indexed by log_type_index from the Juanfi firmware.
 func (j *JuanfiAPI) FormatLogMessage(logType int, params []string) string {
@@ -255,9 +313,10 @@ func (j *JuanfiAPI) loadSystemStatus() (*SystemStatus, error) {
 	}, nil
 }
 
-// sendRequest performs an authenticated GET to the vendo machine API.
-// A Unix-ms timestamp is appended as the `query` parameter on every request.
-func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (string, error) {
+// buildURL constructs the full request URL for a device endpoint path.
+// A Unix-ms timestamp is always appended as the `query` parameter, plus any
+// extra query params the caller supplies.
+func (j *JuanfiAPI) buildURL(path string, extraQuery map[string]string) string {
 	base := strings.TrimRight(j.baseURL, "/")
 	endpoint := fmt.Sprintf("%s/admin/%s", base, path)
 
@@ -266,8 +325,12 @@ func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (stri
 	for k, v := range extraQuery {
 		params.Set(k, v)
 	}
+	return endpoint + "?" + params.Encode()
+}
 
-	fullURL := endpoint + "?" + params.Encode()
+// sendRequest performs an authenticated GET to the vendo machine API.
+func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (string, error) {
+	fullURL := j.buildURL(path, extraQuery)
 	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("juanfi: build request: %w", err)
@@ -289,6 +352,55 @@ func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (stri
 		return "", fmt.Errorf("juanfi: read response body: %w", err)
 	}
 	return string(bodyBytes), nil
+}
+
+// SaveRates pushes the given rate plans to the device, replacing whatever
+// rate plan it currently has configured under rateType 1 (the WiFi/hotspot
+// rate plan — the only rate table vendo machines use).
+func (j *JuanfiAPI) SaveRates(rates []Rate) error {
+	fullURL := j.buildURL("api/saveRates", map[string]string{"rateType": "1"})
+
+	form := url.Values{}
+	form.Set("data", encodeRates(rates))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("juanfi: unexpected status %d from api/saveRates", resp.StatusCode)
+	}
+	return nil
+}
+
+// encodeRates serialises rates back into the device's pipe/hash-delimited
+// format — the inverse of GetRates' parsing.
+func encodeRates(rates []Rate) string {
+	entries := make([]string, len(rates))
+	for i, r := range rates {
+		dataLimit := ""
+		if r.DataLimitMB != nil {
+			dataLimit = strconv.Itoa(*r.DataLimitMB)
+		}
+		entries[i] = strings.Join([]string{
+			r.Name,
+			strconv.FormatFloat(r.Price, 'f', -1, 64),
+			strconv.Itoa(r.Minutes),
+			strconv.Itoa(r.ValidityMins),
+			dataLimit,
+			r.UserProfile,
+		}, "#")
+	}
+	return strings.Join(entries, "|")
 }
 
 // logTypeTemplates returns the ordered slice of message templates indexed by
