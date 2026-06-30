@@ -14,6 +14,7 @@
 | [system-logs.md](system-logs.md) | System logs | Device log persistence, search, manual refresh. |
 | [monitoring-and-notifications.md](monitoring-and-notifications.md) | Scheduler, status snapshots, notifications | Cron jobs, status history, WebSocket broadcast. |
 | [vendo-rates.md](vendo-rates.md) | Vendo rates | Per-vendo & default rate plans, import/sync to device. |
+| [vendo-vouchers.md](vendo-vouchers.md) | Vendo vouchers | Generated voucher codes, device generation, voucher history. |
 
 ---
 
@@ -101,7 +102,7 @@ flowchart TB
 ## Authorization (permission-based ACL)
 - Roles are **created dynamically** (UI/API); there are no hardcoded role names.
 - A role holds a list of **permissions**. A user's effective permissions = union of its roles' permissions + always-on defaults.
-- Permission strings: `dashboard`, `account`, `vendos`, `sales`, `logs`, `withdrawals`, `rates`, `users`.
+- Permission strings: `dashboard`, `account`, `vendos`, `sales`, `logs`, `withdrawals`, `rates`, `vouchers`, `settings`, `users`.
 - **Always-on defaults** (granted to every user regardless of role): `dashboard`, `account`.
 - **Admin** = holds the `users` permission. Equivalent to `assignedVendoIDs(c) == nil` (unrestricted vendo access).
 - **Row-level vendo scoping:** non-admins are limited to their assigned vendos via `assignedVendoIDs(c)` / `canAccessVendo(c, id)`. This filters sales, logs, status, withdrawals, and vendos.
@@ -177,6 +178,7 @@ erDiagram
   VENDO ||--o{ VENDO_STATUS : snapshots
   VENDO ||--o{ WITHDRAWAL : withdrawals
   VENDO ||--o{ VENDO_RATE : rates
+  VENDO ||--o{ VENDO_VOUCHER : vouchers
   USER ||--o{ WITHDRAWAL : performed
 ```
 
@@ -188,6 +190,7 @@ erDiagram
 | `vendo_logs` | [system-logs.md](system-logs.md) |
 | `vendo_status`, `notifications` | [monitoring-and-notifications.md](monitoring-and-notifications.md) |
 | `vendo_rates` | [vendo-rates.md](vendo-rates.md) |
+| `vendo_vouchers` | [vendo-vouchers.md](vendo-vouchers.md) |
 
 ---
 

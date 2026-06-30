@@ -63,6 +63,9 @@ Access is controlled by roles assigned to users. Roles are created dynamically v
 | `sales` | Sales reports and daily/monthly aggregates |
 | `logs` | System logs |
 | `withdrawals` | Withdrawal records |
+| `rates` | Vendo rate-plan management |
+| `vouchers` | Generated voucher management |
+| `settings` | Settings pages |
 | `users` | User management, role management (`/users` and `/roles` API endpoints; Users & Roles pages in the UI) |
 
 **Default:** a user with no role assigned implicitly receives `dashboard` and `account`.
@@ -78,7 +81,7 @@ Create an admin role via the API after starting the server:
 curl -X POST http://localhost:8000/roles \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Admin","permissions":["dashboard","account","vendos","sales","logs","withdrawals","users"]}'
+  -d '{"name":"Admin","permissions":["dashboard","account","vendos","sales","logs","withdrawals","rates","vouchers","settings","users"]}'
 
 # 2. Assign the role to a user (use the role_id returned above)
 curl -X PUT http://localhost:8000/users/1 \
