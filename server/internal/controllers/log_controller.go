@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
 	"gorm.io/gorm"
@@ -46,7 +47,7 @@ func (l *LogController) Search(c *gin.Context) {
 		}
 	}
 
-	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, assignedVendoIDs(c), page, size)
+	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, authz.AssignedVendoIDs(c), page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

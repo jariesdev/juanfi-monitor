@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
@@ -30,7 +31,7 @@ func (w *WithdrawalController) Search(c *gin.Context) {
 		vendoID = &uid
 	}
 
-	withdrawals, err := w.withdrawalRepo.Search(vendoID, assignedVendoIDs(c))
+	withdrawals, err := w.withdrawalRepo.Search(vendoID, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

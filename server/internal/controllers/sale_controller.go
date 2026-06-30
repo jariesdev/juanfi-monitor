@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
@@ -44,7 +45,7 @@ func (s *SaleController) Search(c *gin.Context) {
 		}
 	}
 
-	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, assignedVendoIDs(c), page, size, sortBy, sortDir)
+	result, err := s.saleRepo.Search(qPtr, datePtr, vendoIDPtr, authz.AssignedVendoIDs(c), page, size, sortBy, sortDir)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -56,7 +57,7 @@ func (s *SaleController) Search(c *gin.Context) {
 // Query params: from_date, to_date (YYYY-MM-DD, both optional – defaults to last 30 days).
 func (s *SaleController) DailySales(c *gin.Context) {
 	from, to := parseDateRange(c)
-	rows, err := s.saleRepo.GetDailySales(from, to, assignedVendoIDs(c))
+	rows, err := s.saleRepo.GetDailySales(from, to, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -68,7 +69,7 @@ func (s *SaleController) DailySales(c *gin.Context) {
 // Query params: from_date, to_date (YYYY-MM-DD, both optional – defaults to last 12 months).
 func (s *SaleController) MonthlySales(c *gin.Context) {
 	from, to := parseDateRange(c)
-	rows, err := s.saleRepo.GetMonthlySales(from, to, assignedVendoIDs(c))
+	rows, err := s.saleRepo.GetMonthlySales(from, to, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

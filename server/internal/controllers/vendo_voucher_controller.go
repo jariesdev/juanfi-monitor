@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -34,8 +35,8 @@ func (vc *VendoVoucherController) ListForVendo(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 
@@ -53,8 +54,8 @@ func (vc *VendoVoucherController) Generate(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 

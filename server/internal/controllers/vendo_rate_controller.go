@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -30,29 +31,14 @@ type rateBody struct {
 	UserProfile  *string `json:"user_profile"`
 }
 
-// isAdmin returns true when the current user has unrestricted vendo access.
-func isAdmin(c *gin.Context) bool {
-	return assignedVendoIDs(c) == nil
-}
-
-// canManageRate returns true if the current user may modify the given rate:
-// admins may modify any rate; everyone else may only modify rates belonging
-// to a vendo they're assigned to. Default-template rates are admin-only.
-func canManageRate(c *gin.Context, rate *models.VendoRate) bool {
-	if rate.VendoID == nil {
-		return isAdmin(c)
-	}
-	return canAccessVendo(c, *rate.VendoID)
-}
-
 // ListForVendo handles GET /vendo-machines/:id/rates.
 func (rc *VendoRateController) ListForVendo(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	rates, err := rc.rateRepo.ListByVendo(id)
@@ -69,7 +55,7 @@ func (rc *VendoRateController) Create(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
+	if !authz.CanAccessVendo(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
 		return
 	}
@@ -104,8 +90,8 @@ func (rc *VendoRateController) ImportFromMachine(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := rc.vendoRepo.GetByID(id)
@@ -154,8 +140,8 @@ func (rc *VendoRateController) SetAsDefault(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !isAdmin(c) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "admin access required"})
+	if !authz.IsAdmin(c) {
+		authz.AccessDenied(c, "admin access required")
 		return
 	}
 	if _, err := rc.vendoRepo.GetByID(id); err != nil {
@@ -201,8 +187,8 @@ func (rc *VendoRateController) SyncToMachine(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := rc.vendoRepo.GetByID(id)
@@ -261,8 +247,8 @@ func (rc *VendoRateController) Update(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"detail": "rate not found"})
 		return
 	}
-	if !canManageRate(c, rate) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanManageRate(c, rate) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 
@@ -312,8 +298,8 @@ func (rc *VendoRateController) Delete(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"detail": "rate not found"})
 		return
 	}
-	if !canManageRate(c, rate) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanManageRate(c, rate) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	if err := rc.rateRepo.Delete(id); err != nil {
@@ -325,8 +311,8 @@ func (rc *VendoRateController) Delete(c *gin.Context) {
 
 // ListDefault handles GET /vendo-rates/default — admin only.
 func (rc *VendoRateController) ListDefault(c *gin.Context) {
-	if !isAdmin(c) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "admin access required"})
+	if !authz.IsAdmin(c) {
+		authz.AccessDenied(c, "admin access required")
 		return
 	}
 	rates, err := rc.rateRepo.ListDefault()
@@ -339,8 +325,8 @@ func (rc *VendoRateController) ListDefault(c *gin.Context) {
 
 // CreateDefault handles POST /vendo-rates/default — admin only.
 func (rc *VendoRateController) CreateDefault(c *gin.Context) {
-	if !isAdmin(c) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "admin access required"})
+	if !authz.IsAdmin(c) {
+		authz.AccessDenied(c, "admin access required")
 		return
 	}
 
@@ -370,8 +356,8 @@ func (rc *VendoRateController) CreateDefault(c *gin.Context) {
 // existing rates. The frontend always sends the full target list (defaulted
 // to every vendo) so there's no implicit "empty means all" behavior here.
 func (rc *VendoRateController) ApplyToAll(c *gin.Context) {
-	if !isAdmin(c) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "admin access required"})
+	if !authz.IsAdmin(c) {
+		authz.AccessDenied(c, "admin access required")
 		return
 	}
 

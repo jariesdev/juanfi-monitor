@@ -2,38 +2,10 @@ package controllers
 
 import (
 	"net/http"
-	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jariesdev/vendoreport/internal/middleware"
-	"github.com/jariesdev/vendoreport/internal/models"
 )
-
-// assignedVendoIDs returns nil for admin users (no filter) and the user's
-// assigned vendo IDs for everyone else. Uses the vendos already preloaded
-// by the auth middleware — no extra DB query.
-func assignedVendoIDs(c *gin.Context) []uint {
-	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
-	if currentUser.HasPermission(models.PermUsers) {
-		return nil
-	}
-	ids := make([]uint, len(currentUser.Vendos))
-	for i, v := range currentUser.Vendos {
-		ids[i] = v.ID
-	}
-	return ids
-}
-
-// canAccessVendo returns true if the current user is an admin or has the given vendo assigned.
-// Uses the vendos already preloaded on the user by the auth middleware.
-func canAccessVendo(c *gin.Context, vendoID uint) bool {
-	ids := assignedVendoIDs(c)
-	if ids == nil {
-		return true // admin: unrestricted
-	}
-	return slices.Contains(ids, vendoID)
-}
 
 // parseUintParam reads a named path parameter as uint, writing a 400 response on error.
 func parseUintParam(c *gin.Context, name string) (uint, error) {

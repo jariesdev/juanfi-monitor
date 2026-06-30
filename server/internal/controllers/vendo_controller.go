@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -45,7 +46,7 @@ func (v *VendoController) All(c *gin.Context) {
 		}
 	}
 
-	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, assignedVendoIDs(c))
+	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -59,8 +60,8 @@ func (v *VendoController) Get(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -116,8 +117,8 @@ func (v *VendoController) Status(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -141,8 +142,8 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -178,8 +179,8 @@ func (v *VendoController) ActiveUsers(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -203,8 +204,8 @@ func (v *VendoController) SetStatus(c *gin.Context) {
 	if err != nil {
 		return
 	}
-	if !canAccessVendo(c, id) {
-		c.JSON(http.StatusForbidden, gin.H{"detail": "access denied"})
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 
