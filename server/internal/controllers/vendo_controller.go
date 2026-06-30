@@ -173,6 +173,30 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": withdrawal})
 }
 
+// Config handles GET /vendo-machines/:id/config — live device configuration.
+func (v *VendoController) Config(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
+		return
+	}
+	vendo, err := v.vendoRepo.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
+		return
+	}
+
+	config, err := services.NewJuanfiAPI(vendo).GetSystemConfig()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, config)
+}
+
 // ActiveUsers handles GET /vendo-machines/:id/active-users — live connected users.
 func (v *VendoController) ActiveUsers(c *gin.Context) {
 	id, err := parseID(c)

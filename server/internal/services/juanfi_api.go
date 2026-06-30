@@ -37,6 +37,84 @@ type SystemStatus struct {
 	ServerTime       float64 `json:"server_time"`
 }
 
+// SystemConfig holds the device's persistent configuration, as returned by
+// api/getSystemConfig and written back by api/saveSystemConfig (same
+// pipe-delimited positional format for both — saving is a direct round-trip
+// of reading).
+//
+// Field order for indices 0-29 is confirmed from an older Juanfi admin
+// console's populateSystemConfigFields() JS, which still matches this build's
+// response byte-for-byte. Indices 30+ were added by newer firmware after
+// that JS was captured; OperatorUsername/OperatorPassword/APIKey/
+// CoinMultiplier/VoucherLength/BillAcceptorMultiplier/IncludeVendoName are
+// confirmed by exact-value matches against a live device's admin panel. The
+// rest of the new fields (marked "best-effort" below) are positional guesses
+// based on the admin panel's field list and have not been confirmed against
+// firmware source — verify against a live device before trusting them for
+// anything beyond display.
+type SystemConfig struct {
+	VendoName           string `json:"vendo_name"`
+	WiFiSSID            string `json:"wifi_ssid"`
+	WiFiPassword        string `json:"wifi_password"`
+	MikrotikIP          string `json:"mikrotik_ip"`
+	MikrotikUsername    string `json:"mikrotik_username"`
+	MikrotikPassword    string `json:"mikrotik_password"`
+	CoinSlotWaitTimeSec int    `json:"coin_slot_wait_time_sec"`
+	AdminUsername       string `json:"admin_username"`
+	AdminPassword       string `json:"admin_password"`
+	CoinSlotAbuseCount  int    `json:"coin_slot_abuse_count"`
+	CoinSlotBanMinutes  int    `json:"coin_slot_ban_minutes"`
+	CoinSlotPin         int    `json:"coin_slot_pin"`
+	CoinSlotSetPin      int    `json:"coin_slot_set_pin"`
+	SystemReadyLEDPin   int    `json:"system_ready_led_pin"`
+	InsertCoinLEDPin    int    `json:"insert_coin_led_pin"`
+	LCDScreen           int    `json:"lcd_screen"`
+	InsertCoinButtonPin int    `json:"insert_coin_button_pin"`
+	CheckInternetStatus bool   `json:"check_internet_status"`
+	VoucherPrefix       string `json:"voucher_prefix"`
+	WelcomeLCDMarquee   string `json:"welcome_lcd_marquee"`
+	SetupDoneFlag       bool   `json:"setup_done_flag"`
+	VoucherLoginOption  int    `json:"voucher_login_option"`
+	VoucherProfile      string `json:"voucher_profile"`
+	VoucherValidity     int    `json:"voucher_validity"`
+	LEDTriggerType      int    `json:"led_trigger_type"`
+	IPAddressMode       int    `json:"ip_address_mode"`
+	LocalIPAddress      string `json:"local_ip_address"`
+	GatewayIP           string `json:"gateway_ip"`
+	SubnetMask          string `json:"subnet_mask"`
+	DNSServer           string `json:"dns_server"`
+
+	// --- Fields below this point were added by newer firmware. ---
+
+	ConnectionMode         int    `json:"connection_mode"`          // best-effort
+	CoinSlotType           int    `json:"coin_slot_type"`           // best-effort
+	ButtonFunction         int    `json:"button_function"`          // best-effort
+	OperatorUsername       string `json:"operator_username"`        // confirmed
+	OperatorPassword       string `json:"operator_password"`        // confirmed
+	APIKey                 string `json:"api_key"`                  // confirmed
+	BillAcceptorPin        int    `json:"bill_acceptor_pin"`        // best-effort
+	CoinMultiplier         int    `json:"coin_multiplier"`          // confirmed
+	VoucherLength          int    `json:"voucher_length"`           // confirmed
+	NightLightPin          int    `json:"night_light_pin"`          // best-effort
+	LCDSDAPin              int    `json:"lcd_sda_pin"`              // best-effort
+	LCDSCLPin              int    `json:"lcd_scl_pin"`              // best-effort
+	LANCSPin               int    `json:"lan_cs_pin"`               // best-effort
+	PrinterPin             int    `json:"printer_pin"`              // best-effort
+	BillAcceptorMultiplier int    `json:"bill_acceptor_multiplier"` // confirmed
+	PrintOption            int    `json:"print_option"`             // best-effort
+	IncludeVendoName       bool   `json:"include_vendo_name"`       // confirmed
+
+	// ExtraFields preserves any trailing fields this struct doesn't model
+	// (observed as blank/zero padding past index 46), so SaveSystemConfig can
+	// write them back unchanged instead of silently dropping unknown device
+	// settings.
+	ExtraFields []string `json:"extra_fields,omitempty"`
+}
+
+// systemConfigFieldCount is the number of leading fields this struct names
+// explicitly (indices 0-46). Anything beyond that is kept in ExtraFields.
+const systemConfigFieldCount = 47
+
 // RawLog is a parsed row from the Juanfi getSystemLogs response.
 type RawLog struct {
 	HasHeader    bool
@@ -401,6 +479,174 @@ func (j *JuanfiAPI) SaveRates(rates []Rate) error {
 		return fmt.Errorf("juanfi: unexpected status %d from api/saveRates", resp.StatusCode)
 	}
 	return nil
+}
+
+// GetSystemConfig fetches and parses the device's persistent configuration.
+func (j *JuanfiAPI) GetSystemConfig() (*SystemConfig, error) {
+	body, err := j.sendRequest("api/getSystemConfig", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	data := strings.Split(body, "|")
+	if len(data) < systemConfigFieldCount {
+		return nil, fmt.Errorf("getSystemConfig response too short: got %d fields", len(data))
+	}
+
+	atoi := func(s string) int {
+		v, _ := strconv.Atoi(s)
+		return v
+	}
+
+	cfg := &SystemConfig{
+		VendoName:           data[0],
+		WiFiSSID:            data[1],
+		WiFiPassword:        data[2],
+		MikrotikIP:          data[3],
+		MikrotikUsername:    data[4],
+		MikrotikPassword:    data[5],
+		CoinSlotWaitTimeSec: atoi(data[6]),
+		AdminUsername:       data[7],
+		AdminPassword:       data[8],
+		CoinSlotAbuseCount:  atoi(data[9]),
+		CoinSlotBanMinutes:  atoi(data[10]),
+		CoinSlotPin:         atoi(data[11]),
+		CoinSlotSetPin:      atoi(data[12]),
+		SystemReadyLEDPin:   atoi(data[13]),
+		InsertCoinLEDPin:    atoi(data[14]),
+		LCDScreen:           atoi(data[15]),
+		InsertCoinButtonPin: atoi(data[16]),
+		CheckInternetStatus: data[17] == "1",
+		VoucherPrefix:       data[18],
+		WelcomeLCDMarquee:   data[19],
+		SetupDoneFlag:       data[20] == "1",
+		VoucherLoginOption:  atoi(data[21]),
+		VoucherProfile:      data[22],
+		VoucherValidity:     atoi(data[23]),
+		LEDTriggerType:      atoi(data[24]),
+		IPAddressMode:       atoi(data[25]),
+		LocalIPAddress:      data[26],
+		GatewayIP:           data[27],
+		SubnetMask:          data[28],
+		DNSServer:           data[29],
+
+		ConnectionMode:         atoi(data[30]),
+		CoinSlotType:           atoi(data[31]),
+		ButtonFunction:         atoi(data[32]),
+		OperatorUsername:       data[33],
+		OperatorPassword:       data[34],
+		APIKey:                 data[35],
+		BillAcceptorPin:        atoi(data[36]),
+		CoinMultiplier:         atoi(data[37]),
+		VoucherLength:          atoi(data[38]),
+		NightLightPin:          atoi(data[39]),
+		LCDSDAPin:              atoi(data[40]),
+		LCDSCLPin:              atoi(data[41]),
+		LANCSPin:               atoi(data[42]),
+		PrinterPin:             atoi(data[43]),
+		BillAcceptorMultiplier: atoi(data[44]),
+		PrintOption:            atoi(data[45]),
+		IncludeVendoName:       data[46] == "1",
+	}
+	if len(data) > systemConfigFieldCount {
+		cfg.ExtraFields = data[systemConfigFieldCount:]
+	}
+	return cfg, nil
+}
+
+// SaveSystemConfig pushes the given configuration to the device, replacing
+// whatever configuration it currently has. Fields this struct doesn't model
+// (ExtraFields) are written back unchanged to avoid corrupting device
+// settings this client doesn't understand. The device restarts after a
+// successful save to apply the new configuration.
+func (j *JuanfiAPI) SaveSystemConfig(cfg *SystemConfig) error {
+	fullURL := j.buildURL("api/saveSystemConfig", nil)
+
+	form := url.Values{}
+	form.Set("data", encodeSystemConfig(cfg))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("juanfi: unexpected status %d from api/saveSystemConfig", resp.StatusCode)
+	}
+	return nil
+}
+
+// encodeSystemConfig serialises a SystemConfig back into the device's
+// pipe-delimited positional format — the inverse of GetSystemConfig's
+// parsing, including any unmodeled ExtraFields tacked back on at the end.
+func encodeSystemConfig(cfg *SystemConfig) string {
+	boolStr := func(b bool) string {
+		if b {
+			return "1"
+		}
+		return "0"
+	}
+
+	fields := []string{
+		cfg.VendoName,
+		cfg.WiFiSSID,
+		cfg.WiFiPassword,
+		cfg.MikrotikIP,
+		cfg.MikrotikUsername,
+		cfg.MikrotikPassword,
+		strconv.Itoa(cfg.CoinSlotWaitTimeSec),
+		cfg.AdminUsername,
+		cfg.AdminPassword,
+		strconv.Itoa(cfg.CoinSlotAbuseCount),
+		strconv.Itoa(cfg.CoinSlotBanMinutes),
+		strconv.Itoa(cfg.CoinSlotPin),
+		strconv.Itoa(cfg.CoinSlotSetPin),
+		strconv.Itoa(cfg.SystemReadyLEDPin),
+		strconv.Itoa(cfg.InsertCoinLEDPin),
+		strconv.Itoa(cfg.LCDScreen),
+		strconv.Itoa(cfg.InsertCoinButtonPin),
+		boolStr(cfg.CheckInternetStatus),
+		cfg.VoucherPrefix,
+		cfg.WelcomeLCDMarquee,
+		boolStr(cfg.SetupDoneFlag),
+		strconv.Itoa(cfg.VoucherLoginOption),
+		cfg.VoucherProfile,
+		strconv.Itoa(cfg.VoucherValidity),
+		strconv.Itoa(cfg.LEDTriggerType),
+		strconv.Itoa(cfg.IPAddressMode),
+		cfg.LocalIPAddress,
+		cfg.GatewayIP,
+		cfg.SubnetMask,
+		cfg.DNSServer,
+
+		strconv.Itoa(cfg.ConnectionMode),
+		strconv.Itoa(cfg.CoinSlotType),
+		strconv.Itoa(cfg.ButtonFunction),
+		cfg.OperatorUsername,
+		cfg.OperatorPassword,
+		cfg.APIKey,
+		strconv.Itoa(cfg.BillAcceptorPin),
+		strconv.Itoa(cfg.CoinMultiplier),
+		strconv.Itoa(cfg.VoucherLength),
+		strconv.Itoa(cfg.NightLightPin),
+		strconv.Itoa(cfg.LCDSDAPin),
+		strconv.Itoa(cfg.LCDSCLPin),
+		strconv.Itoa(cfg.LANCSPin),
+		strconv.Itoa(cfg.PrinterPin),
+		strconv.Itoa(cfg.BillAcceptorMultiplier),
+		strconv.Itoa(cfg.PrintOption),
+		boolStr(cfg.IncludeVendoName),
+	}
+	fields = append(fields, cfg.ExtraFields...)
+	return strings.Join(fields, "|")
 }
 
 // GenerateVouchers calls api/generateVouchers to create qty new prepaid vouchers
