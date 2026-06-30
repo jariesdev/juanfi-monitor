@@ -68,6 +68,7 @@ var allModels = []interface{}{
 	&models.Withdrawal{},
 	&models.Notification{},
 	&models.VendoRate{},
+	&models.VendoVoucher{},
 }
 
 // autoMigrate runs the appropriate migration strategy for the driver.

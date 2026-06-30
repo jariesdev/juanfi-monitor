@@ -19,8 +19,8 @@ import (
 
 // App holds the live components that need lifecycle management (cron, ws hub).
 type App struct {
-	Router    *gin.Engine
-	Hub       *ws.Hub
+	Router *gin.Engine
+	Hub    *ws.Hub
 	// StopScheduler stops the background cron jobs. Call it on shutdown.
 	StopScheduler func()
 }
@@ -41,6 +41,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	withdrawalRepo := repository.NewWithdrawalRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	rateRepo := repository.NewVendoRateRepository(db)
+	voucherRepo := repository.NewVendoVoucherRepository(db)
 
 	// ── Controllers ──────────────────────────────────────────────────────────
 	authCtrl := controllers.NewAuthController(userRepo, jwtSecret)
@@ -52,6 +53,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	statusCtrl := controllers.NewVendoStatusController(statusRepo)
 	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
 	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
+	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -67,7 +69,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -87,6 +89,7 @@ func buildRouter(
 	statusCtrl *controllers.VendoStatusController,
 	withdrawalCtrl *controllers.WithdrawalController,
 	rateCtrl *controllers.VendoRateController,
+	voucherCtrl *controllers.VendoVoucherController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -162,6 +165,13 @@ func buildRouter(
 	rates.POST("/vendo-rates/default", rateCtrl.CreateDefault)
 	rates.POST("/vendo-rates/apply-to-all", rateCtrl.ApplyToAll)
 
+	// Vendo vouchers — require the vouchers permission. Controllers enforce
+	// per-vendo access and voucher generation business rules.
+	vouchers := auth.Group("/")
+	vouchers.Use(middleware.RequirePermission(models.PermVouchers))
+	vouchers.GET("/vendo-machines/:id/vouchers", voucherCtrl.ListForVendo)
+	vouchers.POST("/vendo-machines/:id/vouchers/generate", voucherCtrl.Generate)
+
 	auth.GET("/withdrawals", withdrawalCtrl.Search)
 
 	return router
@@ -195,4 +205,3 @@ func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

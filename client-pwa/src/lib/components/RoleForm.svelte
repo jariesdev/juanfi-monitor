@@ -33,7 +33,8 @@
 		withdrawals: 'Withdrawals',
 		rates: 'Vendo Rates',
 		settings: 'Settings',
-		users: 'User Management'
+		users: 'User Management',
+		vouchers: 'Vouchers'
 	};
 
 	async function submit() {

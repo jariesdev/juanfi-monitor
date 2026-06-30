@@ -17,30 +17,30 @@ const salesLogTypeIndex = 14 // log type index for purchase transactions
 
 // SystemStatus holds all fields returned by the Juanfi dashboard API.
 type SystemStatus struct {
-	SystemUptimeMs      int64   `json:"system_uptime_ms"`
-	TotalCoinCount      int     `json:"total_coin_count"`
-	CurrentCoinCount    int     `json:"current_coin_count"`
-	CustomerCount       int     `json:"customer_count"`
-	InternetStatus      bool    `json:"internet_status"`
-	MikrotikStatus      bool    `json:"mikrotik_status"`
-	MacAddress          string  `json:"mac_address"`
-	IPAddress           string  `json:"ip_address"`
-	HardwareType        string  `json:"hardware_type"`
-	Version             float64 `json:"version"`
-	InterfaceType       string  `json:"interface_type"`
-	WirelessStrength    int     `json:"wireless_signal_strength"`
-	FreeHeap            int     `json:"free_heap"`
-	AuthType            string  `json:"auth_type"`
-	NightLightStatus    bool    `json:"night_light_status"`
-	ActiveUserCount     int     `json:"active_user_count"`
-	SystemClock         string  `json:"system_clock"`
-	ServerTime          float64 `json:"server_time"`
+	SystemUptimeMs   int64   `json:"system_uptime_ms"`
+	TotalCoinCount   int     `json:"total_coin_count"`
+	CurrentCoinCount int     `json:"current_coin_count"`
+	CustomerCount    int     `json:"customer_count"`
+	InternetStatus   bool    `json:"internet_status"`
+	MikrotikStatus   bool    `json:"mikrotik_status"`
+	MacAddress       string  `json:"mac_address"`
+	IPAddress        string  `json:"ip_address"`
+	HardwareType     string  `json:"hardware_type"`
+	Version          float64 `json:"version"`
+	InterfaceType    string  `json:"interface_type"`
+	WirelessStrength int     `json:"wireless_signal_strength"`
+	FreeHeap         int     `json:"free_heap"`
+	AuthType         string  `json:"auth_type"`
+	NightLightStatus bool    `json:"night_light_status"`
+	ActiveUserCount  int     `json:"active_user_count"`
+	SystemClock      string  `json:"system_clock"`
+	ServerTime       float64 `json:"server_time"`
 }
 
 // RawLog is a parsed row from the Juanfi getSystemLogs response.
 type RawLog struct {
 	HasHeader    bool
-	Time         int64    // milliseconds since device startup
+	Time         int64 // milliseconds since device startup
 	LogTypeIndex int
 	LogParams    []string
 }
@@ -203,6 +203,15 @@ type Rate struct {
 	ValidityMins int
 	DataLimitMB  *int   // nil when the device leaves the field blank
 	UserProfile  string // "default" (Mikrotik's default hotspot profile) when the device leaves the field blank
+}
+
+// GeneratedVoucher is a single voucher code returned by api/generateVouchers.
+// VendoName, Amount, and Duration are shared across the whole generated batch.
+type GeneratedVoucher struct {
+	VendoName string
+	Amount    float64
+	Duration  int // minutes
+	Code      string
 }
 
 // GetRates fetches and parses the rate plans configured on the device.
@@ -394,6 +403,50 @@ func (j *JuanfiAPI) SaveRates(rates []Rate) error {
 	return nil
 }
 
+// GenerateVouchers calls api/generateVouchers to create qty new prepaid vouchers
+// at the given price. The device matches amount against its own configured rate
+// plan to determine duration; amount/duration are not chosen by the caller.
+func (j *JuanfiAPI) GenerateVouchers(prefix string, amount float64, qty int, addToSales bool, printThermal bool) ([]GeneratedVoucher, error) {
+	fullURL := j.buildURL("api/generateVouchers", nil)
+
+	form := url.Values{}
+	form.Set("amt", strconv.FormatFloat(amount, 'f', -1, 64))
+	form.Set("pfx", prefix)
+	form.Set("qty", strconv.Itoa(qty))
+	form.Set("sales", boolFlag(addToSales))
+	form.Set("print", boolFlag(printThermal))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("juanfi: unexpected status %d from api/generateVouchers", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: read response body: %w", err)
+	}
+	return parseGeneratedVouchers(string(body))
+}
+
+func boolFlag(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
 // encodeRates serialises rates back into the device's pipe/hash-delimited
 // format — the inverse of GetRates' parsing.
 func encodeRates(rates []Rate) string {
@@ -413,6 +466,39 @@ func encodeRates(rates []Rate) string {
 		}, "#")
 	}
 	return strings.Join(entries, "|")
+}
+
+// parseGeneratedVouchers parses the api/generateVouchers response, e.g.
+// "Your WiFi|2|2400|VC5416#VC2879" — vendo name, amount, duration (minutes),
+// then a "#"-delimited list of voucher codes sharing that amount/duration.
+func parseGeneratedVouchers(body string) ([]GeneratedVoucher, error) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return nil, nil
+	}
+	fields := strings.SplitN(body, "|", 4)
+	if len(fields) < 4 {
+		return nil, fmt.Errorf("juanfi: unexpected generateVouchers response format: %q", body)
+	}
+
+	name := fields[0]
+	amount, _ := strconv.ParseFloat(fields[1], 64)
+	duration, _ := strconv.Atoi(fields[2])
+
+	codes := strings.Split(fields[3], "#")
+	vouchers := make([]GeneratedVoucher, 0, len(codes))
+	for _, code := range codes {
+		if code == "" {
+			continue
+		}
+		vouchers = append(vouchers, GeneratedVoucher{
+			VendoName: name,
+			Amount:    amount,
+			Duration:  duration,
+			Code:      code,
+		})
+	}
+	return vouchers, nil
 }
 
 // logTypeTemplates returns the ordered slice of message templates indexed by

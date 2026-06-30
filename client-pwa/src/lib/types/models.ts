@@ -69,6 +69,7 @@ export const ALL_PERMISSIONS = [
 	'logs',
 	'withdrawals',
 	'rates',
+	'vouchers',
 	'settings',
 	'users'
 ] as const;
@@ -92,4 +93,16 @@ export interface iVendoRate {
 	sort_order: number;
 	created_at: string;
 	updated_at: string | null;
+}
+
+export interface iVendoVoucher {
+	id: number;
+	vendo_id: number;
+	code: string;
+	prefix: string;
+	amount: number;
+	duration_minutes: number;
+	added_to_sales: boolean;
+	printed_thermal: boolean;
+	created_at: string;
 }

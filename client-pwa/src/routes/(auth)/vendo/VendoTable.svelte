@@ -7,9 +7,10 @@
 
 	interface Props {
 		canManageRates?: boolean;
+		canManageVouchers?: boolean;
 	}
 
-	const { canManageRates = false }: Props = $props();
+	const { canManageRates = false, canManageVouchers = false }: Props = $props();
 
 	let dataTable: DataTable;
 
@@ -47,26 +48,62 @@
 			<DateTime date={item.recent_status?.created_at} />
 		{:else if header.field === 'actions'}
 			<div class="action-btns">
-				<a
-					href={`/vendo/${item.id}/status`}
+				<button
+					type="button"
 					class="uk-icon-button"
-					uk-icon="info"
-					aria-label="View details"
-				></a>
-				<a
-					href={`/vendo/${item.id}/active-users`}
-					class="uk-icon-button"
-					uk-icon="users"
-					aria-label="View active users"
-				></a>
-				{#if canManageRates}
-					<a
-						href={`/vendo/${item.id}/rates`}
-						class="uk-icon-button"
-						uk-icon="tag"
-						aria-label="Manage rates"
-					></a>
-				{/if}
+					uk-icon="icon: more-vertical"
+					aria-label="Open actions"
+				></button>
+				<div uk-dropdown="mode: click; pos: bottom-right">
+					<ul class="uk-nav uk-dropdown-nav action-menu">
+						<li>
+							<a href={`/vendo/${item.id}/status`}>
+								<span class="action-icon" uk-icon="icon: info"></span>
+								<span>View details</span>
+							</a>
+						</li>
+						<li>
+							<a href={`/vendo/${item.id}/active-users`}>
+								<span class="action-icon" uk-icon="icon: users"></span>
+								<span>Active users</span>
+							</a>
+						</li>
+						{#if canManageRates}
+							<li>
+								<a href={`/vendo/${item.id}/rates`}>
+									<span class="action-icon" uk-icon="icon: tag"></span>
+									<span>Manage rates</span>
+								</a>
+							</li>
+						{/if}
+						{#if canManageVouchers}
+							<li>
+								<a href={`/vendo/${item.id}/vouchers`}>
+									<svg
+										class="action-icon"
+										aria-hidden="true"
+										width="20"
+										height="20"
+										viewBox="0 0 20 20"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="1.5"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									>
+										<path
+											d="M4 6.5A1.5 1.5 0 0 1 5.5 5h9A1.5 1.5 0 0 1 16 6.5v2a1.5 1.5 0 0 0 0 3v2A1.5 1.5 0 0 1 14.5 15h-9A1.5 1.5 0 0 1 4 13.5v-2a1.5 1.5 0 0 0 0-3z"
+										/>
+										<path d="M8 7.25v5.5" />
+										<path d="M11 8h2" />
+										<path d="M11 12h2" />
+									</svg>
+									<span>Manage vouchers</span>
+								</a>
+							</li>
+						{/if}
+					</ul>
+				</div>
 			</div>
 		{:else}
 			{getCellValue(item, header)}
@@ -103,5 +140,24 @@
 		display: flex;
 		gap: 4px;
 		align-items: center;
+		justify-content: flex-end;
+	}
+
+	.action-btns :global(.uk-dropdown) {
+		min-width: 190px;
+		padding: 8px 0;
+	}
+
+	.action-menu a {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 14px;
+	}
+
+	.action-icon {
+		width: 20px;
+		height: 20px;
+		flex: 0 0 20px;
 	}
 </style>

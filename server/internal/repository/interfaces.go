@@ -92,6 +92,12 @@ type VendoRateRepositoryInterface interface {
 	ApplyDefaultToVendos(vendoIDs []uint) error
 }
 
+// VendoVoucherRepositoryInterface manages generated voucher records.
+type VendoVoucherRepositoryInterface interface {
+	ListByVendo(vendoID uint) ([]models.VendoVoucher, error)
+	CreateBatch(vouchers []models.VendoVoucher) error
+}
+
 // NotificationRepositoryInterface manages notification delivery state.
 type NotificationRepositoryInterface interface {
 	PullUnread() ([]models.Notification, error)

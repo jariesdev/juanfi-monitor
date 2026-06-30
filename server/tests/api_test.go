@@ -346,8 +346,8 @@ func TestGetUserByID(t *testing.T) {
 
 func TestCreateUser(t *testing.T) {
 	body := jsonBody(map[string]interface{}{
-		"username": "newuser",
-		"password": "newpass",
+		"username":  "newuser",
+		"password":  "newpass",
 		"is_active": true,
 	})
 	w := doRequest(http.MethodPost, "/users", body, authHeader())
@@ -973,4 +973,67 @@ func TestVendoRates_ApplyToAll_Replaces(t *testing.T) {
 	if !foundDefault {
 		t.Error("expected the default tier to be applied to the other vendo")
 	}
+}
+
+func TestVendoVouchers_List_RequiresVouchersPermission(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("novoucherspass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "novouchersuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	role := &models.Role{Name: "VendosNoVouchers"}
+	role.SetPermissions([]string{models.PermVendos})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("novouchersuser", "novoucherspass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/vouchers", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoVouchers_List_RequiresVendoAccess(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("voucheraccesspass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "voucheraccessuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	role := &models.Role{Name: "VouchersOnly"}
+	role.SetPermissions([]string{models.PermVouchers})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	token := mustLogin("voucheraccessuser", "voucheraccesspass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/vouchers", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoVouchers_Generate_NoConnection(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/vouchers/generate", testVendoID)
+	payload := map[string]interface{}{
+		"prefix":        "VC",
+		"amount":        2,
+		"quantity":      1,
+		"add_to_sales":  false,
+		"print_thermal": false,
+	}
+	w := doRequest(http.MethodPost, path, jsonBody(payload), authHeader())
+	assertStatus(t, w, http.StatusBadGateway)
+}
+
+func TestVendoVouchers_Generate_ValidatesPrefixAndQuantity(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/vouchers/generate", testVendoID)
+	badPrefix := doRequest(http.MethodPost, path, jsonBody(map[string]interface{}{
+		"prefix":   "1A",
+		"amount":   2,
+		"quantity": 1,
+	}), authHeader())
+	assertStatus(t, badPrefix, http.StatusBadRequest)
+
+	badQty := doRequest(http.MethodPost, path, jsonBody(map[string]interface{}{
+		"prefix":   "VC",
+		"amount":   2,
+		"quantity": 16,
+	}), authHeader())
+	assertStatus(t, badQty, http.StatusBadRequest)
 }
