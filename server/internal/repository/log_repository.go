@@ -33,7 +33,7 @@ func (r *LogRepository) Search(q *string, date *string, vendoID *uint, assignedI
 		start, err := time.ParseInLocation("2006-01-02", *date, loc)
 		if err == nil {
 			end := start.Add(24 * time.Hour)
-			query = query.Where("log_time >= ? AND log_time < ?", start.UTC(), end.UTC())
+			query = query.Where("log_time >= ? AND log_time < ?", start, end)
 		}
 	}
 	if vendoID != nil {

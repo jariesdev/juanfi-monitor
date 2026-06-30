@@ -54,7 +54,7 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assigned
 		start, err := time.ParseInLocation("2006-01-02", *date, loc)
 		if err == nil {
 			end := start.Add(24 * time.Hour)
-			query = query.Where("sale_time >= ? AND sale_time < ?", start.UTC(), end.UTC())
+			query = query.Where("sale_time >= ? AND sale_time < ?", start, end)
 		}
 	}
 	if vendoID != nil {
@@ -88,15 +88,13 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assigned
 // the query so that entries between midnight and 8 AM PHT are correctly included.
 // Only sales from active vendos are included.
 func (r *SaleRepository) GetDailySales(from, to time.Time, assignedIDs []uint) ([]DailySaleRow, error) {
-	loc := time.FixedZone("PHT", 8*60*60)
-
 	var rows []DailySaleRow
 	query := r.db.
 		Table("vendo_sales").
 		Select("DATE(sale_time, '+8 hours') AS date, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
 		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
-			from.In(loc).UTC(), to.In(loc).UTC())
+			from, to)
 	if len(assignedIDs) > 0 {
 		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}
@@ -108,18 +106,15 @@ func (r *SaleRepository) GetDailySales(from, to time.Time, assignedIDs []uint) (
 }
 
 // GetMonthlySales aggregates sales by year-month and vendo within the given date range.
-// from and to are PHT-local start-of-day times — they are converted to UTC for
-// the query. Only sales from active vendos are included.
+// from and to are PHT-local start-of-day times. Only sales from active vendos are included.
 func (r *SaleRepository) GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error) {
-	loc := time.FixedZone("PHT", 8*60*60)
-
 	var rows []MonthlySaleRow
 	query := r.db.
 		Table("vendo_sales").
 		Select("strftime('%Y-%m', sale_time, '+8 hours') AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
 		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
-			from.In(loc).UTC(), to.In(loc).UTC())
+			from, to)
 	if len(assignedIDs) > 0 {
 		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}
