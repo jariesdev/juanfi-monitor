@@ -3,7 +3,9 @@
 	import VendoForm from '$lib/components/VendoForm.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import VendoStatusBadge from '$lib/components/VendoStatusBadge.svelte';
 	import { hasPermission } from '$lib/acl.svelte.js';
+	import { refreshingVendos, vendoOnline } from '$lib/store/vendoActivity';
 	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
 	let dataTable: DataTable;
@@ -11,7 +13,7 @@
 	const tableHeaders: TableHeader[] = [
 		{ label: 'Name', field: 'name', sortable: true },
 		{ label: 'API URL', field: 'api_url' },
-		{ label: 'Online', field: 'is_online', sortable: true },
+		{ label: 'Status', field: 'is_online', sortable: true },
 		{ label: 'Total Sales', field: 'recent_status.total_sales', sortable: true },
 		{ label: 'Current Sales', field: 'recent_status.current_sales', sortable: true },
 		{ label: 'Users', field: 'recent_status.active_users', sortable: true },
@@ -31,14 +33,15 @@
 	filters={{}}
 	title="Vendo Machines"
 	clientSort={true}
+	rowClass={(item) => (item.is_active ? undefined : 'inactive')}
 >
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
 		{#if header.field === 'is_online'}
-			{#if item.is_online}
-				<span class="status-badge online">Online</span>
-			{:else}
-				<span class="status-badge offline">Offline</span>
-			{/if}
+			<VendoStatusBadge
+				online={$vendoOnline.get(item.id) ?? !!item.is_online}
+				active={!!item.is_active}
+				progress={$refreshingVendos.get(item.id) ?? null}
+			/>
 		{:else if header.field === 'recent_status.total_sales'}
 			₱<NumberFormat value={item.recent_status?.total_sales} />
 		{:else if header.field === 'recent_status.current_sales'}
@@ -186,21 +189,9 @@
 		flex: 0 0 20px;
 	}
 
-	.status-badge {
-		display: inline-block;
-		padding: 2px 8px;
-		border-radius: 12px;
-		font-size: 0.78rem;
-		font-weight: 600;
-	}
-
-	.status-badge.online {
-		background: #dcfce7;
-		color: #166534;
-	}
-
-	.status-badge.offline {
-		background: #fee2e2;
-		color: #991b1b;
+	/* Inactive vendos are de-emphasized across the whole row. The row lives inside
+	   DataTable's scope, so target it globally. */
+	:global(.data-table tr.inactive td) {
+		color: #9ca3af;
 	}
 </style>
