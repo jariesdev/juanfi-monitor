@@ -9,7 +9,7 @@
 <div class="login-wrap">
 	<div class="card">
 		<div class="card-header">
-			<div class="brand">Vendo Reports</div>
+			<div class="brand">Vendo Monitoring</div>
 			<p class="subtitle">Sign in to your account</p>
 		</div>
 		<div class="card-body">

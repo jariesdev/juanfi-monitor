@@ -31,7 +31,7 @@
 	<!-- Header -->
 	<div class="sidebar-top">
 		{#if !$navCollapsed}
-			<span class="brand">VendoReport</span>
+			<span class="brand">Vendo Monitoring</span>
 		{/if}
 		<button
 			class="toggle-btn"
