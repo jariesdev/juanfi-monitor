@@ -10,6 +10,6 @@ var vendoLoggerCmd = &cobra.Command{
 	Short: "Pull the latest logs and sales from all active vendo machines",
 	Run: func(cmd *cobra.Command, args []string) {
 		initDB()
-		scheduler.RefreshVendoLogs(db)
+		scheduler.RefreshVendoLogs(db, nil)
 	},
 }

@@ -15,6 +15,7 @@
 		perPage?: number
 		clientSort?: boolean   // sort loaded items in memory instead of via query params
 		showRefresh?: boolean  // show the icon-only refresh button before the search field
+		rowClass?: (item: RowItem) => string | undefined  // optional per-row <tr> class
 
 		// snippets
 		titleActions?: Snippet
@@ -25,7 +26,7 @@
 		cell?: Snippet<[RowItem, TableHeader, Function]>
 	}
 
-	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, clientSort = false, showRefresh = false, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, clientSort = false, showRefresh = false, rowClass, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
 
 	// states
 	let isRefreshing: boolean = $state(false);
@@ -222,7 +223,7 @@
 		{getCellValue(item, header)}
 	{/snippet}
 
-	<tr>
+	<tr class={rowClass?.(item)}>
 		{#each headers as header}
 			<td>
 				{@render (cell || cellFallback)(item, header, getCellValue)}
