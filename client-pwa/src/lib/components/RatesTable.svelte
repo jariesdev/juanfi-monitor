@@ -36,6 +36,18 @@
 		{ label: '', field: 'actions', sortable: false }
 	];
 
+	function formatMinutes(mins: number): string {
+		const total = Math.max(0, Math.floor(Number(mins) || 0));
+		const days = Math.floor(total / 1440);
+		const hours = Math.floor((total % 1440) / 60);
+		const minutes = total % 60;
+		let out = '';
+		if (days) out += `${days}d`;
+		if (hours) out += `${hours}h`;
+		if (minutes || !out) out += `${minutes}m`;
+		return out;
+	}
+
 	function loadRates() {
 		controller?.abort();
 		controller = new AbortController();
@@ -204,7 +216,9 @@
 							minimumFractionDigits: 2,
 							maximumFractionDigits: 2
 						})}
-					{:else if header.field === 'data_limit_mb'}
+					{:else if header.field === 'validity_minutes'}
+							{item.validity_minutes} ({formatMinutes(item.validity_minutes as number)})
+						{:else if header.field === 'data_limit_mb'}
 						{item.data_limit_mb ?? '—'}
 					{:else if header.field === 'user_profile'}
 						{item.user_profile ?? '—'}
