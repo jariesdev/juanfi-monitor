@@ -219,13 +219,25 @@ func (j *JuanfiAPI) GetRates() ([]Rate, error) {
 		}
 
 		fields := strings.Split(chunk, "#")
-		if len(fields) < 4 {
+		if fields[0] == "" {
 			continue
 		}
 
-		price, _ := strconv.ParseFloat(fields[1], 64)
-		minutes, _ := strconv.Atoi(fields[2])
-		validity, _ := strconv.Atoi(fields[3])
+		// The device may emit a final entry with trailing/missing fields
+		// (e.g. "Name#"), so read each field defensively and default to zero
+		// rather than skipping the whole entry.
+		var price float64
+		if len(fields) > 1 {
+			price, _ = strconv.ParseFloat(fields[1], 64)
+		}
+		var minutes int
+		if len(fields) > 2 {
+			minutes, _ = strconv.Atoi(fields[2])
+		}
+		var validity int
+		if len(fields) > 3 {
+			validity, _ = strconv.Atoi(fields[3])
+		}
 
 		var dataLimit *int
 		if len(fields) > 4 && fields[4] != "" {
