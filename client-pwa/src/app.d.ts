@@ -8,9 +8,10 @@ declare namespace App {
     // interface Platform {}
     interface Locals {
         user: {
-            id: int
-            name: string
-            role: string | null
-        }
+            id: number
+            username: string
+            role: { id: number; name: string; permissions: string[] } | null
+        } | null
+        permissions: string[]
     }
 }

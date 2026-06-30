@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
 	"gorm.io/gorm"
@@ -15,7 +16,7 @@ import (
 type LogController struct {
 	logRepo   repository.LogRepositoryInterface
 	vendoRepo repository.VendoRepositoryInterface
-	db        *gorm.DB // needed by the Refresh handler to construct JuanfiLogger
+	db        *gorm.DB
 }
 
 func NewLogController(db *gorm.DB, logRepo repository.LogRepositoryInterface, vendoRepo repository.VendoRepositoryInterface) *LogController {
@@ -46,7 +47,7 @@ func (l *LogController) Search(c *gin.Context) {
 		}
 	}
 
-	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, page, size)
+	result, err := l.logRepo.Search(qPtr, datePtr, vendoIDPtr, authz.AssignedVendoIDs(c), page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

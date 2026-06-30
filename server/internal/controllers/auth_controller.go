@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jariesdev/vendoreport/internal/middleware"
+	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
@@ -62,5 +64,35 @@ func (a *AuthController) Login(c *gin.Context) {
 		"expiry":       expiresAt.Unix(), // Unix timestamp (number), same as Python
 		"token_type":   "bearer",
 		"user":         user,
+	})
+}
+
+// Refresh handles POST /token/refresh.
+// Requires a valid Bearer JWT (enforced by auth middleware). Issues a fresh 1-hour token
+// for the same user without requiring credentials to be re-entered.
+func (a *AuthController) Refresh(c *gin.Context) {
+	user := c.MustGet(middleware.CurrentUserKey).(*models.User)
+
+	expiresAt := time.Now().Add(1 * time.Hour)
+
+	claims := jwtClaims{
+		Username: user.Username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).
+		SignedString([]byte(a.jwtSecret))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": "token generation failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": token,
+		"expiry":       expiresAt.Unix(),
+		"token_type":   "bearer",
 	})
 }

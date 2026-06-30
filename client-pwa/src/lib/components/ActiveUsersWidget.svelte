@@ -10,7 +10,8 @@
 	const modalHeaders: SimpleTableHeader[] = [
 		{ label: 'Name', field: 'name' },
 		{ label: 'Active Users', field: 'active_users', align: 'center' },
-		{ label: 'Current Sales', field: 'current_sales', align: 'right' }
+		{ label: 'Current Sales', field: 'current_sales', align: 'right' },
+		{ label: 'Status', field: 'is_online', align: 'center' }
 	];
 
 	let vendos: iVendo[] = $state([]);
@@ -37,7 +38,8 @@
 			id: v.id,
 			name: v.name,
 			active_users: rawUsers(v),
-			current_sales: rawSales(v)
+			current_sales: rawSales(v),
+			is_online: v.is_online
 		}))
 	);
 
@@ -116,6 +118,10 @@
 						<strong>{getCellValue(item, header)}</strong>
 					{:else if header.field === 'current_sales'}
 						<span class="text-muted">₱{fmt(getCellValue(item, header))}</span>
+					{:else if header.field === 'is_online'}
+						<span class="status-text" class:online={getCellValue(item, header)}>
+							{getCellValue(item, header) ? 'Online' : 'Offline'}
+						</span>
 					{:else}
 						{getCellValue(item, header)}
 					{/if}
@@ -137,7 +143,10 @@
 
 		{#each vendos.slice(0, MAX_VISIBLE) as v (v.id)}
 			<div class="vendo-card">
-				<div class="vendo-name">{v.name}</div>
+				<div class="vendo-name">
+					<span class="status-dot" class:online={v.is_online}></span>
+					{v.name}
+				</div>
 				<div class="vendo-users" use:countupInt={rawUsers(v)}></div>
 				<div class="vendo-sales" use:countupSales={rawSales(v)}></div>
 			</div>
@@ -185,6 +194,22 @@
 		text-overflow: ellipsis;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+
+	.status-dot {
+		flex-shrink: 0;
+		display: inline-block;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #f87171;
+	}
+
+	.status-dot.online {
+		background: #4ade80;
 	}
 
 	.vendo-users {
@@ -311,5 +336,15 @@
 
 	.text-muted {
 		color: #aaa;
+	}
+
+	.status-text {
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #f87171;
+	}
+
+	.status-text.online {
+		color: #16a34a;
 	}
 </style>

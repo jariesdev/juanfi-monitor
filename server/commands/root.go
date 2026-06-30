@@ -23,20 +23,23 @@ var RootCmd = &cobra.Command{
 }
 
 func init() {
+	RootCmd.AddCommand(dbSeedCmd)
 	RootCmd.AddCommand(userAddCmd)
+	RootCmd.AddCommand(userAssignRoleCmd)
 	RootCmd.AddCommand(vendoAddCmd)
 	RootCmd.AddCommand(vendoLoggerCmd)
 	RootCmd.AddCommand(vendoStatusLogCmd)
 }
 
 // initDB loads config and opens the database. Called by sub-commands that need DB access.
+// Migrations are intentionally skipped here — schema changes are handled by server startup.
 func initDB() {
 	// Load .env from the working directory (server/).
 	envPath := filepath.Join(".", ".env")
 
 	cfg := config.Load(envPath)
 	var err error
-	db, err = database.Connect(cfg.DBPath, cfg.DBDriver, cfg.ShouldMigrate())
+	db, err = database.Connect(cfg.DBPath, cfg.DBDriver, false)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: database: %v\n", err)
 		os.Exit(1)

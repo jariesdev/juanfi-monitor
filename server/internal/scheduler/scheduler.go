@@ -2,7 +2,10 @@
 package scheduler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -26,12 +29,12 @@ func Start(db *gorm.DB, hub *ws.Hub) *cron.Cron {
 
 	// Every 5 minutes: fetch system logs and sales from all active vendos.
 	c.AddFunc("*/5 * * * *", func() {
-		safeRun("refresh_vendo_logs", func() { refreshVendoLogs(db) })
+		safeRun("refresh_vendo_logs", func() { RefreshVendoLogs(db) })
 	})
 
 	// Every 5 minutes: snapshot current system status for all active vendos.
 	c.AddFunc("*/5 * * * *", func() {
-		safeRun("update_vendo_status", func() { updateVendoStatus(db) })
+		safeRun("update_vendo_status", func() { UpdateVendoStatus(db) })
 	})
 
 	c.Start()
@@ -64,9 +67,9 @@ func broadcastNotifications(db *gorm.DB, hub *ws.Hub) {
 	}
 }
 
-// refreshVendoLogs iterates all active vendos and runs the JuanfiLogger to
+// RefreshVendoLogs iterates all active vendos and runs the JuanfiLogger to
 // pull new logs and sales from each machine.
-func refreshVendoLogs(db *gorm.DB) {
+func RefreshVendoLogs(db *gorm.DB) {
 	vendos := activeVendos(db)
 	for i := range vendos {
 		v := &vendos[i]
@@ -77,8 +80,9 @@ func refreshVendoLogs(db *gorm.DB) {
 	}
 }
 
-// updateVendoStatus iterates all active vendos and records a status snapshot.
-func updateVendoStatus(db *gorm.DB) {
+// UpdateVendoStatus iterates all active vendos, records a status snapshot only
+// when metrics have changed, and keeps is_online in sync.
+func UpdateVendoStatus(db *gorm.DB) {
 	vendos := activeVendos(db)
 	for i := range vendos {
 		v := &vendos[i]
@@ -86,6 +90,7 @@ func updateVendoStatus(db *gorm.DB) {
 		status, err := api.GetSystemStatus()
 		if err != nil {
 			log.Printf("scheduler: status update [%s]: %v", v.Name, err)
+			db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", false)
 			continue
 		}
 
@@ -96,20 +101,59 @@ func updateVendoStatus(db *gorm.DB) {
 		activeUsers := status.ActiveUserCount
 		customerCount := status.CustomerCount
 
-		record := models.VendoStatus{
-			VendoID:          v.ID,
-			TotalSales:       &totalSales,
-			CurrentSales:     &currentSales,
-			CustomerCount:    &customerCount,
-			FreeHeap:         &freeHeap,
-			WirelessStrength: &wirelessStrength,
-			ActiveUsers:      &activeUsers,
-			CreatedAt:        time.Now(),
+		incoming := statusHash(totalSales, currentSales, freeHeap, wirelessStrength, activeUsers, customerCount)
+
+		var latest models.VendoStatus
+		changed := true
+		if db.Where("vendo_id = ?", v.ID).Order("id DESC").First(&latest).Error == nil {
+			prev := statusHash(
+				derefF64(latest.TotalSales), derefF64(latest.CurrentSales),
+				derefInt(latest.FreeHeap), derefF64(latest.WirelessStrength),
+				derefInt(latest.ActiveUsers), derefInt(latest.CustomerCount),
+			)
+			changed = incoming != prev
 		}
-		if err := db.Create(&record).Error; err != nil {
-			log.Printf("scheduler: save status [%s]: %v", v.Name, err)
+
+		if changed {
+			record := models.VendoStatus{
+				VendoID:          v.ID,
+				TotalSales:       &totalSales,
+				CurrentSales:     &currentSales,
+				CustomerCount:    &customerCount,
+				FreeHeap:         &freeHeap,
+				WirelessStrength: &wirelessStrength,
+				ActiveUsers:      &activeUsers,
+				CreatedAt:        time.Now(),
+			}
+			if err := db.Create(&record).Error; err != nil {
+				log.Printf("scheduler: save status [%s]: %v", v.Name, err)
+			}
 		}
+
+		db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", true)
 	}
+}
+
+// statusHash returns a SHA-256 fingerprint of the metric fields to detect
+// whether a new snapshot is identical to the previous one.
+func statusHash(totalSales, currentSales float64, freeHeap int, wirelessStrength float64, activeUsers, customerCount int) string {
+	s := fmt.Sprintf("%v|%v|%v|%v|%v|%v", totalSales, currentSales, freeHeap, wirelessStrength, activeUsers, customerCount)
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
+func derefF64(p *float64) float64 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+func derefInt(p *int) int {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 // activeVendos fetches all is_active=1 vendos from the database.

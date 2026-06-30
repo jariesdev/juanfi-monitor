@@ -233,11 +233,25 @@ All protected endpoints require a `Bearer` token in the `Authorization` header.
 
 ### Users
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| `GET` | `/users/me` | Yes | Get currently authenticated user |
-| `GET` | `/users` | Yes | List users |
-| `GET` | `/users/:id` | Yes | Get user by ID |
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/users/me` | Yes | any | Get currently authenticated user |
+| `PUT` | `/users/me/password` | Yes | any | Change current user's password |
+| `GET` | `/users` | Yes | `users` | List users (supports `?q=&sort_by=&sort_dir=`) |
+| `GET` | `/users/:id` | Yes | `users` | Get user by ID |
+| `POST` | `/users` | Yes | `users` | Create a user (`{username, password, role_id?, vendo_ids?, is_active?}`) |
+| `PUT` | `/users/:id` | Yes | `users` | Update a user (all fields optional; cannot change own password here) |
+| `DELETE` | `/users/:id` | Yes | `users` | Delete a user (self-delete returns 422) |
+
+### Roles
+
+| Method | Path | Auth | Permission | Description |
+|---|---|---|---|---|
+| `GET` | `/roles` | Yes | `users` | List all roles |
+| `GET` | `/roles/:id` | Yes | `users` | Get role by ID |
+| `POST` | `/roles` | Yes | `users` | Create a role (`{name, permissions: string[]}`) |
+| `PUT` | `/roles/:id` | Yes | `users` | Update a role |
+| `DELETE` | `/roles/:id` | Yes | `users` | Delete a role (returns 422 if assigned to any user) |
 
 ### Vendo Machines
 
@@ -342,7 +356,7 @@ PASS
 ok  github.com/jariesdev/vendoreport/tests  20.6s
 ```
 
-**43 tests** covering all endpoints, authentication, pagination, filters, and error cases.
+**57 tests** covering all endpoints, authentication, pagination, filters, permission enforcement, and error cases.
 
 ---
 

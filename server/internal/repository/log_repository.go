@@ -2,6 +2,7 @@ package repository
 
 import (
 	"math"
+	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
 	"gorm.io/gorm"
@@ -18,7 +19,7 @@ func NewLogRepository(db *gorm.DB) *LogRepository {
 
 // Search returns a paginated list of vendo logs with optional filters.
 // Logs are ordered by log_time descending (most recent first).
-func (r *LogRepository) Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoLog], error) {
+func (r *LogRepository) Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int) (*PageResult[models.VendoLog], error) {
 	var logs []models.VendoLog
 	var total int64
 
@@ -28,10 +29,18 @@ func (r *LogRepository) Search(q *string, date *string, vendoID *uint, page, siz
 		query = query.Where("description LIKE ?", "%"+*q+"%")
 	}
 	if date != nil && *date != "" {
-		query = query.Where("DATE(log_time) = ?", *date)
+		loc := time.FixedZone("PHT", 8*60*60)
+		start, err := time.ParseInLocation("2006-01-02", *date, loc)
+		if err == nil {
+			end := start.Add(24 * time.Hour)
+			query = query.Where("log_time >= ? AND log_time < ?", start, end)
+		}
 	}
 	if vendoID != nil {
 		query = query.Where("vendo_id = ?", *vendoID)
+	}
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_id IN ?", assignedIDs)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

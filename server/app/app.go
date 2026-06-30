@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jariesdev/vendoreport/internal/controllers"
 	"github.com/jariesdev/vendoreport/internal/middleware"
+	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/scheduler"
 	ws "github.com/jariesdev/vendoreport/internal/websocket"
@@ -18,8 +19,8 @@ import (
 
 // App holds the live components that need lifecycle management (cron, ws hub).
 type App struct {
-	Router    *gin.Engine
-	Hub       *ws.Hub
+	Router *gin.Engine
+	Hub    *ws.Hub
 	// StopScheduler stops the background cron jobs. Call it on shutdown.
 	StopScheduler func()
 }
@@ -38,15 +39,21 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	saleRepo := repository.NewSaleRepository(db)
 	statusRepo := repository.NewVendoStatusRepository(db)
 	withdrawalRepo := repository.NewWithdrawalRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	rateRepo := repository.NewVendoRateRepository(db)
+	voucherRepo := repository.NewVendoVoucherRepository(db)
 
 	// ── Controllers ──────────────────────────────────────────────────────────
 	authCtrl := controllers.NewAuthController(userRepo, jwtSecret)
 	userCtrl := controllers.NewUserController(userRepo)
-	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo)
+	roleCtrl := controllers.NewRoleController(roleRepo)
+	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo, userRepo)
 	logCtrl := controllers.NewLogController(db, logRepo, vendoRepo)
 	saleCtrl := controllers.NewSaleController(saleRepo)
 	statusCtrl := controllers.NewVendoStatusController(statusRepo)
 	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
+	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
+	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -62,7 +69,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -75,11 +82,14 @@ func buildRouter(
 	hub *ws.Hub,
 	authCtrl *controllers.AuthController,
 	userCtrl *controllers.UserController,
+	roleCtrl *controllers.RoleController,
 	vendoCtrl *controllers.VendoController,
 	logCtrl *controllers.LogController,
 	saleCtrl *controllers.SaleController,
 	statusCtrl *controllers.VendoStatusController,
 	withdrawalCtrl *controllers.WithdrawalController,
+	rateCtrl *controllers.VendoRateController,
+	voucherCtrl *controllers.VendoVoucherController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -102,9 +112,24 @@ func buildRouter(
 	auth := router.Group("/")
 	auth.Use(middleware.Auth(userRepo, jwtSecret))
 
+	auth.POST("/token/refresh", authCtrl.Refresh)
+
 	auth.GET("/users/me", userCtrl.Me)
-	auth.GET("/users", userCtrl.List)
-	auth.GET("/users/:id", userCtrl.Get)
+	auth.PUT("/users/me/password", userCtrl.ChangePassword)
+
+	// User management — requires users permission
+	usersAdmin := auth.Group("/")
+	usersAdmin.Use(middleware.RequirePermission(models.PermUsers))
+	usersAdmin.GET("/users", userCtrl.List)
+	usersAdmin.GET("/users/:id", userCtrl.Get)
+	usersAdmin.POST("/users", userCtrl.Create)
+	usersAdmin.PUT("/users/:id", userCtrl.Update)
+	usersAdmin.DELETE("/users/:id", userCtrl.Delete)
+	usersAdmin.GET("/roles", roleCtrl.List)
+	usersAdmin.GET("/roles/:id", roleCtrl.Get)
+	usersAdmin.POST("/roles", roleCtrl.Create)
+	usersAdmin.PUT("/roles/:id", roleCtrl.Update)
+	usersAdmin.DELETE("/roles/:id", roleCtrl.Delete)
 
 	auth.GET("/logs", logCtrl.Search)
 	auth.POST("/log/refresh", logCtrl.Refresh)
@@ -117,11 +142,41 @@ func buildRouter(
 
 	auth.GET("/vendo-machines", vendoCtrl.All)
 	auth.GET("/vendo-machines/:id/status", vendoCtrl.Status)
+	auth.GET("/vendo-machines/:id/active-users", vendoCtrl.ActiveUsers)
 	auth.GET("/vendo-machines/:id", vendoCtrl.Get)
 	auth.POST("/vendo-machines", vendoCtrl.Store)
 	auth.DELETE("/vendo-machines/:id", vendoCtrl.Delete)
 	auth.POST("/vendo-machines/:id/withdraw-current-sales", vendoCtrl.Withdraw)
 	auth.POST("/vendo-machines/:id/set-status", vendoCtrl.SetStatus)
+
+	// Vendo rates — require the rates permission. Controllers further enforce
+	// per-vendo access (canAccessVendo) and admin-only operations on the shared
+	// default template / apply-to-all (isAdmin).
+	rates := auth.Group("/")
+	rates.Use(middleware.RequirePermission(models.PermRates))
+	rates.GET("/vendo-machines/:id/rates", rateCtrl.ListForVendo)
+	rates.POST("/vendo-machines/:id/rates", rateCtrl.Create)
+	rates.POST("/vendo-machines/:id/rates/import", rateCtrl.ImportFromMachine)
+	rates.POST("/vendo-machines/:id/rates/sync", rateCtrl.SyncToMachine)
+	rates.POST("/vendo-machines/:id/rates/set-as-default", rateCtrl.SetAsDefault)
+	rates.PUT("/vendo-rates/:rateId", rateCtrl.Update)
+	rates.DELETE("/vendo-rates/:rateId", rateCtrl.Delete)
+	rates.GET("/vendo-rates/default", rateCtrl.ListDefault)
+	rates.POST("/vendo-rates/default", rateCtrl.CreateDefault)
+	rates.POST("/vendo-rates/apply-to-all", rateCtrl.ApplyToAll)
+
+	// Vendo vouchers — require the vouchers permission. Controllers enforce
+	// per-vendo access and voucher generation business rules.
+	vouchers := auth.Group("/")
+	vouchers.Use(middleware.RequirePermission(models.PermVouchers))
+	vouchers.GET("/vendo-machines/:id/vouchers", voucherCtrl.ListForVendo)
+	vouchers.POST("/vendo-machines/:id/vouchers/generate", voucherCtrl.Generate)
+
+	// Vendo system configuration — its own permission since it exposes device
+	// credentials (admin/operator/mikrotik passwords, API key).
+	vendoConfig := auth.Group("/")
+	vendoConfig.Use(middleware.RequirePermission(models.PermVendoConfig))
+	vendoConfig.GET("/vendo-machines/:id/config", vendoCtrl.Config)
 
 	auth.GET("/withdrawals", withdrawalCtrl.Search)
 
@@ -156,4 +211,3 @@ func corsMiddleware(allowedOrigins []string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

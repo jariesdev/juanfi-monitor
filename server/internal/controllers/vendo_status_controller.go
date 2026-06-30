@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
@@ -40,7 +41,7 @@ func (v *VendoStatusController) Search(c *gin.Context) {
 		toPtr = &toDate
 	}
 
-	rows, err := v.statusRepo.GetHourlyStatus(vendoIDPtr, fromPtr, toPtr, activeOnly)
+	rows, err := v.statusRepo.GetHourlyStatus(vendoIDPtr, fromPtr, toPtr, activeOnly, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

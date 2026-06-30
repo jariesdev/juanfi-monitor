@@ -14,10 +14,18 @@ func NewWithdrawalRepository(db *gorm.DB) *WithdrawalRepository {
 	return &WithdrawalRepository{db: db}
 }
 
-// Search returns all withdrawal records with their associated vendo preloaded.
-func (r *WithdrawalRepository) Search() ([]models.Withdrawal, error) {
+// Search returns withdrawal records with their associated vendo preloaded.
+// When vendoID is non-nil the results are filtered to that vendo.
+func (r *WithdrawalRepository) Search(vendoID *uint, assignedIDs []uint) ([]models.Withdrawal, error) {
 	var withdrawals []models.Withdrawal
-	err := r.db.Preload("Vendo").Find(&withdrawals).Error
+	q := r.db.Preload("Vendo")
+	if vendoID != nil {
+		q = q.Where("vendo_id = ?", *vendoID)
+	}
+	if len(assignedIDs) > 0 {
+		q = q.Where("vendo_id IN ?", assignedIDs)
+	}
+	err := q.Find(&withdrawals).Error
 	return withdrawals, err
 }
 

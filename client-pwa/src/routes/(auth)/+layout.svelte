@@ -2,7 +2,21 @@
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Notifications from '$lib/components/Notifications.svelte';
+	import Toast from '$lib/components/Toast.svelte';
+	import { setPermissions } from '$lib/acl.svelte.js';
 	import { navCollapsed } from '$lib/store';
+	import type { Snippet } from 'svelte';
+
+	interface LayoutData {
+		user: unknown;
+		permissions: string[];
+	}
+
+	let { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+	$effect(() => {
+		setPermissions(data.permissions);
+	});
 </script>
 
 <!-- Desktop sidebar (hidden on mobile via CSS) -->
@@ -13,7 +27,7 @@
 <!-- Main content — offset matches sidebar width on desktop -->
 <main class="auth-content" class:sidebar-expanded={!$navCollapsed} class:sidebar-collapsed={$navCollapsed}>
 	<div class="content-inner uk-margin-auto-left uk-margin-auto-right">
-		<slot />
+		{@render children()}
 	</div>
 </main>
 
@@ -23,6 +37,7 @@
 </div>
 
 <Notifications />
+<Toast />
 
 <style>
 	/* Desktop sidebar wrapper — visible only on desktop */

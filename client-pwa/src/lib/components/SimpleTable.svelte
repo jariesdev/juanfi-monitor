@@ -117,4 +117,8 @@
 	.sort-icon.active {
 		opacity: 1;
 	}
+
+	:global(.action-btns .uk-icon-button) {
+		background-color: transparent;
+	}
 </style>

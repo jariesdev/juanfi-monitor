@@ -26,7 +26,7 @@ jobs:
           cache-dependency-path: server/go.sum
 
       - name: Run tests
-        run: go test ./tests/... -v -count=1
+        run: go test ./tests/... -count=1
 
   build:
     name: Build
@@ -68,6 +68,11 @@ jobs:
           name: server-artifacts
           path: artifact
 
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Add server to known hosts
         run: |
           mkdir -p ~/.ssh
@@ -78,16 +83,13 @@ jobs:
 
       - name: Deploy to production
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           PRODUCTION_SERVER_URI: ${{ vars.PRODUCTION_SERVER_URI }}
           SERVER_WORKING_DIR: ${{ vars.SERVER_WORKING_DIR }}
           SERVER_BUILD_DIR: ${{ vars.SERVER_BUILD_DIR }}
           SERVER_SERVICE_NAME: ${{ vars.SERVER_SERVICE_NAME }}
         run: |
-          echo "${SSH_PRIVATE_KEY}" > ssh_key
-          chmod 600 ssh_key
-          scp -i ssh_key artifact/server-artifacts.tar.gz "${PRODUCTION_SERVER_URI}:${SERVER_BUILD_DIR}"
-          scp -i ssh_key server.env "${PRODUCTION_SERVER_URI}:${SERVER_WORKING_DIR}/.env"
-          ssh -i ssh_key "${PRODUCTION_SERVER_URI}" \
+          scp artifact/server-artifacts.tar.gz "${PRODUCTION_SERVER_URI}:${SERVER_BUILD_DIR}"
+          scp server.env "${PRODUCTION_SERVER_URI}:${SERVER_WORKING_DIR}/.env"
+          ssh "${PRODUCTION_SERVER_URI}" \
             "tar -xzf ${SERVER_BUILD_DIR}/server-artifacts.tar.gz -C ${SERVER_WORKING_DIR} && \
-             sudo systemctl restart ${SERVER_SERVICE_NAME}"
+             sudo -n systemctl restart ${SERVER_SERVICE_NAME}"
