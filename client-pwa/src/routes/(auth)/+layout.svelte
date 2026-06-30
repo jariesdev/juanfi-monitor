@@ -3,6 +3,7 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 	import Notifications from '$lib/components/Notifications.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import { setPermissions } from '$lib/acl.svelte.js';
 	import { navCollapsed } from '$lib/store';
 	import type { Snippet } from 'svelte';
 
@@ -12,11 +13,15 @@
 	}
 
 	let { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+	$effect(() => {
+		setPermissions(data.permissions);
+	});
 </script>
 
 <!-- Desktop sidebar (hidden on mobile via CSS) -->
 <div class="desktop-nav">
-	<Sidebar permissions={data.permissions} />
+	<Sidebar />
 </div>
 
 <!-- Main content — offset matches sidebar width on desktop -->
@@ -28,7 +33,7 @@
 
 <!-- Mobile bottom nav (hidden on desktop via CSS) -->
 <div class="mobile-nav">
-	<BottomNav permissions={data.permissions} />
+	<BottomNav />
 </div>
 
 <Notifications />

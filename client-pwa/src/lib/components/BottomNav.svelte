@@ -1,13 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { getPermissions } from '$lib/acl.svelte.js';
 	import { getVisibleNavItems, type NavItem } from '$lib/nav';
 
-	interface Props {
-		permissions?: string[];
-	}
-	let { permissions = [] }: Props = $props();
-
-	const visibleItems = $derived(getVisibleNavItems(permissions));
+	const visibleItems = $derived(getVisibleNavItems(getPermissions()));
 
 	let activeSheet: NavItem | null = $state(null);
 	let tooltip: { label: string; x: number } | null = $state(null);

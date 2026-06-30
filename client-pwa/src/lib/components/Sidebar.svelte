@@ -1,14 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { navCollapsed } from '$lib/store';
+	import { getPermissions } from '$lib/acl.svelte.js';
 	import { getVisibleNavItems, type NavItem } from '$lib/nav';
 
-	interface Props {
-		permissions?: string[];
-	}
-	let { permissions = [] }: Props = $props();
-
-	const visibleItems = $derived(getVisibleNavItems(permissions));
+	const visibleItems = $derived(getVisibleNavItems(getPermissions()));
 
 	let openGroups: Record<string, boolean> = $state({});
 

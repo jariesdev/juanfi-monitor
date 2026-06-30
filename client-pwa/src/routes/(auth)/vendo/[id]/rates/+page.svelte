@@ -3,7 +3,6 @@
 
 	const { data } = $props();
 	const vendoId = $derived(Number(data.id));
-	const isAdmin = $derived(data.isAdmin ?? false);
 </script>
 
 <svelte:head>
@@ -20,7 +19,7 @@
 			<h1 class="page-title">Rate Plans</h1>
 		</div>
 
-		<RatesTable {vendoId} {isAdmin} />
+		<RatesTable {vendoId} />
 	</div>
 </div>
 

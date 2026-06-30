@@ -3,16 +3,16 @@
 	import SimpleTable from '$lib/components/SimpleTable.svelte';
 	import RateForm from '$lib/components/RateForm.svelte';
 	import ActionButton from '$lib/components/ActionButton.svelte';
+	import { isAdmin } from '$lib/acl.svelte.js';
 	import { toast } from '$lib/store';
 	import type { iVendoRate } from '$lib/types/models';
 	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
 
 	interface Props {
 		vendoId: number;
-		isAdmin?: boolean;
 	}
 
-	const { vendoId, isAdmin = false }: Props = $props();
+	const { vendoId }: Props = $props();
 
 	let rates: iVendoRate[] = $state([]);
 	let isLoading = $state(true);
@@ -189,7 +189,7 @@
 			onclick={syncToMachine}
 			disabled={isSyncing}
 		/>
-		{#if isAdmin}
+		{#if isAdmin()}
 			<ActionButton icon="list" label="Default Rates" href="/settings/default-rates" />
 			<ActionButton
 				icon="star"

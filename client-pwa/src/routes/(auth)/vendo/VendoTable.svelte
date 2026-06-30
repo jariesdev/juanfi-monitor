@@ -3,14 +3,8 @@
 	import VendoForm from '$lib/components/VendoForm.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import { hasPermission } from '$lib/acl.svelte.js';
 	import type { RowItem, TableHeader } from '$lib/types/datatable';
-
-	interface Props {
-		canManageRates?: boolean;
-		canManageVouchers?: boolean;
-	}
-
-	const { canManageRates = false, canManageVouchers = false }: Props = $props();
 
 	let dataTable: DataTable;
 
@@ -68,7 +62,7 @@
 								<span>Active users</span>
 							</a>
 						</li>
-						{#if canManageRates}
+						{#if hasPermission('rates')}
 							<li>
 								<a href={`/vendo/${item.id}/rates`}>
 									<span class="action-icon" uk-icon="icon: tag"></span>
@@ -76,7 +70,7 @@
 								</a>
 							</li>
 						{/if}
-						{#if canManageVouchers}
+						{#if hasPermission('vouchers')}
 							<li>
 								<a href={`/vendo/${item.id}/vouchers`}>
 									<svg
@@ -99,6 +93,14 @@
 										<path d="M11 12h2" />
 									</svg>
 									<span>Manage vouchers</span>
+								</a>
+							</li>
+						{/if}
+						{#if hasPermission('logs')}
+							<li>
+								<a href={`/logs?vendo_id=${item.id}`}>
+									<span class="action-icon" uk-icon="icon: file-text"></span>
+									<span>Logs</span>
 								</a>
 							</li>
 						{/if}
