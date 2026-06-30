@@ -71,16 +71,18 @@ flowchart LR
 
 ## Constraints
 - Search is **row-level scoped** to assigned vendos for non-admins.
-- Logs are deduplicated on `(vendo_id, log_time)` (unique index `idx_vendo_log_time`).
+- Logs are deduplicated primarily by a **windowed `(vendo_id, description)` check** (`storeLogs`): an incoming entry is skipped if a row with the same description already exists within ±`logDedupWindow` (5s) of its computed `log_time`. The `(vendo_id, log_time)` unique index `idx_vendo_log_time` (via `OnConflict DoNothing`) remains as a backstop.
 
 ## Assumptions
 - Device log timestamps are device-relative milliseconds; the logger converts them to wall-clock using the device's reported uptime (dashboard call precedes log fetch).
+- The converted `log_time` **drifts** by tens of ms to ~1s between polls (it is recomputed from `now − reported_uptime + offset` each time), which is why exact-timestamp dedup is unreliable and the windowed description check is the primary mechanism — mirroring the ±10s window `storeSales` uses.
+- Two distinct log entries with the **same** description within the window are treated as one (accepted tradeoff); entries with different descriptions in the same second are preserved.
 - Log descriptions are produced from indexed firmware templates (`FormatLogMessage`).
 - Refresh affects only `is_active` vendos.
 
 ## Invariants
 - A `vendo_logs` row has a non-null `vendo_id`, `log_time`, and `description`.
-- Re-running refresh does not create duplicate rows for the same `(vendo_id, log_time)`.
+- Re-running refresh does not create duplicate rows for the same logical entry (same `(vendo_id, description)` within the dedup window), despite per-poll `log_time` drift.
 
 ---
 
