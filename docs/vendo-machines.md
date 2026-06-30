@@ -191,6 +191,7 @@ flowchart LR
 - [monitoring-and-notifications.md](monitoring-and-notifications.md) — persisted status snapshots + `is_online`.
 - [sales-and-withdrawals.md](sales-and-withdrawals.md) — the withdrawal log this feature writes to.
 - [vendo-rates.md](vendo-rates.md) — rate management on the same `:id` namespace.
+- [vendo-system-configuration.md](vendo-system-configuration.md) — `GET /vendo-machines/:id/config`, same controller/service, gated on its own `vendoconfig` permission instead of `vendos`.
 
 ---
 

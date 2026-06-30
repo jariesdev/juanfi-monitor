@@ -10,6 +10,7 @@
 |---|---|---|
 | [authentication-and-access.md](authentication-and-access.md) | Auth, Users, Roles, Permissions | Login, JWT sessions, password change, RBAC. |
 | [vendo-machines.md](vendo-machines.md) | Vendo machines | CRUD, live status, active users, enable/disable, withdraw. |
+| [vendo-system-configuration.md](vendo-system-configuration.md) | Vendo system configuration | Read-only device config (network, credentials, coin slot, pins, voucher, etc.), field-mapping confidence reference. |
 | [sales-and-withdrawals.md](sales-and-withdrawals.md) | Sales & withdrawals | Sale records, daily/monthly aggregates, withdrawal log. |
 | [system-logs.md](system-logs.md) | System logs | Device log persistence, search, manual refresh. |
 | [monitoring-and-notifications.md](monitoring-and-notifications.md) | Scheduler, status snapshots, notifications | Cron jobs, status history, WebSocket broadcast. |
@@ -102,7 +103,7 @@ flowchart TB
 ## Authorization (permission-based ACL)
 - Roles are **created dynamically** (UI/API); there are no hardcoded role names.
 - A role holds a list of **permissions**. A user's effective permissions = union of its roles' permissions + always-on defaults.
-- Permission strings: `dashboard`, `account`, `vendos`, `sales`, `logs`, `withdrawals`, `rates`, `vouchers`, `settings`, `users`.
+- Permission strings: `dashboard`, `account`, `vendos`, `sales`, `logs`, `withdrawals`, `rates`, `vouchers`, `settings`, `users`, `vendoconfig`.
 - **Always-on defaults** (granted to every user regardless of role): `dashboard`, `account`.
 - **Admin** = holds the `users` permission. Equivalent to `assignedVendoIDs(c) == nil` (unrestricted vendo access).
 - **Row-level vendo scoping:** non-admins are limited to their assigned vendos via `assignedVendoIDs(c)` / `canAccessVendo(c, id)`. This filters sales, logs, status, withdrawals, and vendos.
