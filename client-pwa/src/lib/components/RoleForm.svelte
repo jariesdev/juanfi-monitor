@@ -32,7 +32,7 @@
 		logs: 'Logs',
 		withdrawals: 'Withdrawals',
 		rates: 'Vendo Rates',
-		users: 'User Management (Admin)'
+		users: 'User Management'
 	};
 
 	async function submit() {
