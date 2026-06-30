@@ -17,30 +17,108 @@ const salesLogTypeIndex = 14 // log type index for purchase transactions
 
 // SystemStatus holds all fields returned by the Juanfi dashboard API.
 type SystemStatus struct {
-	SystemUptimeMs      int64   `json:"system_uptime_ms"`
-	TotalCoinCount      int     `json:"total_coin_count"`
-	CurrentCoinCount    int     `json:"current_coin_count"`
-	CustomerCount       int     `json:"customer_count"`
-	InternetStatus      bool    `json:"internet_status"`
-	MikrotikStatus      bool    `json:"mikrotik_status"`
-	MacAddress          string  `json:"mac_address"`
-	IPAddress           string  `json:"ip_address"`
-	HardwareType        string  `json:"hardware_type"`
-	Version             float64 `json:"version"`
-	InterfaceType       string  `json:"interface_type"`
-	WirelessStrength    int     `json:"wireless_signal_strength"`
-	FreeHeap            int     `json:"free_heap"`
-	AuthType            string  `json:"auth_type"`
-	NightLightStatus    bool    `json:"night_light_status"`
-	ActiveUserCount     int     `json:"active_user_count"`
-	SystemClock         string  `json:"system_clock"`
-	ServerTime          float64 `json:"server_time"`
+	SystemUptimeMs   int64   `json:"system_uptime_ms"`
+	TotalCoinCount   int     `json:"total_coin_count"`
+	CurrentCoinCount int     `json:"current_coin_count"`
+	CustomerCount    int     `json:"customer_count"`
+	InternetStatus   bool    `json:"internet_status"`
+	MikrotikStatus   bool    `json:"mikrotik_status"`
+	MacAddress       string  `json:"mac_address"`
+	IPAddress        string  `json:"ip_address"`
+	HardwareType     string  `json:"hardware_type"`
+	Version          float64 `json:"version"`
+	InterfaceType    string  `json:"interface_type"`
+	WirelessStrength int     `json:"wireless_signal_strength"`
+	FreeHeap         int     `json:"free_heap"`
+	AuthType         string  `json:"auth_type"`
+	NightLightStatus bool    `json:"night_light_status"`
+	ActiveUserCount  int     `json:"active_user_count"`
+	SystemClock      string  `json:"system_clock"`
+	ServerTime       float64 `json:"server_time"`
 }
+
+// SystemConfig holds the device's persistent configuration, as returned by
+// api/getSystemConfig and written back by api/saveSystemConfig (same
+// pipe-delimited positional format for both — saving is a direct round-trip
+// of reading).
+//
+// Field order for indices 0-29 is confirmed from an older Juanfi admin
+// console's populateSystemConfigFields() JS, which still matches this build's
+// response byte-for-byte. Indices 30+ were added by newer firmware after
+// that JS was captured; OperatorUsername/OperatorPassword/APIKey/
+// CoinMultiplier/VoucherLength/BillAcceptorMultiplier/IncludeVendoName are
+// confirmed by exact-value matches against a live device's admin panel. The
+// rest of the new fields (marked "best-effort" below) are positional guesses
+// based on the admin panel's field list and have not been confirmed against
+// firmware source — verify against a live device before trusting them for
+// anything beyond display.
+type SystemConfig struct {
+	VendoName           string `json:"vendo_name"`
+	WiFiSSID            string `json:"wifi_ssid"`
+	WiFiPassword        string `json:"wifi_password"`
+	MikrotikIP          string `json:"mikrotik_ip"`
+	MikrotikUsername    string `json:"mikrotik_username"`
+	MikrotikPassword    string `json:"mikrotik_password"`
+	CoinSlotWaitTimeSec int    `json:"coin_slot_wait_time_sec"`
+	AdminUsername       string `json:"admin_username"`
+	AdminPassword       string `json:"admin_password"`
+	CoinSlotAbuseCount  int    `json:"coin_slot_abuse_count"`
+	CoinSlotBanMinutes  int    `json:"coin_slot_ban_minutes"`
+	CoinSlotPin         int    `json:"coin_slot_pin"`
+	CoinSlotSetPin      int    `json:"coin_slot_set_pin"`
+	SystemReadyLEDPin   int    `json:"system_ready_led_pin"`
+	InsertCoinLEDPin    int    `json:"insert_coin_led_pin"`
+	LCDScreen           int    `json:"lcd_screen"`
+	InsertCoinButtonPin int    `json:"insert_coin_button_pin"`
+	CheckInternetStatus bool   `json:"check_internet_status"`
+	VoucherPrefix       string `json:"voucher_prefix"`
+	WelcomeLCDMarquee   string `json:"welcome_lcd_marquee"`
+	SetupDoneFlag       bool   `json:"setup_done_flag"`
+	VoucherLoginOption  int    `json:"voucher_login_option"`
+	VoucherProfile      string `json:"voucher_profile"`
+	VoucherValidity     int    `json:"voucher_validity"`
+	LEDTriggerType      int    `json:"led_trigger_type"`
+	IPAddressMode       int    `json:"ip_address_mode"`
+	LocalIPAddress      string `json:"local_ip_address"`
+	GatewayIP           string `json:"gateway_ip"`
+	SubnetMask          string `json:"subnet_mask"`
+	DNSServer           string `json:"dns_server"`
+
+	// --- Fields below this point were added by newer firmware. ---
+
+	ConnectionMode         int    `json:"connection_mode"`          // best-effort
+	CoinSlotType           int    `json:"coin_slot_type"`           // best-effort
+	ButtonFunction         int    `json:"button_function"`          // best-effort
+	OperatorUsername       string `json:"operator_username"`        // confirmed
+	OperatorPassword       string `json:"operator_password"`        // confirmed
+	APIKey                 string `json:"api_key"`                  // confirmed
+	BillAcceptorPin        int    `json:"bill_acceptor_pin"`        // best-effort
+	CoinMultiplier         int    `json:"coin_multiplier"`          // confirmed
+	VoucherLength          int    `json:"voucher_length"`           // confirmed
+	NightLightPin          int    `json:"night_light_pin"`          // best-effort
+	LCDSDAPin              int    `json:"lcd_sda_pin"`              // best-effort
+	LCDSCLPin              int    `json:"lcd_scl_pin"`              // best-effort
+	LANCSPin               int    `json:"lan_cs_pin"`               // best-effort
+	PrinterPin             int    `json:"printer_pin"`              // best-effort
+	BillAcceptorMultiplier int    `json:"bill_acceptor_multiplier"` // confirmed
+	PrintOption            int    `json:"print_option"`             // best-effort
+	IncludeVendoName       bool   `json:"include_vendo_name"`       // confirmed
+
+	// ExtraFields preserves any trailing fields this struct doesn't model
+	// (observed as blank/zero padding past index 46), so SaveSystemConfig can
+	// write them back unchanged instead of silently dropping unknown device
+	// settings.
+	ExtraFields []string `json:"extra_fields,omitempty"`
+}
+
+// systemConfigFieldCount is the number of leading fields this struct names
+// explicitly (indices 0-46). Anything beyond that is kept in ExtraFields.
+const systemConfigFieldCount = 47
 
 // RawLog is a parsed row from the Juanfi getSystemLogs response.
 type RawLog struct {
 	HasHeader    bool
-	Time         int64    // milliseconds since device startup
+	Time         int64 // milliseconds since device startup
 	LogTypeIndex int
 	LogParams    []string
 }
@@ -158,10 +236,120 @@ func (j *JuanfiAPI) ComputeLogTime(timeSinceStartup int64) time.Time {
 	return time.UnixMilli(absMs)
 }
 
+// ActiveUser represents a single connected user returned by api/getActiveUsers.
+type ActiveUser struct {
+	NodeID      string `json:"node_id"`
+	User        string `json:"user"`
+	MacAddress  string `json:"mac_address"`
+	SessionLeft string `json:"session_left"`
+}
+
+// GetActiveUsers fetches the list of currently connected users from the device.
+func (j *JuanfiAPI) GetActiveUsers() ([]ActiveUser, error) {
+	body, err := j.sendRequest("api/getActiveUsers", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var users []ActiveUser
+	for _, row := range strings.Split(body, "|") {
+		fields := strings.Split(row, "#")
+		if len(fields) < 4 {
+			continue
+		}
+		users = append(users, ActiveUser{
+			NodeID:      fields[0],
+			User:        fields[1],
+			MacAddress:  fields[2],
+			SessionLeft: fields[3],
+		})
+	}
+	return users, nil
+}
+
 // ResetCurrentSales calls the Juanfi API to reset the current sales counter.
 func (j *JuanfiAPI) ResetCurrentSales() error {
 	_, err := j.sendRequest("api/resetStatistic", map[string]string{"type": "coinCount"})
 	return err
+}
+
+// Rate is a single pricing tier as configured on the device.
+type Rate struct {
+	Name         string
+	Price        float64
+	Minutes      int
+	ValidityMins int
+	DataLimitMB  *int   // nil when the device leaves the field blank
+	UserProfile  string // "default" (Mikrotik's default hotspot profile) when the device leaves the field blank
+}
+
+// GeneratedVoucher is a single voucher code returned by api/generateVouchers.
+// VendoName, Amount, and Duration are shared across the whole generated batch.
+type GeneratedVoucher struct {
+	VendoName string
+	Amount    float64
+	Duration  int // minutes
+	Code      string
+}
+
+// GetRates fetches and parses the rate plans configured on the device.
+func (j *JuanfiAPI) GetRates() ([]Rate, error) {
+	body, err := j.sendRequest("api/getRates", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var rates []Rate
+	for _, chunk := range strings.Split(body, "|") {
+		if chunk == "" {
+			continue
+		}
+
+		fields := strings.Split(chunk, "#")
+		if fields[0] == "" {
+			continue
+		}
+
+		// The device may emit a final entry with trailing/missing fields
+		// (e.g. "Name#"), so read each field defensively and default to zero
+		// rather than skipping the whole entry.
+		var price float64
+		if len(fields) > 1 {
+			price, _ = strconv.ParseFloat(fields[1], 64)
+		}
+		var minutes int
+		if len(fields) > 2 {
+			minutes, _ = strconv.Atoi(fields[2])
+		}
+		var validity int
+		if len(fields) > 3 {
+			validity, _ = strconv.Atoi(fields[3])
+		}
+
+		var dataLimit *int
+		if len(fields) > 4 && fields[4] != "" {
+			if v, err := strconv.Atoi(fields[4]); err == nil {
+				dataLimit = &v
+			}
+		}
+
+		// "default" is Mikrotik's default hotspot user profile, used by the
+		// device whenever a rate doesn't specify an override profile.
+		userProfile := "default"
+		if len(fields) > 5 && fields[5] != "" {
+			userProfile = fields[5]
+		}
+
+		rates = append(rates, Rate{
+			Name:         fields[0],
+			Price:        price,
+			Minutes:      minutes,
+			ValidityMins: validity,
+			DataLimitMB:  dataLimit,
+			UserProfile:  userProfile,
+		})
+	}
+	return rates, nil
 }
 
 // FormatLogMessage renders a log type template with the provided parameters.
@@ -224,9 +412,10 @@ func (j *JuanfiAPI) loadSystemStatus() (*SystemStatus, error) {
 	}, nil
 }
 
-// sendRequest performs an authenticated GET to the vendo machine API.
-// A Unix-ms timestamp is appended as the `query` parameter on every request.
-func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (string, error) {
+// buildURL constructs the full request URL for a device endpoint path.
+// A Unix-ms timestamp is always appended as the `query` parameter, plus any
+// extra query params the caller supplies.
+func (j *JuanfiAPI) buildURL(path string, extraQuery map[string]string) string {
 	base := strings.TrimRight(j.baseURL, "/")
 	endpoint := fmt.Sprintf("%s/admin/%s", base, path)
 
@@ -235,8 +424,12 @@ func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (stri
 	for k, v := range extraQuery {
 		params.Set(k, v)
 	}
+	return endpoint + "?" + params.Encode()
+}
 
-	fullURL := endpoint + "?" + params.Encode()
+// sendRequest performs an authenticated GET to the vendo machine API.
+func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (string, error) {
+	fullURL := j.buildURL(path, extraQuery)
 	req, err := http.NewRequest(http.MethodGet, fullURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("juanfi: build request: %w", err)
@@ -258,6 +451,300 @@ func (j *JuanfiAPI) sendRequest(path string, extraQuery map[string]string) (stri
 		return "", fmt.Errorf("juanfi: read response body: %w", err)
 	}
 	return string(bodyBytes), nil
+}
+
+// SaveRates pushes the given rate plans to the device, replacing whatever
+// rate plan it currently has configured under rateType 1 (the WiFi/hotspot
+// rate plan — the only rate table vendo machines use).
+func (j *JuanfiAPI) SaveRates(rates []Rate) error {
+	fullURL := j.buildURL("api/saveRates", map[string]string{"rateType": "1"})
+
+	form := url.Values{}
+	form.Set("data", encodeRates(rates))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("juanfi: unexpected status %d from api/saveRates", resp.StatusCode)
+	}
+	return nil
+}
+
+// GetSystemConfig fetches and parses the device's persistent configuration.
+func (j *JuanfiAPI) GetSystemConfig() (*SystemConfig, error) {
+	body, err := j.sendRequest("api/getSystemConfig", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	data := strings.Split(body, "|")
+	if len(data) < systemConfigFieldCount {
+		return nil, fmt.Errorf("getSystemConfig response too short: got %d fields", len(data))
+	}
+
+	atoi := func(s string) int {
+		v, _ := strconv.Atoi(s)
+		return v
+	}
+
+	cfg := &SystemConfig{
+		VendoName:           data[0],
+		WiFiSSID:            data[1],
+		WiFiPassword:        data[2],
+		MikrotikIP:          data[3],
+		MikrotikUsername:    data[4],
+		MikrotikPassword:    data[5],
+		CoinSlotWaitTimeSec: atoi(data[6]),
+		AdminUsername:       data[7],
+		AdminPassword:       data[8],
+		CoinSlotAbuseCount:  atoi(data[9]),
+		CoinSlotBanMinutes:  atoi(data[10]),
+		CoinSlotPin:         atoi(data[11]),
+		CoinSlotSetPin:      atoi(data[12]),
+		SystemReadyLEDPin:   atoi(data[13]),
+		InsertCoinLEDPin:    atoi(data[14]),
+		LCDScreen:           atoi(data[15]),
+		InsertCoinButtonPin: atoi(data[16]),
+		CheckInternetStatus: data[17] == "1",
+		VoucherPrefix:       data[18],
+		WelcomeLCDMarquee:   data[19],
+		SetupDoneFlag:       data[20] == "1",
+		VoucherLoginOption:  atoi(data[21]),
+		VoucherProfile:      data[22],
+		VoucherValidity:     atoi(data[23]),
+		LEDTriggerType:      atoi(data[24]),
+		IPAddressMode:       atoi(data[25]),
+		LocalIPAddress:      data[26],
+		GatewayIP:           data[27],
+		SubnetMask:          data[28],
+		DNSServer:           data[29],
+
+		ConnectionMode:         atoi(data[30]),
+		CoinSlotType:           atoi(data[31]),
+		ButtonFunction:         atoi(data[32]),
+		OperatorUsername:       data[33],
+		OperatorPassword:       data[34],
+		APIKey:                 data[35],
+		BillAcceptorPin:        atoi(data[36]),
+		CoinMultiplier:         atoi(data[37]),
+		VoucherLength:          atoi(data[38]),
+		NightLightPin:          atoi(data[39]),
+		LCDSDAPin:              atoi(data[40]),
+		LCDSCLPin:              atoi(data[41]),
+		LANCSPin:               atoi(data[42]),
+		PrinterPin:             atoi(data[43]),
+		BillAcceptorMultiplier: atoi(data[44]),
+		PrintOption:            atoi(data[45]),
+		IncludeVendoName:       data[46] == "1",
+	}
+	if len(data) > systemConfigFieldCount {
+		cfg.ExtraFields = data[systemConfigFieldCount:]
+	}
+	return cfg, nil
+}
+
+// SaveSystemConfig pushes the given configuration to the device, replacing
+// whatever configuration it currently has. Fields this struct doesn't model
+// (ExtraFields) are written back unchanged to avoid corrupting device
+// settings this client doesn't understand. The device restarts after a
+// successful save to apply the new configuration.
+func (j *JuanfiAPI) SaveSystemConfig(cfg *SystemConfig) error {
+	fullURL := j.buildURL("api/saveSystemConfig", nil)
+
+	form := url.Values{}
+	form.Set("data", encodeSystemConfig(cfg))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("juanfi: unexpected status %d from api/saveSystemConfig", resp.StatusCode)
+	}
+	return nil
+}
+
+// encodeSystemConfig serialises a SystemConfig back into the device's
+// pipe-delimited positional format — the inverse of GetSystemConfig's
+// parsing, including any unmodeled ExtraFields tacked back on at the end.
+func encodeSystemConfig(cfg *SystemConfig) string {
+	boolStr := func(b bool) string {
+		if b {
+			return "1"
+		}
+		return "0"
+	}
+
+	fields := []string{
+		cfg.VendoName,
+		cfg.WiFiSSID,
+		cfg.WiFiPassword,
+		cfg.MikrotikIP,
+		cfg.MikrotikUsername,
+		cfg.MikrotikPassword,
+		strconv.Itoa(cfg.CoinSlotWaitTimeSec),
+		cfg.AdminUsername,
+		cfg.AdminPassword,
+		strconv.Itoa(cfg.CoinSlotAbuseCount),
+		strconv.Itoa(cfg.CoinSlotBanMinutes),
+		strconv.Itoa(cfg.CoinSlotPin),
+		strconv.Itoa(cfg.CoinSlotSetPin),
+		strconv.Itoa(cfg.SystemReadyLEDPin),
+		strconv.Itoa(cfg.InsertCoinLEDPin),
+		strconv.Itoa(cfg.LCDScreen),
+		strconv.Itoa(cfg.InsertCoinButtonPin),
+		boolStr(cfg.CheckInternetStatus),
+		cfg.VoucherPrefix,
+		cfg.WelcomeLCDMarquee,
+		boolStr(cfg.SetupDoneFlag),
+		strconv.Itoa(cfg.VoucherLoginOption),
+		cfg.VoucherProfile,
+		strconv.Itoa(cfg.VoucherValidity),
+		strconv.Itoa(cfg.LEDTriggerType),
+		strconv.Itoa(cfg.IPAddressMode),
+		cfg.LocalIPAddress,
+		cfg.GatewayIP,
+		cfg.SubnetMask,
+		cfg.DNSServer,
+
+		strconv.Itoa(cfg.ConnectionMode),
+		strconv.Itoa(cfg.CoinSlotType),
+		strconv.Itoa(cfg.ButtonFunction),
+		cfg.OperatorUsername,
+		cfg.OperatorPassword,
+		cfg.APIKey,
+		strconv.Itoa(cfg.BillAcceptorPin),
+		strconv.Itoa(cfg.CoinMultiplier),
+		strconv.Itoa(cfg.VoucherLength),
+		strconv.Itoa(cfg.NightLightPin),
+		strconv.Itoa(cfg.LCDSDAPin),
+		strconv.Itoa(cfg.LCDSCLPin),
+		strconv.Itoa(cfg.LANCSPin),
+		strconv.Itoa(cfg.PrinterPin),
+		strconv.Itoa(cfg.BillAcceptorMultiplier),
+		strconv.Itoa(cfg.PrintOption),
+		boolStr(cfg.IncludeVendoName),
+	}
+	fields = append(fields, cfg.ExtraFields...)
+	return strings.Join(fields, "|")
+}
+
+// GenerateVouchers calls api/generateVouchers to create qty new prepaid vouchers
+// at the given price. The device matches amount against its own configured rate
+// plan to determine duration; amount/duration are not chosen by the caller.
+func (j *JuanfiAPI) GenerateVouchers(prefix string, amount float64, qty int, addToSales bool, printThermal bool) ([]GeneratedVoucher, error) {
+	fullURL := j.buildURL("api/generateVouchers", nil)
+
+	form := url.Values{}
+	form.Set("amt", strconv.FormatFloat(amount, 'f', -1, 64))
+	form.Set("pfx", prefix)
+	form.Set("qty", strconv.Itoa(qty))
+	form.Set("sales", boolFlag(addToSales))
+	form.Set("print", boolFlag(printThermal))
+
+	req, err := http.NewRequest(http.MethodPost, fullURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: build request: %w", err)
+	}
+	req.Header.Set("X-TOKEN", j.apiKey)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+
+	resp, err := j.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: request to %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("juanfi: unexpected status %d from api/generateVouchers", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("juanfi: read response body: %w", err)
+	}
+	return parseGeneratedVouchers(string(body))
+}
+
+func boolFlag(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
+}
+
+// encodeRates serialises rates back into the device's pipe/hash-delimited
+// format — the inverse of GetRates' parsing.
+func encodeRates(rates []Rate) string {
+	entries := make([]string, len(rates))
+	for i, r := range rates {
+		dataLimit := ""
+		if r.DataLimitMB != nil {
+			dataLimit = strconv.Itoa(*r.DataLimitMB)
+		}
+		entries[i] = strings.Join([]string{
+			r.Name,
+			strconv.FormatFloat(r.Price, 'f', -1, 64),
+			strconv.Itoa(r.Minutes),
+			strconv.Itoa(r.ValidityMins),
+			dataLimit,
+			r.UserProfile,
+		}, "#")
+	}
+	return strings.Join(entries, "|")
+}
+
+// parseGeneratedVouchers parses the api/generateVouchers response, e.g.
+// "Your WiFi|2|2400|VC5416#VC2879" — vendo name, amount, duration (minutes),
+// then a "#"-delimited list of voucher codes sharing that amount/duration.
+func parseGeneratedVouchers(body string) ([]GeneratedVoucher, error) {
+	body = strings.TrimSpace(body)
+	if body == "" {
+		return nil, nil
+	}
+	fields := strings.SplitN(body, "|", 4)
+	if len(fields) < 4 {
+		return nil, fmt.Errorf("juanfi: unexpected generateVouchers response format: %q", body)
+	}
+
+	name := fields[0]
+	amount, _ := strconv.ParseFloat(fields[1], 64)
+	duration, _ := strconv.Atoi(fields[2])
+
+	codes := strings.Split(fields[3], "#")
+	vouchers := make([]GeneratedVoucher, 0, len(codes))
+	for _, code := range codes {
+		if code == "" {
+			continue
+		}
+		vouchers = append(vouchers, GeneratedVoucher{
+			VendoName: name,
+			Amount:    amount,
+			Duration:  duration,
+			Code:      code,
+		})
+	}
+	return vouchers, nil
 }
 
 // logTypeTemplates returns the ordered slice of message templates indexed by

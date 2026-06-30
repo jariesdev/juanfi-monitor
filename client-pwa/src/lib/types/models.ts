@@ -43,12 +43,67 @@ export interface iSale {
 	vendo: iVendo;
 }
 
-export interface iUser {
-	username: string;
-	is_active: boolean;
+export interface iRole {
+	id: number;
+	name: string;
+	permissions: string[];
+	created_at: string;
+	updated_at: string | null;
 }
 
+export interface iUser {
+	id: number;
+	username: string;
+	is_active: boolean;
+	roles: iRole[];
+	vendos?: iVendo[];
+	created_at: string;
+	updated_at: string | null;
+}
+
+export const ALL_PERMISSIONS = [
+	'dashboard',
+	'account',
+	'vendos',
+	'sales',
+	'logs',
+	'withdrawals',
+	'rates',
+	'vouchers',
+	'settings',
+	'users',
+	'vendoconfig'
+] as const;
+
+export type Permission = (typeof ALL_PERMISSIONS)[number];
+
 export interface iNotification {
-	id: number
-	message: string
+	id: number;
+	message: string;
+}
+
+export interface iVendoRate {
+	id: number;
+	vendo_id: number | null;
+	name: string;
+	price: number;
+	minutes: number;
+	validity_minutes: number;
+	data_limit_mb: number | null;
+	user_profile: string | null;
+	sort_order: number;
+	created_at: string;
+	updated_at: string | null;
+}
+
+export interface iVendoVoucher {
+	id: number;
+	vendo_id: number;
+	code: string;
+	prefix: string;
+	amount: number;
+	duration_minutes: number;
+	added_to_sales: boolean;
+	printed_thermal: boolean;
+	created_at: string;
 }

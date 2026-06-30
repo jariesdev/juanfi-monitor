@@ -3,17 +3,19 @@
 	import VendoForm from '$lib/components/VendoForm.svelte';
 	import DateTime from '$lib/components/DateTime.svelte';
 	import NumberFormat from '$lib/components/NumberFormat.svelte';
+	import { hasPermission } from '$lib/acl.svelte.js';
 	import type { RowItem, TableHeader } from '$lib/types/datatable';
 
 	let dataTable: DataTable;
 
 	const tableHeaders: TableHeader[] = [
-		{ label: 'Name', field: 'name' },
+		{ label: 'Name', field: 'name', sortable: true },
 		{ label: 'API URL', field: 'api_url' },
-		{ label: 'Total Sales', field: 'recent_status.total_sales' },
-		{ label: 'Current Sales', field: 'recent_status.current_sales' },
-		{ label: 'Users', field: 'recent_status.active_users' },
-		{ label: 'Last Reported', field: 'recent_status.created_at' },
+		{ label: 'Online', field: 'is_online', sortable: true },
+		{ label: 'Total Sales', field: 'recent_status.total_sales', sortable: true },
+		{ label: 'Current Sales', field: 'recent_status.current_sales', sortable: true },
+		{ label: 'Users', field: 'recent_status.active_users', sortable: true },
+		{ label: 'Last Reported', field: 'recent_status.created_at', sortable: true },
 		{ label: '', field: 'actions' }
 	];
 
@@ -28,23 +30,106 @@
 	headers={tableHeaders}
 	filters={{}}
 	title="Vendo Machines"
+	clientSort={true}
 >
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
-		{#if header.field === 'recent_status.total_sales'}
-			<NumberFormat value={item.recent_status?.total_sales} />
+		{#if header.field === 'is_online'}
+			{#if item.is_online}
+				<span class="status-badge online">Online</span>
+			{:else}
+				<span class="status-badge offline">Offline</span>
+			{/if}
+		{:else if header.field === 'recent_status.total_sales'}
+			₱<NumberFormat value={item.recent_status?.total_sales} />
 		{:else if header.field === 'recent_status.current_sales'}
-			<NumberFormat value={item.recent_status?.current_sales} />
+			₱<NumberFormat value={item.recent_status?.current_sales} />
 		{:else if header.field === 'recent_status.active_users'}
 			<NumberFormat value={item.recent_status?.active_users || 0} />
 		{:else if header.field === 'recent_status.created_at'}
 			<DateTime date={item.recent_status?.created_at} />
 		{:else if header.field === 'actions'}
-			<a
-				href={`/vendo/${item.id}/status`}
-				class="uk-icon-button uk-button-primary"
-				uk-icon="info"
-				aria-label="View details"
-			></a>
+			<div class="action-btns">
+				<button
+					type="button"
+					class="uk-icon-button"
+					uk-icon="icon: more-vertical"
+					aria-label="Open actions"
+				></button>
+				<div uk-dropdown="mode: click; pos: bottom-right">
+					<ul class="uk-nav uk-dropdown-nav action-menu">
+						<li>
+							<a href={`/vendo/${item.id}/status`}>
+								<span class="action-icon" uk-icon="icon: info"></span>
+								<span>View details</span>
+							</a>
+						</li>
+						<li>
+							<a href={`/vendo/${item.id}/active-users`}>
+								<span class="action-icon" uk-icon="icon: users"></span>
+								<span>Active users</span>
+							</a>
+						</li>
+						{#if hasPermission('withdrawals')}
+							<li>
+								<a href={`/vendo/${item.id}/withdraw`}>
+									<span class="action-icon" uk-icon="icon: credit-card"></span>
+									<span>Withdraw Sale</span>
+								</a>
+							</li>
+						{/if}
+						{#if hasPermission('vendoconfig')}
+							<li>
+								<a href={`/vendo/${item.id}/config`}>
+									<span class="action-icon" uk-icon="icon: cog"></span>
+									<span>System configuration</span>
+								</a>
+							</li>
+						{/if}
+						{#if hasPermission('rates')}
+							<li>
+								<a href={`/vendo/${item.id}/rates`}>
+									<span class="action-icon" uk-icon="icon: tag"></span>
+									<span>Manage rates</span>
+								</a>
+							</li>
+						{/if}
+						{#if hasPermission('vouchers')}
+							<li>
+								<a href={`/vendo/${item.id}/vouchers`}>
+									<svg
+										class="action-icon"
+										aria-hidden="true"
+										width="20"
+										height="20"
+										viewBox="0 0 20 20"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="1.5"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									>
+										<path
+											d="M4 6.5A1.5 1.5 0 0 1 5.5 5h9A1.5 1.5 0 0 1 16 6.5v2a1.5 1.5 0 0 0 0 3v2A1.5 1.5 0 0 1 14.5 15h-9A1.5 1.5 0 0 1 4 13.5v-2a1.5 1.5 0 0 0 0-3z"
+										/>
+										<path d="M8 7.25v5.5" />
+										<path d="M11 8h2" />
+										<path d="M11 12h2" />
+									</svg>
+									<span>Manage vouchers</span>
+								</a>
+							</li>
+						{/if}
+						{#if hasPermission('logs')}
+							<li>
+								<a href={`/logs?vendo_id=${item.id}`}>
+									<span class="action-icon" uk-icon="icon: file-text"></span>
+									<span>Logs</span>
+								</a>
+							</li>
+						{/if}
+					</ul>
+				</div>
+			</div>
 		{:else}
 			{getCellValue(item, header)}
 		{/if}
@@ -74,3 +159,48 @@
 		</div>
 	{/snippet}
 </DataTable>
+
+<style>
+	.action-btns {
+		display: flex;
+		gap: 4px;
+		align-items: center;
+		justify-content: flex-end;
+	}
+
+	.action-btns :global(.uk-dropdown) {
+		min-width: 190px;
+		padding: 8px 0;
+	}
+
+	.action-menu a {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 8px 14px;
+	}
+
+	.action-icon {
+		width: 20px;
+		height: 20px;
+		flex: 0 0 20px;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 12px;
+		font-size: 0.78rem;
+		font-weight: 600;
+	}
+
+	.status-badge.online {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.status-badge.offline {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+</style>

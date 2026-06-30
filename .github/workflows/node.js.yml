@@ -1,28 +1,24 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI
 
 on:
   push:
     branches: [ "main", "release/*" ]
+    tags: ["*"]
     paths:
       - client-pwa/**
   pull_request:
     branches: [ "main" ]
-  create:
-    tags: [ "*" ]
-# since we don't have UAT, staging. We do all in prod.
-# ideally, main and tags are productions, release (develop -> release) is UAT and develop (features -> develop or features -> integrations -> develop) is staging
+    paths:
+      - client-pwa/**
+  workflow_dispatch:
+
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         node-version: [24.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
       - uses: actions/checkout@v4
@@ -46,19 +42,19 @@ jobs:
         run: pnpm install --frozen-lockfile
         working-directory: ./client-pwa
 
-      - name: Build App
-        run: node_modules/.bin/vite build
+      - name: Type check
+        run: pnpm run check
         working-directory: ./client-pwa
 
-      - name: Compress Build Artifacts
-        run: tar -czf build-artifacts.tar.gz build package.json
+      - name: Build App
+        run: node_modules/.bin/vite build
         working-directory: ./client-pwa
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: ./client-pwa/build-artifacts.tar.gz
+          path: ./client-pwa/build
           retention-days: 1
 
   deploy:
@@ -73,16 +69,23 @@ jobs:
           name: build-artifacts
           path: build
 
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ vars.PRODUCTION_SERVER_IP }}" >> ~/.ssh/known_hosts
+
       - name: Deploy to Production
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           PRODUCTION_SERVER_URI: ${{ vars.PRODUCTION_SERVER_URI }}
           PRODUCTION_WORKING_DIR: ${{ vars.PRODUCTION_WORKING_DIR }}
           PRODUCTION_PM2_ID: ${{ vars.PRODUCTION_PM2_ID }}
         run: |
-          echo "${SSH_PRIVATE_KEY}" > ssh_key
-          chmod 600 ssh_key
-          mkdir -p ~/.ssh
-          ssh-keyscan -H "${{ vars.PRODUCTION_SERVER_IP }}" >> ~/.ssh/known_hosts
-          scp -i ssh_key build/build-artifacts.tar.gz ${PRODUCTION_SERVER_URI}:${PRODUCTION_WORKING_DIR}
-          ssh -i ssh_key ${PRODUCTION_SERVER_URI} "cd ${PRODUCTION_WORKING_DIR} && tar -xzf build-artifacts.tar.gz && pm2 restart ${PRODUCTION_PM2_ID}"
+          tar -czf build-artifacts.tar.gz -C build .
+          scp build-artifacts.tar.gz "${PRODUCTION_SERVER_URI}:${PRODUCTION_WORKING_DIR}"
+          ssh "${PRODUCTION_SERVER_URI}" \
+            "cd ${PRODUCTION_WORKING_DIR} && tar -xzf build-artifacts.tar.gz && pm2 restart ${PRODUCTION_PM2_ID}"

@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { navCollapsed } from '$lib/store';
-	import { navItems, type NavItem } from '$lib/nav';
+	import { getPermissions } from '$lib/acl.svelte.js';
+	import { getVisibleNavItems, type NavItem } from '$lib/nav';
+
+	const visibleItems = $derived(getVisibleNavItems(getPermissions()));
 
 	let openGroups: Record<string, boolean> = $state({});
 
@@ -16,7 +19,7 @@
 
 	// Auto-open the group that contains the current page
 	$effect(() => {
-		navItems.forEach((item) => {
+		visibleItems.forEach((item) => {
 			if (item.children?.some((c) => $page.url.pathname === c.href)) {
 				openGroups[item.label] = true;
 			}
@@ -28,7 +31,7 @@
 	<!-- Header -->
 	<div class="sidebar-top">
 		{#if !$navCollapsed}
-			<span class="brand">VendoReport</span>
+			<span class="brand">Vendo Monitoring</span>
 		{/if}
 		<button
 			class="toggle-btn"
@@ -41,7 +44,7 @@
 
 	<!-- Nav items -->
 	<nav>
-		{#each navItems as item}
+		{#each visibleItems as item}
 			{#if item.children}
 				<!-- Parent with children -->
 				<div class="nav-group" class:collapsed={$navCollapsed}>

@@ -49,10 +49,34 @@ func (l *JuanfiLogger) Run() error {
 	return nil
 }
 
-// storeLogs inserts formatted log entries, skipping duplicates via the
-// (vendo_id, log_time) unique index (INSERT OR IGNORE semantics via OnConflict).
+// logDedupWindow is the tolerance for treating a freshly fetched log entry as
+// one already stored on an earlier poll. The device keeps a rolling log buffer,
+// so overlapping 5-minute poll windows re-deliver the same entries; but their
+// absolute LogTime is recomputed each poll by ComputeLogTime (now − reported
+// uptime + offset), which drifts by tens of milliseconds to ~1s between polls.
+// An exact (vendo_id, log_time) match therefore can't reliably recognize a
+// re-fetched entry, so we match on description within this window instead.
+const logDedupWindow = 5 * time.Second
+
+// storeLogs inserts formatted log entries, skipping ones already recorded.
+// Deduplication mirrors storeSales: a windowed match on (vendo_id, description)
+// absorbs the per-poll LogTime drift, with the (vendo_id, log_time) unique index
+// (via OnConflict DoNothing) kept as a backstop.
 func (l *JuanfiLogger) storeLogs(logs []FormattedLog) error {
 	for _, entry := range logs {
+		// An identical description within ±logDedupWindow is the same entry
+		// re-fetched on an overlapping poll (or already inserted this batch).
+		var count int64
+		l.db.Model(&models.VendoLog{}).
+			Where("vendo_id = ? AND description = ? AND log_time BETWEEN ? AND ?",
+				l.vendo.ID, entry.Description,
+				entry.LogTime.Add(-logDedupWindow),
+				entry.LogTime.Add(logDedupWindow),
+			).Count(&count)
+		if count > 0 {
+			continue // already recorded
+		}
+
 		record := models.VendoLog{
 			VendoID:     l.vendo.ID,
 			LogTime:     entry.LogTime,

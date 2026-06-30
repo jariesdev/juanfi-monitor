@@ -11,3 +11,9 @@ export const navCollapsed = writable<boolean>(storedCollapsed);
 navCollapsed.subscribe((v) => {
 	if (browser) localStorage.setItem('nav-collapsed', String(v));
 });
+
+export interface iToast {
+	message: string;
+	type: 'success' | 'error';
+}
+export const toast = writable<iToast | null>(null);

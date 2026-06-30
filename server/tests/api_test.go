@@ -19,6 +19,7 @@ import (
 	"github.com/jariesdev/vendoreport/app"
 	"github.com/jariesdev/vendoreport/internal/database"
 	"github.com/jariesdev/vendoreport/internal/models"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -59,8 +60,16 @@ func TestMain(m *testing.M) {
 
 // seed inserts the minimum set of records required by the test suite.
 func seed(db *gorm.DB) {
-	// User
-	db.Create(&models.User{Username: "testuser", Password: "testpass", IsActive: true})
+	// Admin role with all permissions
+	adminRole := &models.Role{Name: "Admin"}
+	adminRole.SetPermissions(models.AllPermissions())
+	db.Create(adminRole)
+
+	// User — assigned the admin role so it can hit /users and /roles endpoints
+	hash, _ := bcrypt.GenerateFromPassword([]byte("testpass"), bcrypt.DefaultCost)
+	testUser := &models.User{Username: "testuser", Password: string(hash), IsActive: true}
+	db.Create(testUser)
+	db.Model(testUser).Association("Roles").Replace([]models.Role{*adminRole})
 
 	// Vendo
 	apiURL := "http://192.168.42.10:8081"
@@ -217,7 +226,8 @@ func TestLogin_Success(t *testing.T) {
 
 func TestLogin_WrongPassword(t *testing.T) {
 	// Seed a dedicated user so this test doesn't depend on global seed order.
-	db.Create(&models.User{Username: "wrongpwduser", Password: "correctpass", IsActive: true})
+	correctHash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+	db.Create(&models.User{Username: "wrongpwduser", Password: string(correctHash), IsActive: true})
 
 	form := url.Values{}
 	form.Set("username", "wrongpwduser")
@@ -232,6 +242,24 @@ func TestLogin_MissingCredentials(t *testing.T) {
 	w := doRequest(http.MethodPost, "/token", strings.NewReader(""),
 		map[string]string{"Content-Type": "application/x-www-form-urlencoded"})
 	assertStatus(t, w, http.StatusBadRequest)
+}
+
+func TestTokenRefresh(t *testing.T) {
+	// Valid token → new access_token and expiry returned
+	w := doRequest(http.MethodPost, "/token/refresh", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["access_token"].(string); !ok {
+		t.Error("expected access_token string in refresh response")
+	}
+	if _, ok := resp["expiry"]; !ok {
+		t.Error("expected expiry in refresh response")
+	}
+
+	// No token → 401
+	w2 := doRequest(http.MethodPost, "/token/refresh", nil, nil)
+	assertStatus(t, w2, http.StatusUnauthorized)
 }
 
 // ── Auth middleware ───────────────────────────────────────────────────────────
@@ -268,11 +296,123 @@ func TestGetCurrentUser(t *testing.T) {
 func TestListUsers(t *testing.T) {
 	w := doRequest(http.MethodGet, "/users", nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["items"]; !ok {
+		t.Error("expected 'items' key in response")
+	}
+	if _, ok := resp["total"]; !ok {
+		t.Error("expected 'total' key in response")
+	}
+}
+
+func TestListUsers_Search(t *testing.T) {
+	w := doRequest(http.MethodGet, "/users?q=testuser", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	items, _ := resp["items"].([]interface{})
+	if len(items) == 0 {
+		t.Error("expected search to return testuser")
+	}
+}
+
+func TestListUsers_Forbidden(t *testing.T) {
+	// A user without a role (no PermUsers) should get 403.
+	noRoleHash, _ := bcrypt.GenerateFromPassword([]byte("norolepass"), bcrypt.DefaultCost)
+	noRoleUser := &models.User{Username: "noroleuser", Password: string(noRoleHash), IsActive: true}
+	db.Create(noRoleUser)
+	token := mustLogin("noroleuser", "norolepass")
+
+	w := doRequest(http.MethodGet, "/users", nil, map[string]string{
+		"Authorization": token,
+		"Content-Type":  "application/json",
+	})
+	assertStatus(t, w, http.StatusForbidden)
 }
 
 func TestGetUserByID(t *testing.T) {
 	w := doRequest(http.MethodGet, "/users/1", nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["username"] == nil {
+		t.Error("expected username in user response")
+	}
+}
+
+func TestCreateUser(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"username":  "newuser",
+		"password":  "newpass",
+		"is_active": true,
+	})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["username"] != "newuser" {
+		t.Errorf("expected username 'newuser', got %v", resp["username"])
+	}
+}
+
+func TestCreateUser_DuplicateUsername(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"username": "testuser", // already exists
+		"password": "pass",
+	})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestUpdateUser(t *testing.T) {
+	// Create a user to update
+	body := jsonBody(map[string]interface{}{"username": "updateme", "password": "pass"})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	updateBody := jsonBody(map[string]interface{}{"is_active": false})
+	w2 := doRequest(http.MethodPut, fmt.Sprintf("/users/%d", id), updateBody, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+
+	var updated map[string]interface{}
+	decodeJSON(t, w2.Body, &updated)
+	if updated["is_active"] != false {
+		t.Error("expected is_active to be false")
+	}
+}
+
+func TestDeleteUser(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"username": "deleteme", "password": "pass"})
+	w := doRequest(http.MethodPost, "/users", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	w2 := doRequest(http.MethodDelete, fmt.Sprintf("/users/%d", id), nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestDeleteUser_Self(t *testing.T) {
+	// testuser (id=1) tries to delete itself — must be refused
+	w := doRequest(http.MethodDelete, "/users/1", nil, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["detail"] != "cannot delete your own account" {
+		t.Errorf("unexpected detail: %v", resp["detail"])
+	}
 }
 
 // ── Vendo Machines ────────────────────────────────────────────────────────────
@@ -579,6 +719,91 @@ func TestVendoStatusHistory_DateRange(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 }
 
+// ── Roles ─────────────────────────────────────────────────────────────────────
+
+func TestListRoles(t *testing.T) {
+	w := doRequest(http.MethodGet, "/roles", nil, authHeader())
+	assertStatus(t, w, http.StatusOK)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if _, ok := resp["data"]; !ok {
+		t.Error("expected 'data' key in roles response")
+	}
+}
+
+func TestCreateRole(t *testing.T) {
+	body := jsonBody(map[string]interface{}{
+		"name":        "Operator",
+		"permissions": []string{"dashboard", "account", "vendos"},
+	})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var resp map[string]interface{}
+	decodeJSON(t, w.Body, &resp)
+	if resp["name"] != "Operator" {
+		t.Errorf("expected name 'Operator', got %v", resp["name"])
+	}
+	perms, _ := resp["permissions"].([]interface{})
+	if len(perms) != 3 {
+		t.Errorf("expected 3 permissions, got %d", len(perms))
+	}
+}
+
+func TestCreateRole_DuplicateName(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"name": "Admin", "permissions": []string{}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestUpdateRole(t *testing.T) {
+	// Create a role to update
+	body := jsonBody(map[string]interface{}{"name": "TempRole", "permissions": []string{"dashboard"}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	updateBody := jsonBody(map[string]interface{}{"permissions": []string{"dashboard", "account"}})
+	w2 := doRequest(http.MethodPut, fmt.Sprintf("/roles/%d", id), updateBody, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestDeleteRole_InUse(t *testing.T) {
+	// Admin role (id=1) is assigned to testuser, so deletion must be refused.
+	w := doRequest(http.MethodDelete, "/roles/1", nil, authHeader())
+	assertStatus(t, w, http.StatusUnprocessableEntity)
+}
+
+func TestDeleteRole(t *testing.T) {
+	body := jsonBody(map[string]interface{}{"name": "DeleteableRole", "permissions": []string{}})
+	w := doRequest(http.MethodPost, "/roles", body, authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	id := int(created["id"].(float64))
+
+	w2 := doRequest(http.MethodDelete, fmt.Sprintf("/roles/%d", id), nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+}
+
+func TestRoles_Forbidden(t *testing.T) {
+	noRoleHash2, _ := bcrypt.GenerateFromPassword([]byte("pass2"), bcrypt.DefaultCost)
+	noRoleUser := &models.User{Username: "noroleuser2", Password: string(noRoleHash2), IsActive: true}
+	db.Create(noRoleUser)
+	token := mustLogin("noroleuser2", "pass2")
+
+	w := doRequest(http.MethodGet, "/roles", nil, map[string]string{
+		"Authorization": token,
+		"Content-Type":  "application/json",
+	})
+	assertStatus(t, w, http.StatusForbidden)
+}
+
 // ── Withdrawals ───────────────────────────────────────────────────────────────
 
 func TestListWithdrawals(t *testing.T) {
@@ -591,4 +816,224 @@ func TestListWithdrawals(t *testing.T) {
 	if !ok || len(items) == 0 {
 		t.Error("expected at least one withdrawal record")
 	}
+}
+
+// ── Vendo Rates ───────────────────────────────────────────────────────────────
+
+func TestVendoRates_CreateListUpdateDelete(t *testing.T) {
+	listPath := fmt.Sprintf("/vendo-machines/%d/rates", testVendoID)
+	payload := map[string]interface{}{
+		"name":             "Basic",
+		"price":            1,
+		"minutes":          20,
+		"validity_minutes": 131400,
+	}
+	w := doRequest(http.MethodPost, listPath, jsonBody(payload), authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	var created map[string]interface{}
+	decodeJSON(t, w.Body, &created)
+	data := created["data"].(map[string]interface{})
+	rateID := int(data["id"].(float64))
+
+	w2 := doRequest(http.MethodGet, listPath, nil, authHeader())
+	assertStatus(t, w2, http.StatusOK)
+	var listResp map[string]interface{}
+	decodeJSON(t, w2.Body, &listResp)
+	if items := listResp["data"].([]interface{}); len(items) == 0 {
+		t.Error("expected at least one rate for the vendo")
+	}
+
+	updatePath := fmt.Sprintf("/vendo-rates/%d", rateID)
+	w3 := doRequest(http.MethodPut, updatePath, jsonBody(map[string]interface{}{"price": 2}), authHeader())
+	assertStatus(t, w3, http.StatusOK)
+	var updated map[string]interface{}
+	decodeJSON(t, w3.Body, &updated)
+	if updatedData := updated["data"].(map[string]interface{}); updatedData["price"] != float64(2) {
+		t.Errorf("expected price 2, got %v", updatedData["price"])
+	}
+
+	w4 := doRequest(http.MethodDelete, updatePath, nil, authHeader())
+	assertStatus(t, w4, http.StatusOK)
+
+	w5 := doRequest(http.MethodGet, listPath, nil, authHeader())
+	assertStatus(t, w5, http.StatusOK)
+	var afterDelete map[string]interface{}
+	decodeJSON(t, w5.Body, &afterDelete)
+	for _, item := range afterDelete["data"].([]interface{}) {
+		if row := item.(map[string]interface{}); int(row["id"].(float64)) == rateID {
+			t.Error("expected deleted rate to be absent from the list")
+		}
+	}
+}
+
+// TestVendoRates_Import_NoConnection calls the live Juanfi API which is
+// unavailable in tests, so we expect a 502 Bad Gateway.
+func TestVendoRates_Import_NoConnection(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/rates/import", testVendoID)
+	w := doRequest(http.MethodPost, path, nil, authHeader())
+	assertStatus(t, w, http.StatusBadGateway)
+}
+
+func TestVendoRates_DefaultTemplate_AdminOnly(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("ratesuserpass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "ratesuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	// Role with the rates permission but not admin (users).
+	ratesRole := &models.Role{Name: "RatesOnly"}
+	ratesRole.SetPermissions([]string{models.PermRates})
+	db.Create(ratesRole)
+	db.Model(user).Association("Roles").Replace([]models.Role{*ratesRole})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("ratesuser", "ratesuserpass")
+	nonAdminHeader := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	// rates permission + assigned vendo → may manage that vendo's own rates.
+	wList := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/rates", testVendoID), nil, nonAdminHeader)
+	assertStatus(t, wList, http.StatusOK)
+
+	// ...but the shared default template remains admin-only.
+	w := doRequest(http.MethodGet, "/vendo-rates/default", nil, nonAdminHeader)
+	assertStatus(t, w, http.StatusForbidden)
+
+	w2 := doRequest(http.MethodPost, "/vendo-rates/default", jsonBody(map[string]interface{}{
+		"name": "X", "price": 1, "minutes": 1, "validity_minutes": 1,
+	}), nonAdminHeader)
+	assertStatus(t, w2, http.StatusForbidden)
+
+	w3 := doRequest(http.MethodPost, "/vendo-rates/apply-to-all", jsonBody(map[string]interface{}{
+		"vendo_ids": []uint{testVendoID},
+	}), nonAdminHeader)
+	assertStatus(t, w3, http.StatusForbidden)
+
+	w4 := doRequest(http.MethodGet, "/vendo-rates/default", nil, authHeader())
+	assertStatus(t, w4, http.StatusOK)
+}
+
+// TestVendoRates_RequiresRatesPermission verifies that vendo access alone is not
+// enough to reach the rate endpoints — the rates permission is required.
+func TestVendoRates_RequiresRatesPermission(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("noratespass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "noratesuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	// Role with vendo access but without the rates permission.
+	role := &models.Role{Name: "VendosNoRates"}
+	role.SetPermissions([]string{models.PermVendos})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("noratesuser", "noratespass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/rates", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoRates_ApplyToAll_Replaces(t *testing.T) {
+	apiURL := "http://192.168.50.50:8081"
+	otherVendo := &models.Vendo{Name: "Other Vendo", APIURL: &apiURL, IsActive: 1}
+	if err := db.Create(otherVendo).Error; err != nil {
+		t.Fatalf("setup: failed to create other vendo: %v", err)
+	}
+	otherRatePath := fmt.Sprintf("/vendo-machines/%d/rates", otherVendo.ID)
+	doRequest(http.MethodPost, otherRatePath, jsonBody(map[string]interface{}{
+		"name": "Old Rate", "price": 99, "minutes": 99, "validity_minutes": 99,
+	}), authHeader())
+
+	w := doRequest(http.MethodPost, "/vendo-rates/default", jsonBody(map[string]interface{}{
+		"name": "Default Tier", "price": 5, "minutes": 60, "validity_minutes": 131400,
+	}), authHeader())
+	assertStatus(t, w, http.StatusCreated)
+
+	w2 := doRequest(http.MethodPost, "/vendo-rates/apply-to-all", jsonBody(map[string]interface{}{
+		"vendo_ids": []uint{testVendoID, otherVendo.ID},
+	}), authHeader())
+	assertStatus(t, w2, http.StatusOK)
+
+	w3 := doRequest(http.MethodGet, otherRatePath, nil, authHeader())
+	assertStatus(t, w3, http.StatusOK)
+	var resp map[string]interface{}
+	decodeJSON(t, w3.Body, &resp)
+	items := resp["data"].([]interface{})
+
+	foundDefault := false
+	for _, item := range items {
+		row := item.(map[string]interface{})
+		if row["name"] == "Old Rate" {
+			t.Error("expected apply-to-all to replace the vendo's old rates")
+		}
+		if row["name"] == "Default Tier" {
+			foundDefault = true
+		}
+	}
+	if !foundDefault {
+		t.Error("expected the default tier to be applied to the other vendo")
+	}
+}
+
+func TestVendoVouchers_List_RequiresVouchersPermission(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("novoucherspass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "novouchersuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	role := &models.Role{Name: "VendosNoVouchers"}
+	role.SetPermissions([]string{models.PermVendos})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	var vendo models.Vendo
+	db.First(&vendo, testVendoID)
+	db.Model(user).Association("Vendos").Replace([]models.Vendo{vendo})
+	token := mustLogin("novouchersuser", "novoucherspass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/vouchers", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoVouchers_List_RequiresVendoAccess(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("voucheraccesspass"), bcrypt.DefaultCost)
+	user := &models.User{Username: "voucheraccessuser", Password: string(hash), IsActive: true}
+	db.Create(user)
+	role := &models.Role{Name: "VouchersOnly"}
+	role.SetPermissions([]string{models.PermVouchers})
+	db.Create(role)
+	db.Model(user).Association("Roles").Replace([]models.Role{*role})
+	token := mustLogin("voucheraccessuser", "voucheraccesspass")
+	header := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	w := doRequest(http.MethodGet, fmt.Sprintf("/vendo-machines/%d/vouchers", testVendoID), nil, header)
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestVendoVouchers_Generate_NoConnection(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/vouchers/generate", testVendoID)
+	payload := map[string]interface{}{
+		"prefix":        "VC",
+		"amount":        2,
+		"quantity":      1,
+		"add_to_sales":  false,
+		"print_thermal": false,
+	}
+	w := doRequest(http.MethodPost, path, jsonBody(payload), authHeader())
+	assertStatus(t, w, http.StatusBadGateway)
+}
+
+func TestVendoVouchers_Generate_ValidatesPrefixAndQuantity(t *testing.T) {
+	path := fmt.Sprintf("/vendo-machines/%d/vouchers/generate", testVendoID)
+	badPrefix := doRequest(http.MethodPost, path, jsonBody(map[string]interface{}{
+		"prefix":   "1A",
+		"amount":   2,
+		"quantity": 1,
+	}), authHeader())
+	assertStatus(t, badPrefix, http.StatusBadRequest)
+
+	badQty := doRequest(http.MethodPost, path, jsonBody(map[string]interface{}{
+		"prefix":   "VC",
+		"amount":   2,
+		"quantity": 16,
+	}), authHeader())
+	assertStatus(t, badQty, http.StatusBadRequest)
 }

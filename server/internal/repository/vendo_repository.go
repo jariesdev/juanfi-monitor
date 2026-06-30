@@ -14,9 +14,9 @@ func NewVendoRepository(db *gorm.DB) *VendoRepository {
 	return &VendoRepository{db: db}
 }
 
-// Search returns vendos ordered by name with optional name filter and active status.
-// After loading, it attaches the most recent VendoStatus to each vendo.
-func (r *VendoRepository) Search(q *string, isActive *bool) ([]models.Vendo, error) {
+// Search returns vendos ordered by name with optional filters.
+// assignedIDs: when non-empty, only those vendo IDs are returned (non-admin scope).
+func (r *VendoRepository) Search(q *string, isActive *bool, assignedIDs []uint) ([]models.Vendo, error) {
 	var vendos []models.Vendo
 
 	query := r.db.Order("name ASC")
@@ -30,6 +30,12 @@ func (r *VendoRepository) Search(q *string, isActive *bool) ([]models.Vendo, err
 			val = 1
 		}
 		query = query.Where("is_active = ?", val)
+	}
+	if len(assignedIDs) > 0 {
+		query = query.Where("id IN ?", assignedIDs)
+	} else if assignedIDs != nil {
+		// Non-nil but empty → user has no assigned vendos; return nothing.
+		return []models.Vendo{}, nil
 	}
 
 	if err := query.Find(&vendos).Error; err != nil {

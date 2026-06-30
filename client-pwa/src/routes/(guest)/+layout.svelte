@@ -1,7 +1,10 @@
+<script>
+</script>
+
 <div class="guest-layout">
 	<slot />
 	<footer>
-		<p class="uk-text-italic uk-text-muted uk-text-small uk-text-light">Vendo Reports</p>
+		<p class="uk-text-italic uk-text-muted uk-text-small uk-text-light">Vendo Monitoring</p>
 	</footer>
 </div>
 

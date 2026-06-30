@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
@@ -14,16 +15,19 @@ import (
 type VendoController struct {
 	vendoRepo      repository.VendoRepositoryInterface
 	withdrawalRepo repository.WithdrawalRepositoryInterface
+	userRepo       repository.UserRepositoryInterface
 }
 
-func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface) *VendoController {
+func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface, userRepo repository.UserRepositoryInterface) *VendoController {
 	return &VendoController{
 		vendoRepo:      vendoRepo,
 		withdrawalRepo: withdrawalRepo,
+		userRepo:       userRepo,
 	}
 }
 
 // All handles GET /vendo-machines — list/search vendo machines.
+// Non-admin users (lacking PermUsers) only see their assigned vendos.
 // Query params: q (name search), is_active (bool filter).
 func (v *VendoController) All(c *gin.Context) {
 	q := c.Query("q")
@@ -42,7 +46,7 @@ func (v *VendoController) All(c *gin.Context) {
 		}
 	}
 
-	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr)
+	vendos, err := v.vendoRepo.Search(qPtr, isActivePtr, authz.AssignedVendoIDs(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -54,6 +58,10 @@ func (v *VendoController) All(c *gin.Context) {
 func (v *VendoController) Get(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -109,6 +117,10 @@ func (v *VendoController) Status(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
+		return
+	}
 	vendo, err := v.vendoRepo.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
@@ -128,6 +140,10 @@ func (v *VendoController) Status(c *gin.Context) {
 func (v *VendoController) Withdraw(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 	vendo, err := v.vendoRepo.GetByID(id)
@@ -157,11 +173,63 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": withdrawal})
 }
 
+// Config handles GET /vendo-machines/:id/config — live device configuration.
+func (v *VendoController) Config(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
+		return
+	}
+	vendo, err := v.vendoRepo.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
+		return
+	}
+
+	config, err := services.NewJuanfiAPI(vendo).GetSystemConfig()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, config)
+}
+
+// ActiveUsers handles GET /vendo-machines/:id/active-users — live connected users.
+func (v *VendoController) ActiveUsers(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
+		return
+	}
+	vendo, err := v.vendoRepo.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
+		return
+	}
+
+	users, err := services.NewJuanfiAPI(vendo).GetActiveUsers()
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": users})
+}
+
 // SetStatus handles POST /vendo-machines/:id/set-status.
 // Request body: {"status": true|false}
 func (v *VendoController) SetStatus(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
+		return
+	}
+	if !authz.CanAccessVendo(c, id) {
+		authz.AccessDenied(c, "access denied")
 		return
 	}
 

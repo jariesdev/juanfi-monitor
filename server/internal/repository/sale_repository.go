@@ -2,11 +2,21 @@ package repository
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
 	"gorm.io/gorm"
 )
+
+// saleAllowedSort maps client sort_by values to safe SQL column expressions.
+var saleAllowedSort = map[string]string{
+	"sale_time":   "sale_time",
+	"mac_address": "mac_address",
+	"amount":      "amount",
+	"voucher":     "voucher",
+	"vendo_name":  "vendos.name",
+}
 
 // SaleRepository is the concrete implementation of SaleRepositoryInterface.
 type SaleRepository struct {
@@ -17,22 +27,41 @@ func NewSaleRepository(db *gorm.DB) *SaleRepository {
 	return &SaleRepository{db: db}
 }
 
-// Search returns paginated sales with optional mac_address/voucher text filter,
-// date filter, and vendo filter. Results are ordered by sale_time descending.
-func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, page, size int) (*PageResult[models.VendoSale], error) {
+// Search returns paginated sales with optional filters and sort order.
+func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error) {
 	var sales []models.VendoSale
 	var total int64
 
-	query := r.db.Model(&models.VendoSale{}).Preload("Vendo").Order("sale_time DESC")
+	col, ok := saleAllowedSort[sortBy]
+	if !ok {
+		col = "sale_time"
+	}
+	dir := "DESC"
+	if strings.ToUpper(sortDir) == "ASC" {
+		dir = "ASC"
+	}
+
+	query := r.db.Model(&models.VendoSale{}).Preload("Vendo").Order(col + " " + dir)
+	if sortBy == "vendo_name" {
+		query = query.Joins("LEFT JOIN vendos ON vendos.id = vendo_sales.vendo_id")
+	}
 
 	if q != nil && *q != "" {
 		query = query.Where("mac_address LIKE ? OR voucher LIKE ?", "%"+*q+"%", "%"+*q+"%")
 	}
 	if date != nil && *date != "" {
-		query = query.Where("DATE(sale_time) = ?", *date)
+		loc := time.FixedZone("PHT", 8*60*60)
+		start, err := time.ParseInLocation("2006-01-02", *date, loc)
+		if err == nil {
+			end := start.Add(24 * time.Hour)
+			query = query.Where("sale_time >= ? AND sale_time < ?", start, end)
+		}
 	}
 	if vendoID != nil {
 		query = query.Where("vendo_id = ?", *vendoID)
+	}
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}
 
 	if err := query.Count(&total).Error; err != nil {
@@ -55,30 +84,42 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, page, si
 }
 
 // GetDailySales aggregates sales by date and vendo within the given date range.
+// from and to are PHT-local start-of-day times — they are converted to UTC for
+// the query so that entries between midnight and 8 AM PHT are correctly included.
 // Only sales from active vendos are included.
-func (r *SaleRepository) GetDailySales(from, to time.Time) ([]DailySaleRow, error) {
+func (r *SaleRepository) GetDailySales(from, to time.Time, assignedIDs []uint) ([]DailySaleRow, error) {
 	var rows []DailySaleRow
-	err := r.db.
+	query := r.db.
 		Table("vendo_sales").
-		Select("DATE(sale_time) AS date, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
+		Select("DATE(sale_time, '+8 hours') AS date, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
-		Where("DATE(sale_time) BETWEEN ? AND ? AND vendos.is_active = 1", from.Format("2006-01-02"), to.Format("2006-01-02")).
-		Group("DATE(sale_time), vendo_sales.vendo_id").
+		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
+			from, to)
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
+	}
+	err := query.
+		Group("DATE(sale_time, '+8 hours'), vendo_sales.vendo_id").
 		Order("sale_time ASC").
 		Scan(&rows).Error
 	return rows, err
 }
 
 // GetMonthlySales aggregates sales by year-month and vendo within the given date range.
-// Only sales from active vendos are included.
-func (r *SaleRepository) GetMonthlySales(from, to time.Time) ([]MonthlySaleRow, error) {
+// from and to are PHT-local start-of-day times. Only sales from active vendos are included.
+func (r *SaleRepository) GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error) {
 	var rows []MonthlySaleRow
-	err := r.db.
+	query := r.db.
 		Table("vendo_sales").
-		Select("strftime('%Y-%m', sale_time) AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
+		Select("strftime('%Y-%m', sale_time, '+8 hours') AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
-		Where("DATE(sale_time) BETWEEN ? AND ? AND vendos.is_active = 1", from.Format("2006-01-02"), to.Format("2006-01-02")).
-		Group("strftime('%Y-%m', sale_time), vendo_sales.vendo_id").
+		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
+			from, to)
+	if len(assignedIDs) > 0 {
+		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
+	}
+	err := query.
+		Group("strftime('%Y-%m', sale_time, '+8 hours'), vendo_sales.vendo_id").
 		Order("sale_time ASC").
 		Scan(&rows).Error
 	return rows, err

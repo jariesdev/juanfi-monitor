@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { navItems, type NavItem } from '$lib/nav';
+	import { getPermissions } from '$lib/acl.svelte.js';
+	import { getVisibleNavItems, type NavItem } from '$lib/nav';
+
+	const visibleItems = $derived(getVisibleNavItems(getPermissions()));
 
 	let activeSheet: NavItem | null = $state(null);
 	let tooltip: { label: string; x: number } | null = $state(null);
@@ -80,7 +83,7 @@
 
 <!-- Bottom nav bar -->
 <nav class="bottom-nav" aria-label="Main navigation">
-	{#each navItems as item}
+	{#each visibleItems as item}
 		{#if item.children}
 			<button
 				class="nav-btn"
