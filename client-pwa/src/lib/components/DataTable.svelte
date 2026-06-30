@@ -94,51 +94,57 @@
 
 	const isFirstLoad: boolean = $derived(currentPage == 1 && tableItems.length === 0)
 
-	// load table data
-	export const loadData: Function = debounce(
-		async (): Promise<void> => {
-			let localUrl = url;
-			isLoading = true;
+	async function doFetch(): Promise<void> {
+		let localUrl = url;
+		isLoading = true;
 
-			if (Object.keys(queryParams).length > 0) {
-				localUrl =
-					localUrl +
-					'?' +
-					Object.keys(queryParams)
-						.map((k: string) => `${k}=${queryParams[k]}`)
-						.join('&');
-			}
-			controller = new AbortController();
-			const signal = controller.signal;
-			const request = new Request(localUrl, {method: 'GET', signal: signal});
+		if (Object.keys(queryParams).length > 0) {
+			localUrl =
+				localUrl +
+				'?' +
+				Object.keys(queryParams)
+					.map((k: string) => `${k}=${queryParams[k]}`)
+					.join('&');
+		}
+		controller = new AbortController();
+		const signal = controller.signal;
+		const request = new Request(localUrl, {method: 'GET', signal: signal});
 
-			fetch(request)
-				.then((response) => {
-					if (response.status === 200) {
-						return response.json();
-					} else {
-						throw new Error('Something went wrong on API server!');
+		fetch(request)
+			.then((response) => {
+				if (response.status === 200) {
+					return response.json();
+				} else {
+					throw new Error('Something went wrong on API server!');
+				}
+			})
+			.then((response) => {
+				// fall back to a flat `{ data: [...] }` shape for non-paginated endpoints
+				const items = response.items || response.data || [];
+				totalItems = response.total ?? items.length;
+				maxPage = response.pages || 1;
+				tableItems = [...tableItems, ...items];
+			})
+			.catch((error) => {
+				console.error(error);
+				tableItems = [];
+			})
+			.finally(() => {
+				isLoading = false;
+				isRefreshing = false;
+				if (currentPage < maxPage && browser && infiniteScrollEl) {
+					const rect = infiniteScrollEl.getBoundingClientRect();
+					if (rect.top < window.innerHeight) {
+						currentPage += 1;
+						isLoading = true;
+						doFetch();
 					}
-				})
-				.then((response) => {
-					// fall back to a flat `{ data: [...] }` shape for non-paginated endpoints
-					const items = response.items || response.data || [];
-					totalItems = response.total ?? items.length;
-					maxPage = response.pages || 1;
-					tableItems = [...tableItems, ...items];
-				})
-				.catch((error) => {
-					console.error(error);
-					tableItems = [];
-				})
-				.finally(() => {
-					isLoading = false;
-					isRefreshing = false;
-				});
-		},
-		250,
-		{maxWait: 1000}
-	);
+				}
+			});
+	}
+
+	// load table data — debounced for user-triggered actions (search, sort)
+	export const loadData: Function = debounce(doFetch, 250, {maxWait: 1000});
 
 	function handleRefresh() {
 		currentPage = 1;
