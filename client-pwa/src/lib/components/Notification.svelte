@@ -21,4 +21,15 @@
 	})
 </script>
 
-<div class="uk-alert-primary uk-animation-slide-bottom-small uk-position-bottom-center uk-padding-small" class:uk-hidden={!message} uk-alert>{message}</div>
+	<div class="uk-alert-primary uk-animation-slide-bottom-small uk-padding-small notification-toast" class:uk-hidden={!message} uk-alert>{message}</div>
+
+<style>
+	.notification-toast {
+		position: fixed;
+		bottom: 20px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 1000;
+		max-width: 90vw;
+	}
+</style>
