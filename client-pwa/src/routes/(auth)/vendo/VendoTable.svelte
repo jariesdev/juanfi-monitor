@@ -11,6 +11,7 @@
 	const tableHeaders: TableHeader[] = [
 		{ label: 'Name', field: 'name', sortable: true },
 		{ label: 'API URL', field: 'api_url' },
+		{ label: 'Online', field: 'is_online', sortable: true },
 		{ label: 'Total Sales', field: 'recent_status.total_sales', sortable: true },
 		{ label: 'Current Sales', field: 'recent_status.current_sales', sortable: true },
 		{ label: 'Users', field: 'recent_status.active_users', sortable: true },
@@ -32,7 +33,13 @@
 	clientSort={true}
 >
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
-		{#if header.field === 'recent_status.total_sales'}
+		{#if header.field === 'is_online'}
+			{#if item.is_online}
+				<span class="status-badge online">Online</span>
+			{:else}
+				<span class="status-badge offline">Offline</span>
+			{/if}
+		{:else if header.field === 'recent_status.total_sales'}
 			₱<NumberFormat value={item.recent_status?.total_sales} />
 		{:else if header.field === 'recent_status.current_sales'}
 			₱<NumberFormat value={item.recent_status?.current_sales} />
@@ -177,5 +184,23 @@
 		width: 20px;
 		height: 20px;
 		flex: 0 0 20px;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 12px;
+		font-size: 0.78rem;
+		font-weight: 600;
+	}
+
+	.status-badge.online {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.status-badge.offline {
+		background: #fee2e2;
+		color: #991b1b;
 	}
 </style>
