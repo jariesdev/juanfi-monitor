@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
@@ -68,70 +69,92 @@ func broadcastNotifications(db *gorm.DB, hub *ws.Hub) {
 }
 
 // RefreshVendoLogs iterates all active vendos and runs the JuanfiLogger to
-// pull new logs and sales from each machine.
+// pull new logs and sales from each machine. Each vendo is refreshed
+// concurrently since they hit independent devices over the network.
 func RefreshVendoLogs(db *gorm.DB) {
 	vendos := activeVendos(db)
+	var wg sync.WaitGroup
 	for i := range vendos {
 		v := &vendos[i]
-		logger := services.NewJuanfiLogger(v, db)
-		if err := logger.Run(); err != nil {
-			log.Printf("scheduler: log refresh [%s]: %v", v.Name, err)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer recoverVendoJob("refresh_vendo_logs", v.Name)
+			logger := services.NewJuanfiLogger(v, db)
+			if err := logger.Run(); err != nil {
+				log.Printf("scheduler: log refresh [%s]: %v", v.Name, err)
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 // UpdateVendoStatus iterates all active vendos, records a status snapshot only
-// when metrics have changed, and keeps is_online in sync.
+// when metrics have changed, and keeps is_online in sync. Each vendo is
+// polled concurrently since they hit independent devices over the network.
 func UpdateVendoStatus(db *gorm.DB) {
 	vendos := activeVendos(db)
+	var wg sync.WaitGroup
 	for i := range vendos {
 		v := &vendos[i]
-		api := services.NewJuanfiAPI(v)
-		status, err := api.GetSystemStatus()
-		if err != nil {
-			log.Printf("scheduler: status update [%s]: %v", v.Name, err)
-			db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", false)
-			continue
-		}
-
-		totalSales := float64(status.TotalCoinCount)
-		currentSales := float64(status.CurrentCoinCount)
-		freeHeap := status.FreeHeap
-		wirelessStrength := float64(status.WirelessStrength)
-		activeUsers := status.ActiveUserCount
-		customerCount := status.CustomerCount
-
-		incoming := statusHash(totalSales, currentSales, freeHeap, wirelessStrength, activeUsers, customerCount)
-
-		var latest models.VendoStatus
-		changed := true
-		if db.Where("vendo_id = ?", v.ID).Order("id DESC").First(&latest).Error == nil {
-			prev := statusHash(
-				derefF64(latest.TotalSales), derefF64(latest.CurrentSales),
-				derefInt(latest.FreeHeap), derefF64(latest.WirelessStrength),
-				derefInt(latest.ActiveUsers), derefInt(latest.CustomerCount),
-			)
-			changed = incoming != prev
-		}
-
-		if changed {
-			record := models.VendoStatus{
-				VendoID:          v.ID,
-				TotalSales:       &totalSales,
-				CurrentSales:     &currentSales,
-				CustomerCount:    &customerCount,
-				FreeHeap:         &freeHeap,
-				WirelessStrength: &wirelessStrength,
-				ActiveUsers:      &activeUsers,
-				CreatedAt:        time.Now(),
-			}
-			if err := db.Create(&record).Error; err != nil {
-				log.Printf("scheduler: save status [%s]: %v", v.Name, err)
-			}
-		}
-
-		db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", true)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer recoverVendoJob("update_vendo_status", v.Name)
+			updateSingleVendoStatus(db, v)
+		}()
 	}
+	wg.Wait()
+}
+
+// updateSingleVendoStatus polls one vendo's device status, persisting a new
+// snapshot only when metrics changed, and updates its is_online flag.
+func updateSingleVendoStatus(db *gorm.DB, v *models.Vendo) {
+	api := services.NewJuanfiAPI(v)
+	status, err := api.GetSystemStatus()
+	if err != nil {
+		log.Printf("scheduler: status update [%s]: %v", v.Name, err)
+		db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", false)
+		return
+	}
+
+	totalSales := float64(status.TotalCoinCount)
+	currentSales := float64(status.CurrentCoinCount)
+	freeHeap := status.FreeHeap
+	wirelessStrength := float64(status.WirelessStrength)
+	activeUsers := status.ActiveUserCount
+	customerCount := status.CustomerCount
+
+	incoming := statusHash(totalSales, currentSales, freeHeap, wirelessStrength, activeUsers, customerCount)
+
+	var latest models.VendoStatus
+	changed := true
+	if db.Where("vendo_id = ?", v.ID).Order("id DESC").First(&latest).Error == nil {
+		prev := statusHash(
+			derefF64(latest.TotalSales), derefF64(latest.CurrentSales),
+			derefInt(latest.FreeHeap), derefF64(latest.WirelessStrength),
+			derefInt(latest.ActiveUsers), derefInt(latest.CustomerCount),
+		)
+		changed = incoming != prev
+	}
+
+	if changed {
+		record := models.VendoStatus{
+			VendoID:          v.ID,
+			TotalSales:       &totalSales,
+			CurrentSales:     &currentSales,
+			CustomerCount:    &customerCount,
+			FreeHeap:         &freeHeap,
+			WirelessStrength: &wirelessStrength,
+			ActiveUsers:      &activeUsers,
+			CreatedAt:        time.Now(),
+		}
+		if err := db.Create(&record).Error; err != nil {
+			log.Printf("scheduler: save status [%s]: %v", v.Name, err)
+		}
+	}
+
+	db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", true)
 }
 
 // statusHash returns a SHA-256 fingerprint of the metric fields to detect
@@ -176,4 +199,13 @@ func safeRun(name string, fn func()) {
 		}
 	}()
 	fn()
+}
+
+// recoverVendoJob recovers from a panic in a per-vendo goroutine so one
+// vendo's failure does not crash the job or take down the others running
+// concurrently.
+func recoverVendoJob(job, vendoName string) {
+	if r := recover(); r != nil {
+		log.Printf("scheduler: panic in %s [%s]: %v", job, vendoName, r)
+	}
 }
