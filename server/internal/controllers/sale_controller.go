@@ -10,6 +10,10 @@ import (
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
+// phtLocation is the Philippine Time zone (UTC+8), used for date filter
+// conversions so that queries correctly include entries near midnight.
+var phtLocation = time.FixedZone("PHT", 8*60*60)
+
 // SaleController handles voucher sale data endpoints.
 type SaleController struct {
 	saleRepo repository.SaleRepositoryInterface
@@ -78,20 +82,21 @@ func (s *SaleController) MonthlySales(c *gin.Context) {
 }
 
 // parseDateRange reads from_date/to_date query params, defaulting to a
-// 30-day window ending today when absent.
+// 30-day window ending today (in PHT) when absent. The returned times are
+// PHT-local start-of-day, suitable for conversion to UTC in the repository.
 func parseDateRange(c *gin.Context) (from, to time.Time) {
 	layout := "2006-01-02"
-	now := time.Now()
+	now := time.Now().In(phtLocation)
 	to = now
 	from = now.AddDate(0, -1, 0)
 
 	if f := c.Query("from_date"); f != "" {
-		if t, err := time.Parse(layout, f); err == nil {
+		if t, err := time.ParseInLocation(layout, f, phtLocation); err == nil {
 			from = t
 		}
 	}
 	if t := c.Query("to_date"); t != "" {
-		if parsed, err := time.Parse(layout, t); err == nil {
+		if parsed, err := time.ParseInLocation(layout, t, phtLocation); err == nil {
 			to = parsed
 		}
 	}

@@ -50,7 +50,12 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assigned
 		query = query.Where("mac_address LIKE ? OR voucher LIKE ?", "%"+*q+"%", "%"+*q+"%")
 	}
 	if date != nil && *date != "" {
-		query = query.Where("DATE(sale_time) = ?", *date)
+		loc := time.FixedZone("PHT", 8*60*60)
+		start, err := time.ParseInLocation("2006-01-02", *date, loc)
+		if err == nil {
+			end := start.Add(24 * time.Hour)
+			query = query.Where("sale_time >= ? AND sale_time < ?", start.UTC(), end.UTC())
+		}
 	}
 	if vendoID != nil {
 		query = query.Where("vendo_id = ?", *vendoID)
@@ -79,38 +84,47 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assigned
 }
 
 // GetDailySales aggregates sales by date and vendo within the given date range.
+// from and to are PHT-local start-of-day times — they are converted to UTC for
+// the query so that entries between midnight and 8 AM PHT are correctly included.
 // Only sales from active vendos are included.
 func (r *SaleRepository) GetDailySales(from, to time.Time, assignedIDs []uint) ([]DailySaleRow, error) {
+	loc := time.FixedZone("PHT", 8*60*60)
+
 	var rows []DailySaleRow
 	query := r.db.
 		Table("vendo_sales").
-		Select("DATE(sale_time) AS date, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
+		Select("DATE(sale_time, '+8 hours') AS date, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
-		Where("DATE(sale_time) BETWEEN ? AND ? AND vendos.is_active = 1", from.Format("2006-01-02"), to.Format("2006-01-02"))
+		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
+			from.In(loc).UTC(), to.In(loc).UTC())
 	if len(assignedIDs) > 0 {
 		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}
 	err := query.
-		Group("DATE(sale_time), vendo_sales.vendo_id").
+		Group("DATE(sale_time, '+8 hours'), vendo_sales.vendo_id").
 		Order("sale_time ASC").
 		Scan(&rows).Error
 	return rows, err
 }
 
 // GetMonthlySales aggregates sales by year-month and vendo within the given date range.
-// Only sales from active vendos are included.
+// from and to are PHT-local start-of-day times — they are converted to UTC for
+// the query. Only sales from active vendos are included.
 func (r *SaleRepository) GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error) {
+	loc := time.FixedZone("PHT", 8*60*60)
+
 	var rows []MonthlySaleRow
 	query := r.db.
 		Table("vendo_sales").
-		Select("strftime('%Y-%m', sale_time) AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
+		Select("strftime('%Y-%m', sale_time, '+8 hours') AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
-		Where("DATE(sale_time) BETWEEN ? AND ? AND vendos.is_active = 1", from.Format("2006-01-02"), to.Format("2006-01-02"))
+		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
+			from.In(loc).UTC(), to.In(loc).UTC())
 	if len(assignedIDs) > 0 {
 		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}
 	err := query.
-		Group("strftime('%Y-%m', sale_time), vendo_sales.vendo_id").
+		Group("strftime('%Y-%m', sale_time, '+8 hours'), vendo_sales.vendo_id").
 		Order("sale_time ASC").
 		Scan(&rows).Error
 	return rows, err

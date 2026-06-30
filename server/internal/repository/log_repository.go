@@ -2,6 +2,7 @@ package repository
 
 import (
 	"math"
+	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
 	"gorm.io/gorm"
@@ -28,7 +29,12 @@ func (r *LogRepository) Search(q *string, date *string, vendoID *uint, assignedI
 		query = query.Where("description LIKE ?", "%"+*q+"%")
 	}
 	if date != nil && *date != "" {
-		query = query.Where("DATE(log_time) = ?", *date)
+		loc := time.FixedZone("PHT", 8*60*60)
+		start, err := time.ParseInLocation("2006-01-02", *date, loc)
+		if err == nil {
+			end := start.Add(24 * time.Hour)
+			query = query.Where("log_time >= ? AND log_time < ?", start.UTC(), end.UTC())
+		}
 	}
 	if vendoID != nil {
 		query = query.Where("vendo_id = ?", *vendoID)
