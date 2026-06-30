@@ -78,9 +78,10 @@ func RefreshVendos(db *gorm.DB, hub *ws.Hub) {
 			defer wg.Done()
 			defer recoverVendoJob("refresh_vendos", v.Name)
 
-			broadcastProgress(hub, v.ID, 0)
+			// Start at 10% so the snake is immediately visible when a pull begins.
+			broadcastProgress(hub, v.ID, 10)
 			runVendoLogs(db, v, func(frac float64) {
-				broadcastProgress(hub, v.ID, int(frac*60))
+				broadcastProgress(hub, v.ID, 10+int(frac*50))
 			})
 			broadcastProgress(hub, v.ID, 60)
 			online := runVendoStatus(db, v, func(frac float64) {
