@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ parent, params, fetch }) => {
 	const { permissions } = await parent();
-	if (!permissions.includes('vendos')) {
+	if (!permissions.includes('vendoconfig')) {
 		throw redirect(302, '/home');
 	}
 	const res = await fetch(`/x-api/vendo-machines/${params.id}`);

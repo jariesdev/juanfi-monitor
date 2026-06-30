@@ -62,12 +62,14 @@
 								<span>Active users</span>
 							</a>
 						</li>
-						<li>
-							<a href={`/vendo/${item.id}/config`}>
-								<span class="action-icon" uk-icon="icon: cog"></span>
-								<span>System configuration</span>
-							</a>
-						</li>
+						{#if hasPermission('vendoconfig')}
+							<li>
+								<a href={`/vendo/${item.id}/config`}>
+									<span class="action-icon" uk-icon="icon: cog"></span>
+									<span>System configuration</span>
+								</a>
+							</li>
+						{/if}
 						{#if hasPermission('rates')}
 							<li>
 								<a href={`/vendo/${item.id}/rates`}>

@@ -71,7 +71,8 @@ export const ALL_PERMISSIONS = [
 	'rates',
 	'vouchers',
 	'settings',
-	'users'
+	'users',
+	'vendoconfig'
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

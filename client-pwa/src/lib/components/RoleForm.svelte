@@ -34,7 +34,8 @@
 		rates: 'Vendo Rates',
 		settings: 'Settings',
 		users: 'User Management',
-		vouchers: 'Vouchers'
+		vouchers: 'Vouchers',
+		vendoconfig: 'Vendo Configuration'
 	};
 
 	async function submit() {
