@@ -68,6 +68,8 @@ export const ALL_PERMISSIONS = [
 	'sales',
 	'logs',
 	'withdrawals',
+	'rates',
+	'settings',
 	'users'
 ] as const;
 
