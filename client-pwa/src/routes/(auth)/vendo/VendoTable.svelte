@@ -33,9 +33,9 @@
 >
 	{#snippet cell(item: RowItem, header: TableHeader, getCellValue: Function)}
 		{#if header.field === 'recent_status.total_sales'}
-			<NumberFormat value={item.recent_status?.total_sales} />
+			₱<NumberFormat value={item.recent_status?.total_sales} />
 		{:else if header.field === 'recent_status.current_sales'}
-			<NumberFormat value={item.recent_status?.current_sales} />
+			₱<NumberFormat value={item.recent_status?.current_sales} />
 		{:else if header.field === 'recent_status.active_users'}
 			<NumberFormat value={item.recent_status?.active_users || 0} />
 		{:else if header.field === 'recent_status.created_at'}
