@@ -4,7 +4,6 @@
 	import debounce from 'lodash/debounce';
 	import get from 'lodash/get';
 	import type {Filter, RowItem, TableHeader} from '$lib/types/datatable';
-	import refreshIcon from '$lib/icons/refresh.svg'
 	import {countupInt} from '$lib/utils/countup';
 
 	// props
@@ -15,6 +14,7 @@
 		title: string
 		perPage?: number
 		clientSort?: boolean   // sort loaded items in memory instead of via query params
+		showRefresh?: boolean  // show the icon-only refresh button before the search field
 
 		// snippets
 		titleActions?: Snippet
@@ -25,7 +25,7 @@
 		cell?: Snippet<[RowItem, TableHeader, Function]>
 	}
 
-	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, clientSort = false, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
+	const {url, headers = [], filters = {}, title = 'Table Records', perPage = 15, clientSort = false, showRefresh = false, titleActions, beforeTable, afterTable, row, cell, empty}: Props = $props()
 
 	// states
 	let isRefreshing: boolean = $state(false);
@@ -234,18 +234,39 @@
 	<div class="card-header">
 		<div class="header-left">
 			<span class="card-title">{title}</span>
-			<button
-				class="refresh-btn"
-				disabled={isRefreshing}
-				onclick={handleRefresh}
-				title="Refresh"
-				aria-label="Refresh"
-			>
-				<img src="{refreshIcon}" class:spinning={isRefreshing} alt="" />
-			</button>
-			{@render titleActions?.()}
+			{#if titleActions}
+				<div class="title-actions">{@render titleActions()}</div>
+			{/if}
 		</div>
 		<div class="header-right">
+			{#if showRefresh}
+				<button
+					class="refresh-btn"
+					disabled={isRefreshing}
+					onclick={handleRefresh}
+					title="Refresh"
+					aria-label="Refresh"
+				>
+					<svg
+						class:spinning={isRefreshing}
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+						<path d="M21 3v5h-5" />
+						<path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+						<path d="M3 21v-5h5" />
+					</svg>
+				</button>
+			{/if}
 			<div class="search-wrap">
 				<span class="search-icon" uk-icon="icon: search; ratio: 0.8"></span>
 				<input
@@ -354,6 +375,9 @@
 	}
 
 	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		flex-shrink: 0;
 	}
 
@@ -362,6 +386,14 @@
 		font-weight: 700;
 		color: #1a1a1a;
 		white-space: nowrap;
+	}
+
+	/* Optional title-area action buttons sit at the right end of the header. */
+	.title-actions {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-left: auto;
 	}
 
 	.refresh-btn {
