@@ -143,7 +143,6 @@ func buildRouter(
 	auth.GET("/vendo-machines", vendoCtrl.All)
 	auth.GET("/vendo-machines/:id/status", vendoCtrl.Status)
 	auth.GET("/vendo-machines/:id/active-users", vendoCtrl.ActiveUsers)
-	auth.GET("/vendo-machines/:id/config", vendoCtrl.Config)
 	auth.GET("/vendo-machines/:id", vendoCtrl.Get)
 	auth.POST("/vendo-machines", vendoCtrl.Store)
 	auth.DELETE("/vendo-machines/:id", vendoCtrl.Delete)
@@ -172,6 +171,12 @@ func buildRouter(
 	vouchers.Use(middleware.RequirePermission(models.PermVouchers))
 	vouchers.GET("/vendo-machines/:id/vouchers", voucherCtrl.ListForVendo)
 	vouchers.POST("/vendo-machines/:id/vouchers/generate", voucherCtrl.Generate)
+
+	// Vendo system configuration — its own permission since it exposes device
+	// credentials (admin/operator/mikrotik passwords, API key).
+	vendoConfig := auth.Group("/")
+	vendoConfig.Use(middleware.RequirePermission(models.PermVendoConfig))
+	vendoConfig.GET("/vendo-machines/:id/config", vendoCtrl.Config)
 
 	auth.GET("/withdrawals", withdrawalCtrl.Search)
 
