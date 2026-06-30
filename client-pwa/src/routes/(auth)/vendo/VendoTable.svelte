@@ -62,6 +62,14 @@
 								<span>Active users</span>
 							</a>
 						</li>
+						{#if hasPermission('withdrawals')}
+							<li>
+								<a href={`/vendo/${item.id}/withdraw`}>
+									<span class="action-icon" uk-icon="icon: credit-card"></span>
+									<span>Withdraw Sale</span>
+								</a>
+							</li>
+						{/if}
 						{#if hasPermission('vendoconfig')}
 							<li>
 								<a href={`/vendo/${item.id}/config`}>
