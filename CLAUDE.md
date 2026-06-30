@@ -17,6 +17,26 @@ The application is permission-based ACL. Roles are created dynamically via the U
 
 ## server/ — Go API
 
+### Go (Gin) Development Rules
+
+* Write idiomatic Go and follow Go best practices.
+* Use Gin only for HTTP routing, middleware, request binding, and response handling.
+* Keep business logic in the service (use-case) layer.
+* Keep Gin handlers/controllers thin: bind request → validate → call service → return response.
+* Keep repositories responsible only for database access; never place business logic there.
+* Use constructor dependency injection for all dependencies.
+* Define interfaces only when necessary and where they are consumed.
+* Always pass context.Context as the first parameter in service and repository methods (use c.Request.Context() from Gin).
+* Return wrapped errors (fmt.Errorf("...: %w", err)) and let handlers map them to HTTP responses.
+* Keep functions small, focused, and single-purpose.
+* Prefer composition over unnecessary abstractions.
+* Keep database transactions in the service layer.
+* Use DTOs for request/response models and separate them from domain models.
+* Validate request payloads in Gin handlers using struct tags; enforce business rules in services.
+* Use table-driven tests and mock repositories/external services.
+* Prefer the Go standard library unless a third-party package provides significant value.
+* Generate production-ready, maintainable, and testable code by default.
+
 ### Run & test
 ```bash
 cd server
