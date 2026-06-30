@@ -3,6 +3,7 @@
 	import type {iNotification} from "$lib/types/models";
 	import Notification from "$lib/components/Notification.svelte";
 	import { baseWsUrl } from '$lib/env';
+	import { setVendoProgress, setVendoOnline } from '$lib/store/vendoActivity';
 
 	let messages: string[] = $state([]);
 	let inputValue: string = $state('');
@@ -28,6 +29,10 @@
 				} else {
 					pushNotification(notification.message)
 				}
+			} else if (notification.type === 'vendo_refresh') {
+				setVendoProgress(notification.vendo_id, notification.progress);
+			} else if (notification.type === 'vendo_status') {
+				setVendoOnline(notification.vendo_id, notification.online);
 			}
 
 		};
