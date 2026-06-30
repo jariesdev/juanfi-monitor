@@ -32,6 +32,7 @@
 		logs: 'Logs',
 		withdrawals: 'Withdrawals',
 		rates: 'Vendo Rates',
+		settings: 'Settings',
 		users: 'User Management'
 	};
 

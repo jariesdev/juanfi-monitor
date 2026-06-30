@@ -53,7 +53,7 @@ export const navItems: NavItem[] = [
 	{
 		icon: 'settings',
 		label: 'Settings',
-		requiredPermission: 'users',
+		requiredPermission: 'settings',
 		children: [
 			{ href: '/settings/default-rates', label: 'Default Rates', requiredPermission: 'rates' }
 		]
