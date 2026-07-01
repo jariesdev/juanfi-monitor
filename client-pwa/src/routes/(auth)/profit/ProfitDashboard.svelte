@@ -57,6 +57,17 @@
 		});
 	}
 
+	// Formats a month count as years + months, e.g. 27 -> "2 years 3 months".
+	function fmtDuration(months: number) {
+		if (months <= 0) return '0 months';
+		const y = Math.floor(months / 12);
+		const m = months % 12;
+		const parts: string[] = [];
+		if (y) parts.push(`${y} year${y > 1 ? 's' : ''}`);
+		if (m) parts.push(`${m} month${m > 1 ? 's' : ''}`);
+		return parts.join(' ');
+	}
+
 	const statusMeta: Record<string, { label: string; cls: string }> = {
 		profit: { label: 'Profitable', cls: 'good' },
 		break_even: { label: 'Break-even', cls: 'neutral' },
@@ -131,14 +142,15 @@
 				<p class="forecast-sub">Cumulative net is positive at {fmt(forecast.cumulative_net)}.</p>
 			{:else if forecast.status === 'on_track'}
 				<p class="forecast-headline">
-					Profitable in ~<strong>{forecast.months_to_break_even}</strong>
-					{forecast.months_to_break_even === 1 ? 'month' : 'months'}
+					Break-even in ~<strong>{fmtDuration(forecast.months_to_break_even ?? 0)}</strong>
 					{#if forecast.projected_break_even_month}
 						<span class="est">(est. {fmtMonth(forecast.projected_break_even_month)})</span>
 					{/if}
 				</p>
 				<p class="forecast-sub">
-					At the current pace you still need to recover {fmt(-forecast.cumulative_net)}.
+					That's about {forecast.months_to_break_even}
+					{forecast.months_to_break_even === 1 ? 'month' : 'months'} at the current pace — you still
+					need to recover {fmt(-forecast.cumulative_net)}.
 				</p>
 			{:else}
 				<p class="forecast-headline bad">Not recovering at the current rate.</p>
