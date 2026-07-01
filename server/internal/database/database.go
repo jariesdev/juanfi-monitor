@@ -120,5 +120,27 @@ func sqliteCreateMissing(db *gorm.DB) error {
 		}
 	}
 
+	// Additive column migrations for tables that gained columns after their
+	// initial creation. Unlike column type/constraint changes, SQLite supports
+	// ALTER TABLE ADD COLUMN natively (no table rebuild), so this is safe even
+	// against schemas created by another tool. List (model, field) pairs here.
+	addColumns := []struct {
+		model interface{}
+		field string
+	}{
+		{&models.Expense{}, "EndDate"},
+	}
+	for _, ac := range addColumns {
+		if !db.Migrator().HasTable(ac.model) {
+			continue
+		}
+		if db.Migrator().HasColumn(ac.model, ac.field) {
+			continue
+		}
+		if err := db.Migrator().AddColumn(ac.model, ac.field); err != nil {
+			return fmt.Errorf("add column %s: %w", ac.field, err)
+		}
+	}
+
 	return nil
 }
