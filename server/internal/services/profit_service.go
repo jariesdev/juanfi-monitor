@@ -122,7 +122,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 			commByVendo[v.ID] = v.Commission
 		}
 
-		rows, err := s.saleRepo.GetMonthlySales(from, to, ownVendoIDs)
+		rows, err := s.saleRepo.GetMonthlySales(from, to, ownVendoIDs, true)
 		if err != nil {
 			return nil, fmt.Errorf("monthly sales: %w", err)
 		}

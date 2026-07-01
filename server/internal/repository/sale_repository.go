@@ -106,15 +106,19 @@ func (r *SaleRepository) GetDailySales(from, to time.Time, assignedIDs []uint) (
 }
 
 // GetMonthlySales aggregates sales by year-month and vendo within the given date range.
-// from and to are PHT-local start-of-day times. Only sales from active vendos are included.
-func (r *SaleRepository) GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error) {
+// from and to are PHT-local start-of-day times. When includeInactive is false
+// only sales from active vendos are counted; the profit report passes true so a
+// deactivated vendo's historical sales still count toward revenue.
+func (r *SaleRepository) GetMonthlySales(from, to time.Time, assignedIDs []uint, includeInactive bool) ([]MonthlySaleRow, error) {
 	var rows []MonthlySaleRow
 	query := r.db.
 		Table("vendo_sales").
 		Select("strftime('%Y-%m', sale_time, '+8 hours') AS month, SUM(amount) AS total, vendo_sales.vendo_id, vendos.name AS vendo_name").
 		Joins("JOIN vendos ON vendos.id = vendo_sales.vendo_id").
-		Where("sale_time >= ? AND sale_time < ? AND vendos.is_active = 1",
-			from, to)
+		Where("sale_time >= ? AND sale_time < ?", from, to)
+	if !includeInactive {
+		query = query.Where("vendos.is_active = 1")
+	}
 	if len(assignedIDs) > 0 {
 		query = query.Where("vendo_sales.vendo_id IN ?", assignedIDs)
 	}

@@ -73,7 +73,7 @@ func (s *SaleController) DailySales(c *gin.Context) {
 // Query params: from_date, to_date (YYYY-MM-DD, both optional – defaults to last 12 months).
 func (s *SaleController) MonthlySales(c *gin.Context) {
 	from, to := parseDateRange(c)
-	rows, err := s.saleRepo.GetMonthlySales(from, to, authz.AssignedVendoIDs(c))
+	rows, err := s.saleRepo.GetMonthlySales(from, to, authz.AssignedVendoIDs(c), false)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

@@ -58,7 +58,8 @@ type SaleRepositoryInterface interface {
 	// assignedIDs: when non-empty, results are filtered to those vendo IDs.
 	Search(q *string, date *string, vendoID *uint, assignedIDs []uint, page, size int, sortBy, sortDir string) (*PageResult[models.VendoSale], error)
 	GetDailySales(from, to time.Time, assignedIDs []uint) ([]DailySaleRow, error)
-	GetMonthlySales(from, to time.Time, assignedIDs []uint) ([]MonthlySaleRow, error)
+	// includeInactive counts deactivated vendos' sales when true (used by the profit report).
+	GetMonthlySales(from, to time.Time, assignedIDs []uint, includeInactive bool) ([]MonthlySaleRow, error)
 }
 
 // VendoStatusRepositoryInterface aggregates historical status snapshots.

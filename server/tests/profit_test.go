@@ -546,6 +546,25 @@ func TestVendoUpdate_Commission(t *testing.T) {
 	assertStatus(t, doRequest(http.MethodPut, fmt.Sprintf("/vendo-machines/%d", vendoID), bad, authHeader()), http.StatusBadRequest)
 }
 
+// A deactivated vendo's historical sales still count toward profit revenue.
+func TestProfitReport_IncludesInactiveVendoSales(t *testing.T) {
+	role := seedRole(t, "ProfitRoleInactive", []string{models.PermProfit})
+	v := &models.Vendo{Name: "DeactivatedVendo", IsActive: 0, IsOnline: false}
+	if err := db.Create(v).Error; err != nil {
+		t.Fatalf("seed inactive vendo: %v", err)
+	}
+	_, token := seedUser(t, "owner_inactive", role, []uint{v.ID})
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	addSale(t, v.ID, monthAnchor(-1), 300.0)
+
+	var report tReport
+	decodeJSON(t, doRequest(http.MethodGet, "/profit-report", nil, auth).Body, &report)
+	if report.Summary.TotalRevenue != 300 {
+		t.Errorf("inactive vendo sales should count in revenue, got %v", report.Summary.TotalRevenue)
+	}
+}
+
 // Profit endpoints require the profit permission.
 func TestProfit_ACL_Forbidden(t *testing.T) {
 	role := seedRole(t, "NoProfitRole", []string{models.PermDashboard})
