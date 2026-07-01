@@ -13,6 +13,7 @@ import (
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/scheduler"
+	"github.com/jariesdev/vendoreport/internal/services"
 	ws "github.com/jariesdev/vendoreport/internal/websocket"
 	"gorm.io/gorm"
 )
@@ -42,6 +43,10 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	roleRepo := repository.NewRoleRepository(db)
 	rateRepo := repository.NewVendoRateRepository(db)
 	voucherRepo := repository.NewVendoVoucherRepository(db)
+	expenseRepo := repository.NewExpenseRepository(db)
+
+	// ── Services ─────────────────────────────────────────────────────────────
+	profitService := services.NewProfitService(saleRepo, expenseRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -58,6 +63,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
 	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
 	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
+	expenseCtrl := controllers.NewExpenseController(expenseRepo, profitService)
 
 	// ── Cron Scheduler ────────────────────────────────────────────────────────
 	var stopFn func()
@@ -69,7 +75,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, expenseCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -90,6 +96,7 @@ func buildRouter(
 	withdrawalCtrl *controllers.WithdrawalController,
 	rateCtrl *controllers.VendoRateController,
 	voucherCtrl *controllers.VendoVoucherController,
+	expenseCtrl *controllers.ExpenseController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -179,6 +186,18 @@ func buildRouter(
 	vendoConfig.GET("/vendo-machines/:id/config", vendoCtrl.Config)
 
 	auth.GET("/withdrawals", withdrawalCtrl.Search)
+
+	// Profit tracking — expenses CRUD, monthly/yearly report, and break-even
+	// forecast. All operations are scoped per-owner (current user). Requires
+	// the profit permission.
+	profit := auth.Group("/")
+	profit.Use(middleware.RequirePermission(models.PermProfit))
+	profit.GET("/expenses", expenseCtrl.List)
+	profit.POST("/expenses", expenseCtrl.Create)
+	profit.PUT("/expenses/:id", expenseCtrl.Update)
+	profit.DELETE("/expenses/:id", expenseCtrl.Delete)
+	profit.GET("/profit-report", expenseCtrl.Report)
+	profit.GET("/profit-forecast", expenseCtrl.Forecast)
 
 	return router
 }

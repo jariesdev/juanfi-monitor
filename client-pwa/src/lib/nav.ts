@@ -42,6 +42,15 @@ export const navItems: NavItem[] = [
 	},
 	{ href: '/logs', icon: 'list', label: 'Logs', requiredPermission: 'logs' },
 	{
+		icon: 'credit-card',
+		label: 'Financials',
+		requiredPermission: 'profit',
+		children: [
+			{ href: '/profit', label: 'Profit Report', requiredPermission: 'profit' },
+			{ href: '/expenses', label: 'Expenses', requiredPermission: 'profit' }
+		]
+	},
+	{
 		icon: 'users',
 		label: 'Users',
 		requiredPermission: 'users',
