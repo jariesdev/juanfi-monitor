@@ -51,12 +51,12 @@ flowchart LR
 ## Inputs
 | Input | Source | Shape |
 |---|---|---|
-| Device config string | Device → service | 51 `\|`-delimited positional fields (no `#` sub-delimiting, unlike rates/logs) |
+| Device config string | Device → service | Up to 61 `\|`-delimited positional fields, indices 0–60 (no `#` sub-delimiting, unlike rates/logs); older devices emit fewer trailing fields |
 | `:id` | PWA → REST | Vendo ID (uint) |
 
 ## Processing steps
 - `GET /vendo-machines/:id/config` → `Config` handler: `parseID` → `CanAccessVendo` → `vendoRepo.GetByID` → `JuanfiAPI.GetSystemConfig()` → return the struct as raw JSON (not wrapped in `{data:...}`, matching `Status`'s convention).
-- `GetSystemConfig()`: GET `api/getSystemConfig` → split on `|` → require at least 47 fields → assign indices 0–46 to named struct fields → anything beyond index 46 is kept verbatim in `ExtraFields`.
+- `GetSystemConfig()`: GET `api/getSystemConfig` → split on `|` → require at least 47 fields → assign indices 0–46 to named struct fields → anything beyond index 46 is kept verbatim in `ExtraFields`. **Note:** this reflects current code, which is now known to mislabel indices 30–46 and to treat the real fields 47–60 as `ExtraFields` — see [the divergence summary](#the-go-systemconfig-struct-is-out-of-sync).
 - `SaveSystemConfig(cfg)` *(implemented, not routed)*: `encodeSystemConfig` rejoins the named fields in the same order, appends `ExtraFields`, POSTs `data=<encoded>` to `api/saveSystemConfig`.
 
 ## Outputs
@@ -64,14 +64,19 @@ flowchart LR
 |---|---|---|
 | Live config | PWA | `SystemConfig` JSON object (snake_case keys, see [API / Interface](#api--interface)) |
 
-## Device wire format — confidence levels (read this before trusting a field)
+## Device wire format — index → field mapping (firmware 4.3, verified)
 
-The raw response is **51 positional fields** with no labels. There is no current access to the firmware source for the build that produces 51 fields, so the mapping below was reverse-engineered from two sources:
+The raw response is a **`|`-delimited positional list of up to 61 fields (indices 0–60)**, no labels. As of firmware **release-4.3** we have the device source (`WirelessBase/ESP32/extracted/admin/js/admin.js`), so the mapping below is **confirmed** — no longer reverse-engineered.
 
-1. **An older Juanfi admin console's `populateSystemConfigFields()` JS** (firmware ~2.3), which explicitly assigns `configData[0..29]` to named form inputs. That JS's first 30 fields were cross-checked against a live sample/screenshot from the *current* (51-field) firmware and matched **byte-for-byte** — same values, same order. This is the most reliable evidence we have.
-2. **Exact-value matching** between a live device's admin-panel screenshot and a sample `getSystemConfig` response/`saveSystemConfig` form payload for the same device, for fields added after index 29 (the old JS doesn't cover these).
+**Source of truth** — read and write are symmetric, so each index → field identity is unambiguous:
+- **Read:** `populateSystemConfigFields(data)` splits on `|` and assigns `configData[0..60]` to named form fields.
+- **Write:** `saveSystemConfig()` → `createParam([...])` rejoins the same 61 fields with `|` in the same order.
 
-| Index | Struct field | Confidence | Basis |
+> Older/less-configured devices emit **fewer trailing fields** — a real production sample had 51 (indices 0–50, with 51–60 absent). The firmware reader tolerates this via `!= null && != ""` guards with built-in defaults, so a short response is valid; the earlier "51 fields" figure is this same layout with the tail omitted, **not** a different format.
+
+Column 2 is the **firmware form-field id** (authoritative); indices 0–29 also match the same-named Go struct fields. Where the current Go `SystemConfig` struct disagrees (indices 30+), the Basis column says so — see the divergence summary after the table.
+
+| Index | Field | Confidence | Basis |
 |---|---|---|---|
 | 0 | `VendoName` | High | Old-JS position |
 | 1 | `WiFiSSID` | High | Old-JS position |
@@ -103,26 +108,60 @@ The raw response is **51 positional fields** with no labels. There is no current
 | 27 | `GatewayIP` | High | Old-JS position |
 | 28 | `SubnetMask` | High | Old-JS position |
 | 29 | `DNSServer` | High | Old-JS position |
-| 30 | `ConnectionMode` | **Low** | Positional guess — old JS ends at 29; no independent value check |
-| 31 | `CoinSlotType` | **Low** | Positional guess |
-| 32 | `ButtonFunction` | **Low** | Positional guess |
-| 33 | `OperatorUsername` | Medium-High | Exact value match (`operator`) against screenshot |
-| 34 | `OperatorPassword` | Medium | Adjacent to 33; value present but not independently distinctive |
-| 35 | `APIKey` | Medium | Plausible position (random alnum string, distinct shape) — **not** independently value-confirmed (sample screenshot showed a different device's key) |
-| 36 | `BillAcceptorPin` | **Low** | Positional guess; `-1` is consistent with the NONE sentinel pattern seen at 13/14 |
-| 37 | `CoinMultiplier` | Medium | Value (`1`) matches screenshot, but `1` is too common in this payload to be a strong anchor alone — trust the elimination/ordering, not the value |
-| 38 | `VoucherLength` | Medium-High | Exact value match (`4`), fairly distinctive |
-| 39 | `NightLightPin` | **Low** | Positional guess |
-| 40 | `LCDSDAPin` | **Low** | Positional guess |
-| 41 | `LCDSCLPin` | **Low** | Positional guess |
-| 42 | `LANCSPin` | **Low** | Positional guess |
-| 43 | `PrinterPin` | **Low** | Positional guess |
-| 44 | `BillAcceptorMultiplier` | Medium-High | Exact value match (`10`), fairly distinctive |
-| 45 | `PrintOption` | **Low** | Positional guess |
-| 46 | `IncludeVendoName` | Medium | Value (`0`/No) consistent with convention, but `0` is too common to be a strong anchor alone |
-| 47–50 | `ExtraFields[0..3]` | N/A | Observed as blank/zero padding; no known UI field — preserved verbatim, never decoded |
+| 30 | `coinSlotType` | Confirmed | fw4.3 `admin.js` (`1`=Universal/multicoin, `2`=single-coin sensor) — Go struct wrongly has `ConnectionMode` here |
+| 31 | `singleCoinPulseCount` | Confirmed | fw4.3 — pulse count for single-coin sensor; **not modeled by Go struct** |
+| 32 | `mtConnectionMode` | Confirmed | fw4.3 — Mikrotik `1`=Keep Alive, `2`=On Demand; this is the real "connection mode" (Go put `ConnectionMode` at 30) |
+| 33 | `operatorUser` | Confirmed | fw4.3 — matches Go `OperatorUsername` ✓ |
+| 34 | `operatorPw` | Confirmed | fw4.3 — matches Go `OperatorPassword` ✓ |
+| 35 | `apiKey` | Confirmed | fw4.3 — matches Go `APIKey` ✓ |
+| 36 | `nightLightPin` | Confirmed | fw4.3 — Go wrongly has `BillAcceptorPin` |
+| 37 | `buttonFunction` | Confirmed | fw4.3 (`0`=Clear+Buy, `1`=Clear only) — Go wrongly has `CoinMultiplier` |
+| 38 | `voucherLength` | Confirmed | fw4.3 — matches Go `VoucherLength` ✓ |
+| 39 | `coinMultiplier` | Confirmed | fw4.3 — Go wrongly has `NightLightPin` |
+| 40 | `lanModeOverride` | Confirmed | fw4.3 — **internal** LAN-migration flag, forced `1` on save (not a user field); Go wrongly has `LCDSDAPin` |
+| 41 | `lcdSDAPin` | Confirmed | fw4.3 — Go wrongly has `LCDSCLPin` |
+| 42 | `lcdSCLPin` | Confirmed | fw4.3 — Go wrongly has `LANCSPin` |
+| 43 | `billAcceptorPin` | Confirmed | fw4.3 — Go wrongly has `PrinterPin` |
+| 44 | `billAcceptorMultiplier` | Confirmed | fw4.3 — matches Go `BillAcceptorMultiplier` ✓ |
+| 45 | `thermalPrinterPin` | Confirmed | fw4.3 ("Printer Pin") — Go wrongly has `PrintOption` |
+| 46 | `printOption` | Confirmed | fw4.3 (`0`=Never … `4`=Only when profile is) — Go wrongly has `IncludeVendoName` |
+| 47 | `printOptionCriteria` | Confirmed | fw4.3 — profile name used when `printOption`=4; Go treats as `ExtraFields[0]` |
+| 48 | `lanCSPin` | Confirmed | fw4.3 — LAN module chip-select pin; Go `ExtraFields[1]` |
+| 49 | `persistLogs` | Confirmed | fw4.3 (`0`/`1`); Go `ExtraFields[2]` |
+| 50 | `includeVendoName` | Confirmed | fw4.3 (`0`/`1`) — the real `IncludeVendoName`; Go `ExtraFields[3]` |
+| 51 | `welcomeTextFirstLine` | Confirmed | fw4.3 (LCD line 1, default `Welcome to`); not modeled by Go struct |
+| 52 | `welcomeTextThirdLine` | Confirmed | fw4.3 (LCD line 3, 20x4 only) |
+| 53 | `insertCoinText` | Confirmed | fw4.3 (LCD "insert coin" text) |
+| 54 | `thankYouText` | Confirmed | fw4.3 (default `Thank you!`) |
+| 55 | `restartSchedule` | Confirmed | fw4.3 (auto-restart schedule, `0`=disabled) |
+| 56 | `blackoutDetection` | Confirmed | fw4.3 (A0+3V button: `0`=disable, `1`=factory reset, `2`=run MT script) |
+| 57 | `buzzerPin` | Confirmed | fw4.3 (buzzer GPIO pin) |
+| 58 | `printerBaudRate` | Confirmed | fw4.3 (default `9600`) |
+| 59 | `pulseToBlock` | Confirmed | fw4.3 (default `20`) |
+| 60 | `thankYouTimeout` | Confirmed | fw4.3 (thank-you display seconds, default `30`) |
 
-**If you get access to the firmware source or another sample (ideally from a device in Static IP mode, and/or with distinct non-`0`/`1`/`-1` values in the Low-confidence fields), re-derive indices 30–46 and update this table plus the `// best-effort` comments in `juanfi_api.go`.**
+### The Go `SystemConfig` struct is out of sync
+
+`internal/services/juanfi_api.go` was written before the firmware was available: it models indices **0–46** and dumps everything past 46 into `ExtraFields`. **Indices 0–29 are correct**, but the "newer firmware" block (30–46) was guessed and is mostly **wrong**, and **47–60 are real named fields, not padding**. Only 33, 34, 35, 38, 44 happen to sit at the right index.
+
+| Index | Go struct field (wrong) | Actual (firmware 4.3) |
+|---|---|---|
+| 30 | `ConnectionMode` | `coinSlotType` |
+| 31 | `CoinSlotType` | `singleCoinPulseCount` |
+| 32 | `ButtonFunction` | `mtConnectionMode` (the real connection mode) |
+| 36 | `BillAcceptorPin` | `nightLightPin` |
+| 37 | `CoinMultiplier` | `buttonFunction` |
+| 39 | `NightLightPin` | `coinMultiplier` |
+| 40 | `LCDSDAPin` | `lanModeOverride` (internal flag) |
+| 41 | `LCDSCLPin` | `lcdSDAPin` |
+| 42 | `LANCSPin` | `lcdSCLPin` |
+| 43 | `PrinterPin` | `billAcceptorPin` |
+| 45 | `PrintOption` | `thermalPrinterPin` |
+| 46 | `IncludeVendoName` | `printOption` |
+| 47–50 | `ExtraFields[0..3]` (assumed padding) | `printOptionCriteria`, `lanCSPin`, `persistLogs`, `includeVendoName` |
+| 51–60 | *(unmodeled)* | `welcomeTextFirstLine`, `welcomeTextThirdLine`, `insertCoinText`, `thankYouText`, `restartSchedule`, `blackoutDetection`, `buzzerPin`, `printerBaudRate`, `pulseToBlock`, `thankYouTimeout` |
+
+**Consequence:** `GetSystemConfig` currently returns mislabeled values for roughly half the fields, and a `SaveSystemConfig` built on the current struct would shift every field from index 30 on. **Do not wire the write path** until the struct is re-ordered to match the table above (indices 0–60, no `ExtraFields`). Tracked in [Future Considerations](#future-considerations).
 
 ---
 
@@ -252,12 +291,13 @@ The raw response is **51 positional fields** with no labels. There is no current
 # Future Considerations
 
 ## Known limitations
-- Indices 30, 31, 32, 36, 39–43, 45 (`ConnectionMode`, `CoinSlotType`, `ButtonFunction`, `BillAcceptorPin`, `NightLightPin`, `LCDSDAPin`, `LCDSCLPin`, `LANCSPin`, `PrinterPin`, `PrintOption`) are **unverified positional guesses** — see the confidence table above. Do not build write/edit functionality on top of these without re-verifying against firmware source or more device samples.
-- No write endpoint exists yet for `SaveSystemConfig`, even though the service method is implemented — there is currently no way to edit configuration from the PWA.
+- **The Go `SystemConfig` struct is out of sync with the verified firmware 4.3 layout** (see the [divergence summary](#the-go-systemconfig-struct-is-out-of-sync)): indices 30–46 are mislabeled, 47–50 are treated as `ExtraFields` when they are the real `printOptionCriteria`/`lanCSPin`/`persistLogs`/`includeVendoName`, and 51–60 are not modeled at all. `GetSystemConfig` therefore returns wrong labels for ~half the payload today. The mapping table is now authoritative; the struct needs to be re-ordered to match before it can be trusted.
+- No write endpoint exists yet for `SaveSystemConfig`, even though the service method is implemented — there is currently no way to edit configuration from the PWA. It must not be wired until the struct is corrected (a save on the current struct would shift every field from index 30 on).
 
 ## Technical debt
 - Pin-number enums (which raw integer means which physical pin label, e.g. `D1`/`D2`/`RX`) are only known for the *old* firmware's pin set (indices 11, 12, 16). The newer pin fields (SDA/SCL/LAN CS/Night Light/Bill Acceptor/Printer) are displayed as raw integers in the PWA rather than decoded labels, because the new enum isn't known.
 
 ## Planned improvements
-- Wire `SaveSystemConfig` to a `POST /vendo-machines/:id/config` route once the field mapping is fully verified, gated on the same `vendoconfig` permission, with a confirmation step given it triggers a device restart.
-- Decode the remaining Low-confidence dropdown/pin fields into human-readable labels once their enums are confirmed.
+- **Re-order the `SystemConfig` struct to the verified firmware 4.3 layout** (indices 0–60, drop `ExtraFields`, keeping parse/encode in lockstep) so `GetSystemConfig` returns correct labels — this is now a correctness fix, not a nice-to-have, since the mapping is verified.
+- Then wire `SaveSystemConfig` to a `POST /vendo-machines/:id/config` route, gated on the same `vendoconfig` permission, with a confirmation step given it triggers a device restart.
+- Decode dropdown/pin values into human-readable labels using the option lists in `admin/system-config.html` (e.g. `lcdScreen` `0`/`1`/`2` = None/16x2/20x4, `mtConnectionMode` `1`/`2` = Keep Alive/On Demand, `printOption` `0..4`).
