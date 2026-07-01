@@ -6,3 +6,4 @@ __pycache__
 client-pwa/.idea/
 .claude/worktrees
 .aider*
+node_modules
