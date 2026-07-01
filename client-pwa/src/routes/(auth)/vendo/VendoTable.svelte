@@ -23,7 +23,9 @@
 	];
 
 	export function loadData() {
-		dataTable.loadData();
+		// refresh() resets the page/items before fetching; loadData() appends
+		// (infinite scroll) and would duplicate rows after an add/edit.
+		dataTable.refresh();
 	}
 
 	// Edit modal state
