@@ -31,18 +31,34 @@ func NewJuanfiLogger(vendo *models.Vendo, db *gorm.DB) *JuanfiLogger {
 // Run fetches the latest logs from the vendo machine, stores sales (with
 // notifications), then stores the formatted system logs.
 func (l *JuanfiLogger) Run() error {
+	return l.RunWithProgress(nil)
+}
+
+// RunWithProgress behaves like Run but invokes report (when non-nil) with a
+// 0..1 fraction of the logger's work as each stage completes, so callers can
+// surface live pull progress.
+func (l *JuanfiLogger) RunWithProgress(report func(frac float64)) error {
 	rawLogs, err := l.api.LoadSystemLogs()
 	if err != nil {
 		return fmt.Errorf("juanfi logger [%s]: load logs: %w", l.vendo.Name, err)
+	}
+	if report != nil {
+		report(0.5)
 	}
 
 	if err := l.storeSales(rawLogs); err != nil {
 		log.Printf("juanfi logger [%s]: store sales: %v", l.vendo.Name, err)
 	}
+	if report != nil {
+		report(0.8)
+	}
 
 	formatted := l.api.GetFormattedLogs(rawLogs)
 	if err := l.storeLogs(formatted); err != nil {
 		log.Printf("juanfi logger [%s]: store logs: %v", l.vendo.Name, err)
+	}
+	if report != nil {
+		report(1.0)
 	}
 
 	log.Printf("juanfi logger [%s]: done", l.vendo.Name)

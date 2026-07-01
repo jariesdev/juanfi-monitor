@@ -43,21 +43,21 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	rateRepo := repository.NewVendoRateRepository(db)
 	voucherRepo := repository.NewVendoVoucherRepository(db)
 
+	// ── WebSocket Hub ─────────────────────────────────────────────────────────
+	hub := ws.NewHub()
+	go hub.Run()
+
 	// ── Controllers ──────────────────────────────────────────────────────────
 	authCtrl := controllers.NewAuthController(userRepo, jwtSecret)
 	userCtrl := controllers.NewUserController(userRepo)
 	roleCtrl := controllers.NewRoleController(roleRepo)
-	vendoCtrl := controllers.NewVendoController(vendoRepo, withdrawalRepo, userRepo)
+	vendoCtrl := controllers.NewVendoController(db, vendoRepo, withdrawalRepo, userRepo, hub)
 	logCtrl := controllers.NewLogController(db, logRepo, vendoRepo)
 	saleCtrl := controllers.NewSaleController(saleRepo)
 	statusCtrl := controllers.NewVendoStatusController(statusRepo)
 	withdrawalCtrl := controllers.NewWithdrawalController(withdrawalRepo)
 	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
 	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
-
-	// ── WebSocket Hub ─────────────────────────────────────────────────────────
-	hub := ws.NewHub()
-	go hub.Run()
 
 	// ── Cron Scheduler ────────────────────────────────────────────────────────
 	var stopFn func()
