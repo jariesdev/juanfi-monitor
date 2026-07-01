@@ -9,6 +9,7 @@
 		amount: number;
 		is_recurring: boolean;
 		expense_date: string;
+		end_date: string | null;
 	}
 
 	const CATEGORIES = [
@@ -36,6 +37,7 @@
 	let fAmount: number | '' = $state('');
 	let fDate = $state(todayISO());
 	let fRecurring = $state(false);
+	let fEndDate = $state('');
 	let isSaving = $state(false);
 	let formError = $state('');
 	let listError = $state('');
@@ -69,6 +71,10 @@
 		});
 	}
 
+	function fmtMonthShort(s: string) {
+		return new Date(s).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+	}
+
 	async function loadData() {
 		isLoading = true;
 		listError = '';
@@ -95,6 +101,7 @@
 		fAmount = '';
 		fDate = todayISO();
 		fRecurring = false;
+		fEndDate = '';
 		formError = '';
 		showModal = true;
 	}
@@ -106,6 +113,7 @@
 		fAmount = e.amount;
 		fDate = e.expense_date.slice(0, 10);
 		fRecurring = e.is_recurring;
+		fEndDate = e.end_date ? e.end_date.slice(0, 10) : '';
 		formError = '';
 		showModal = true;
 	}
@@ -124,6 +132,10 @@
 			formError = 'Expense date is required.';
 			return;
 		}
+		if (fRecurring && fEndDate && fEndDate < fDate) {
+			formError = 'End date must be on or after the expense date.';
+			return;
+		}
 		isSaving = true;
 		try {
 			const url = editingId ? `/x-api/expenses/${editingId}` : '/x-api/expenses';
@@ -136,7 +148,8 @@
 					description: fDescription,
 					amount: Number(fAmount),
 					is_recurring: fRecurring,
-					expense_date: fDate
+					expense_date: fDate,
+					end_date: fRecurring ? fEndDate : ''
 				})
 			});
 			if (!res.ok) {
@@ -235,6 +248,9 @@
 							<td>
 								{#if row.is_recurring}
 									<span class="type-badge recurring">Monthly</span>
+									{#if row.end_date}
+										<span class="until">until {fmtMonthShort(row.end_date)}</span>
+									{/if}
 								{:else}
 									<span class="type-badge onetime">One-time</span>
 								{/if}
@@ -344,6 +360,16 @@
 						></span
 					>
 				</label>
+
+				{#if fRecurring}
+					<div class="field">
+						<label class="uk-form-label" for="ex-end"
+							>End Date <span class="hint">(optional)</span></label
+						>
+						<input id="ex-end" class="uk-input" type="date" min={fDate} bind:value={fEndDate} />
+						<p class="field-hint">Leave blank if the cost is still ongoing.</p>
+					</div>
+				{/if}
 
 				<div class="modal-actions">
 					<button type="button" class="uk-button uk-button-default" onclick={closeModal}
@@ -522,6 +548,12 @@
 		background: #f1f5f9;
 		color: #64748b;
 	}
+	.until {
+		margin-left: 6px;
+		font-size: 0.72rem;
+		color: #999;
+		white-space: nowrap;
+	}
 
 	.action-btns {
 		display: inline-flex;
@@ -655,6 +687,11 @@
 		color: #999;
 		font-weight: 400;
 		font-size: 0.76rem;
+	}
+	.field-hint {
+		margin: 4px 0 0;
+		font-size: 0.72rem;
+		color: #999;
 	}
 	.modal-actions {
 		display: flex;

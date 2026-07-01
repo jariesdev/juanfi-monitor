@@ -14,7 +14,9 @@ import "time"
 //   - One-time expense (IsRecurring=false): counts once, in its ExpenseDate
 //     month. Recoverable capital (router, Starlink, UTP, labor).
 //   - Recurring expense (IsRecurring=true): Amount is a fixed monthly cost that
-//     applies to every month from ExpenseDate onward (subscription, electricity).
+//     applies to every month from ExpenseDate through EndDate inclusive. A nil
+//     EndDate means the cost is open-ended (still active). EndDate is only
+//     meaningful for recurring expenses.
 type Expense struct {
 	ID          uint       `gorm:"primaryKey" json:"id"`
 	UserID      uint       `gorm:"column:user_id;index" json:"user_id"`
@@ -23,6 +25,7 @@ type Expense struct {
 	Amount      float64    `gorm:"column:amount" json:"amount"`
 	IsRecurring bool       `gorm:"column:is_recurring;default:0" json:"is_recurring"`
 	ExpenseDate time.Time  `gorm:"column:expense_date;index" json:"expense_date"` // back-datable
+	EndDate     *time.Time `gorm:"column:end_date" json:"end_date"`               // recurring only; nil = open-ended
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
 }

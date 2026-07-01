@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
 )
 
@@ -112,19 +113,23 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 		oneTime[r.Month] += r.Amount
 	}
 
-	// Recurring expenses: each contributes Amount to every month from its start.
+	// Recurring expenses: each contributes Amount to every month within its
+	// [start, end] span (end open when EndDate is nil).
 	recurring, err := s.expenseRepo.ActiveRecurring(userID)
 	if err != nil {
 		return nil, fmt.Errorf("recurring expenses: %w", err)
 	}
-	recurringStart := map[string]float64{} // start month => summed monthly amount
-	for _, e := range recurring {
-		recurringStart[monthKey(e.ExpenseDate)] += e.Amount
-	}
+	spans := toSpans(recurring)
 
 	// Determine the month window: from the earliest month that has any data
 	// (or the requested `from`, whichever is later) through `to`.
-	startMonth := maxMonthKey(monthKey(from), earliestKey(revenue, oneTime, recurringStart))
+	earliest := earliestKey(revenue, oneTime)
+	for _, sp := range spans {
+		if earliest == "" || sp.start < earliest {
+			earliest = sp.start
+		}
+	}
+	startMonth := maxMonthKey(monthKey(from), earliest)
 	endMonth := monthKey(to)
 	months := monthRange(startMonth, endMonth)
 
@@ -134,7 +139,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 
 	var cumulative float64
 	for _, m := range months {
-		rec := recurringUpTo(recurringStart, m)
+		rec := recurringForMonth(spans, m)
 		row := MonthlyReportRow{
 			Month:     m,
 			Revenue:   round2(revenue[m]),
@@ -205,15 +210,13 @@ func (s *ProfitService) Forecast(ownVendoIDs []uint, userID uint) (*ProfitForeca
 		avgRevenue = sum / float64(len(revs))
 	}
 
-	// Current recurring monthly drain = sum of active recurring amounts.
+	// Current recurring monthly drain = recurring amounts active this month
+	// (started on/before now and not yet ended).
 	recurring, err := s.expenseRepo.ActiveRecurring(userID)
 	if err != nil {
 		return nil, fmt.Errorf("recurring expenses: %w", err)
 	}
-	var monthlyRecurring float64
-	for _, e := range recurring {
-		monthlyRecurring += e.Amount
-	}
+	monthlyRecurring := recurringForMonth(toSpans(recurring), current)
 
 	netMonthly := round2(avgRevenue - monthlyRecurring)
 	cumulative := report.Summary.Net
@@ -255,12 +258,34 @@ func (s *ProfitService) Forecast(ownVendoIDs []uint, userID uint) (*ProfitForeca
 
 func monthKey(t time.Time) string { return t.In(profitPHT).Format("2006-01") }
 
-// recurringUpTo sums recurring monthly amounts whose start month is <= m.
-func recurringUpTo(starts map[string]float64, m string) float64 {
+// recurringSpan is a recurring expense's monthly amount over its active window.
+// end == "" means open-ended (no end date).
+type recurringSpan struct {
+	start  string
+	end    string
+	amount float64
+}
+
+// toSpans converts recurring expenses into month-keyed active spans.
+func toSpans(expenses []models.Expense) []recurringSpan {
+	spans := make([]recurringSpan, 0, len(expenses))
+	for _, e := range expenses {
+		sp := recurringSpan{start: monthKey(e.ExpenseDate), amount: e.Amount}
+		if e.EndDate != nil {
+			sp.end = monthKey(*e.EndDate)
+		}
+		spans = append(spans, sp)
+	}
+	return spans
+}
+
+// recurringForMonth sums the monthly amounts of spans active during month m
+// (started on/before m and not ended before m).
+func recurringForMonth(spans []recurringSpan, m string) float64 {
 	var sum float64
-	for start, amt := range starts {
-		if start <= m {
-			sum += amt
+	for _, sp := range spans {
+		if sp.start <= m && (sp.end == "" || m <= sp.end) {
+			sum += sp.amount
 		}
 	}
 	return sum

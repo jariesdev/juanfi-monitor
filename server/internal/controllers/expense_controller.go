@@ -41,6 +41,7 @@ type expenseRequest struct {
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
 	IsRecurring bool    `json:"is_recurring"`
 	ExpenseDate string  `json:"expense_date" binding:"required"` // YYYY-MM-DD
+	EndDate     string  `json:"end_date"`                        // YYYY-MM-DD, recurring only, optional
 }
 
 // currentUserID returns the authenticated user's ID.
@@ -95,7 +96,7 @@ func (e *ExpenseController) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
 		return
 	}
-	date, ok := parseExpenseRequest(c, &req)
+	date, endDate, ok := parseExpenseRequest(c, &req)
 	if !ok {
 		return
 	}
@@ -107,6 +108,7 @@ func (e *ExpenseController) Create(c *gin.Context) {
 		Amount:      req.Amount,
 		IsRecurring: req.IsRecurring,
 		ExpenseDate: date,
+		EndDate:     endDate,
 	}
 	if err := e.expenseRepo.Create(exp); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
@@ -126,7 +128,7 @@ func (e *ExpenseController) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
 		return
 	}
-	date, ok := parseExpenseRequest(c, &req)
+	date, endDate, ok := parseExpenseRequest(c, &req)
 	if !ok {
 		return
 	}
@@ -147,6 +149,7 @@ func (e *ExpenseController) Update(c *gin.Context) {
 	exp.Amount = req.Amount
 	exp.IsRecurring = req.IsRecurring
 	exp.ExpenseDate = date
+	exp.EndDate = endDate
 	if err := e.expenseRepo.Update(exp); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
@@ -206,17 +209,31 @@ func (e *ExpenseController) Forecast(c *gin.Context) {
 	c.JSON(http.StatusOK, forecast)
 }
 
-// parseExpenseRequest validates the category and parses the expense date,
-// writing a 400 response and returning ok=false on failure.
-func parseExpenseRequest(c *gin.Context, req *expenseRequest) (time.Time, bool) {
+// parseExpenseRequest validates the category and parses the expense date plus
+// the optional recurring end date, writing a 400 response and returning
+// ok=false on failure. The end date is honored only for recurring expenses and
+// must be on or after the expense date.
+func parseExpenseRequest(c *gin.Context, req *expenseRequest) (date time.Time, endDate *time.Time, ok bool) {
 	if !expenseCategories[req.Category] {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid category"})
-		return time.Time{}, false
+		return time.Time{}, nil, false
 	}
 	date, err := time.ParseInLocation("2006-01-02", req.ExpenseDate, phtLocation)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid expense_date (want YYYY-MM-DD)"})
-		return time.Time{}, false
+		return time.Time{}, nil, false
 	}
-	return date, true
+	if req.IsRecurring && req.EndDate != "" {
+		ed, err := time.ParseInLocation("2006-01-02", req.EndDate, phtLocation)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid end_date (want YYYY-MM-DD)"})
+			return time.Time{}, nil, false
+		}
+		if ed.Before(date) {
+			c.JSON(http.StatusBadRequest, gin.H{"detail": "end_date must be on or after expense_date"})
+			return time.Time{}, nil, false
+		}
+		endDate = &ed
+	}
+	return date, endDate, true
 }

@@ -116,6 +116,30 @@ func addExpense(t *testing.T, userID uint, category string, amount float64, recu
 	}
 }
 
+func addRecurringExpense(t *testing.T, userID uint, category string, amount float64, start time.Time, end *time.Time) {
+	t.Helper()
+	e := &models.Expense{
+		UserID:      userID,
+		Category:    category,
+		Amount:      amount,
+		IsRecurring: true,
+		ExpenseDate: start,
+		EndDate:     end,
+	}
+	if err := db.Create(e).Error; err != nil {
+		t.Fatalf("add recurring expense: %v", err)
+	}
+}
+
+func monthlyRow(rows []tMonthly, month string) (tMonthly, bool) {
+	for _, r := range rows {
+		if r.Month == month {
+			return r, true
+		}
+	}
+	return tMonthly{}, false
+}
+
 // monthAnchor returns noon on the 15th of the month `offset` months from now
 // (offset -1 = last month), safely inside that PHT month.
 func monthAnchor(offset int) time.Time {
@@ -308,6 +332,72 @@ func TestProfitForecast_Recovered(t *testing.T) {
 	if f.Status != "recovered" {
 		t.Errorf("status: want recovered, got %q", f.Status)
 	}
+}
+
+// A recurring expense with an end date only contributes within its [start, end]
+// span — months after the end date carry no recurring cost.
+func TestProfitReport_RecurringWithEndDate(t *testing.T) {
+	role := seedRole(t, "ProfitRoleEndDate", []string{models.PermProfit})
+	vendoID := seedVendo(t, "EndDateVendo")
+	userID, token := seedUser(t, "owner_enddate", role, []uint{vendoID})
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	start := monthAnchor(-3)
+	end := monthAnchor(-2)
+	addRecurringExpense(t, userID, "electricity", 300.0, start, &end) // active months -3 and -2 only
+
+	var report tReport
+	decodeJSON(t, doRequest(http.MethodGet, "/profit-report", nil, auth).Body, &report)
+
+	// 300 for each of the two active months.
+	if report.Summary.TotalExpenses != 600 {
+		t.Errorf("total_expenses: want 600 (300 x 2 months), got %v", report.Summary.TotalExpenses)
+	}
+	if r, ok := monthlyRow(report.Monthly, end.Format("2006-01")); ok {
+		if r.Recurring != 300 {
+			t.Errorf("end month recurring: want 300, got %v", r.Recurring)
+		}
+	} else {
+		t.Errorf("missing monthly row for %s", end.Format("2006-01"))
+	}
+	if r, ok := monthlyRow(report.Monthly, monthAnchor(-1).Format("2006-01")); ok {
+		if r.Recurring != 0 {
+			t.Errorf("month after end recurring: want 0, got %v", r.Recurring)
+		}
+	}
+}
+
+// A recurring expense that ended before the current month must not count toward
+// the forecast's forward monthly recurring drain.
+func TestProfitForecast_EndedRecurringExcluded(t *testing.T) {
+	role := seedRole(t, "ProfitRoleEnded", []string{models.PermProfit})
+	vendoID := seedVendo(t, "EndedVendo")
+	userID, token := seedUser(t, "owner_ended", role, []uint{vendoID})
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	addSale(t, vendoID, monthAnchor(-1), 1000.0)
+	ended := monthAnchor(-1)
+	addRecurringExpense(t, userID, "subscription", 500.0, monthAnchor(-3), &ended) // ended last month
+
+	var f tForecast
+	decodeJSON(t, doRequest(http.MethodGet, "/profit-forecast", nil, auth).Body, &f)
+
+	if f.MonthlyRecurringExpense != 0 {
+		t.Errorf("ended recurring should be excluded from forward drain, got %v", f.MonthlyRecurringExpense)
+	}
+}
+
+// end_date before expense_date is rejected.
+func TestExpense_EndDateBeforeStart_Rejected(t *testing.T) {
+	role := seedRole(t, "ProfitRoleBadEnd", []string{models.PermProfit})
+	_, token := seedUser(t, "owner_badend", role, nil)
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	body := jsonBody(map[string]interface{}{
+		"category": "subscription", "amount": 100.0, "is_recurring": true,
+		"expense_date": "2026-03-01", "end_date": "2026-01-01",
+	})
+	assertStatus(t, doRequest(http.MethodPost, "/expenses", body, auth), http.StatusBadRequest)
 }
 
 // Profit endpoints require the profit permission.
