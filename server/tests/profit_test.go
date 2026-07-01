@@ -33,10 +33,11 @@ type tReport struct {
 		CumulativeNet float64 `json:"cumulative_net"`
 	} `json:"yearly"`
 	Summary struct {
-		TotalRevenue  float64 `json:"total_revenue"`
-		TotalExpenses float64 `json:"total_expenses"`
-		Net           float64 `json:"net"`
-		Status        string  `json:"status"`
+		TotalRevenue     float64 `json:"total_revenue"`
+		TotalAdjustments float64 `json:"total_adjustments"`
+		TotalExpenses    float64 `json:"total_expenses"`
+		Net              float64 `json:"net"`
+		Status           string  `json:"status"`
 	} `json:"summary"`
 }
 
@@ -128,6 +129,14 @@ func addRecurringExpense(t *testing.T, userID uint, category string, amount floa
 	}
 	if err := db.Create(e).Error; err != nil {
 		t.Fatalf("add recurring expense: %v", err)
+	}
+}
+
+func addAdjustment(t *testing.T, userID uint, month string, amount float64, desc string) {
+	t.Helper()
+	a := &models.Adjustment{UserID: userID, Month: month, Amount: amount, Description: desc}
+	if err := db.Create(a).Error; err != nil {
+		t.Fatalf("add adjustment: %v", err)
 	}
 }
 
@@ -400,6 +409,84 @@ func TestExpense_EndDateBeforeStart_Rejected(t *testing.T) {
 	assertStatus(t, doRequest(http.MethodPost, "/expenses", body, auth), http.StatusBadRequest)
 }
 
+// Adjustment CRUD must be strictly scoped to the owning user.
+func TestAdjustmentCRUD_UserScoped(t *testing.T) {
+	role := seedRole(t, "ProfitRoleAdjCRUD", []string{models.PermProfit})
+	_, tokenA := seedUser(t, "adj_owner_a", role, nil)
+	_, tokenB := seedUser(t, "adj_owner_b", role, nil)
+	authA := map[string]string{"Authorization": tokenA, "Content-Type": "application/json"}
+	authB := map[string]string{"Authorization": tokenB, "Content-Type": "application/json"}
+
+	body := jsonBody(map[string]interface{}{
+		"month": "2026-02", "amount": -25.0, "description": "device over-counted",
+	})
+	w := doRequest(http.MethodPost, "/adjustments", body, authA)
+	assertStatus(t, w, http.StatusCreated)
+	var created models.Adjustment
+	decodeJSON(t, w.Body, &created)
+	if created.ID == 0 || created.Amount != -25.0 {
+		t.Fatalf("unexpected created adjustment: %+v", created)
+	}
+
+	var listB struct {
+		Data []models.Adjustment `json:"data"`
+	}
+	decodeJSON(t, doRequest(http.MethodGet, "/adjustments", nil, authB).Body, &listB)
+	if len(listB.Data) != 0 {
+		t.Fatalf("owner B should see 0 adjustments, got %d", len(listB.Data))
+	}
+
+	// B cannot modify A's adjustment.
+	upd := jsonBody(map[string]interface{}{"month": "2026-02", "amount": 5.0})
+	assertStatus(t, doRequest(http.MethodPut, fmt.Sprintf("/adjustments/%d", created.ID), upd, authB), http.StatusNotFound)
+	assertStatus(t, doRequest(http.MethodDelete, fmt.Sprintf("/adjustments/%d", created.ID), nil, authB), http.StatusNotFound)
+	// A can delete its own.
+	assertStatus(t, doRequest(http.MethodDelete, fmt.Sprintf("/adjustments/%d", created.ID), nil, authA), http.StatusOK)
+}
+
+// A zero-amount adjustment is rejected.
+func TestAdjustment_ZeroAmount_Rejected(t *testing.T) {
+	role := seedRole(t, "ProfitRoleAdjZero", []string{models.PermProfit})
+	_, token := seedUser(t, "adj_zero", role, nil)
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+	body := jsonBody(map[string]interface{}{"month": "2026-02", "amount": 0})
+	assertStatus(t, doRequest(http.MethodPost, "/adjustments", body, auth), http.StatusBadRequest)
+}
+
+// Adjustments fold into monthly revenue and the summary net.
+func TestProfitReport_IncludesAdjustments(t *testing.T) {
+	role := seedRole(t, "ProfitRoleAdj", []string{models.PermProfit})
+	vendoID := seedVendo(t, "AdjVendo")
+	userID, token := seedUser(t, "owner_adj", role, []uint{vendoID})
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	m := monthAnchor(-1)
+	key := m.Format("2006-01")
+	addSale(t, vendoID, m, 100.0)
+	addAdjustment(t, userID, key, 50.0, "under-counted")  // +50
+	addAdjustment(t, userID, key, -20.0, "over-counted")  // -20  => net +30
+
+	var report tReport
+	decodeJSON(t, doRequest(http.MethodGet, "/profit-report", nil, auth).Body, &report)
+
+	if report.Summary.TotalRevenue != 100 {
+		t.Errorf("total_revenue: want 100, got %v", report.Summary.TotalRevenue)
+	}
+	if report.Summary.TotalAdjustments != 30 {
+		t.Errorf("total_adjustments: want 30, got %v", report.Summary.TotalAdjustments)
+	}
+	if report.Summary.Net != 130 {
+		t.Errorf("net: want 130 (100 + 30), got %v", report.Summary.Net)
+	}
+	if r, ok := monthlyRow(report.Monthly, key); ok {
+		if r.Net != 130 {
+			t.Errorf("month net: want 130, got %v", r.Net)
+		}
+	} else {
+		t.Errorf("missing monthly row for %s", key)
+	}
+}
+
 // Profit endpoints require the profit permission.
 func TestProfit_ACL_Forbidden(t *testing.T) {
 	role := seedRole(t, "NoProfitRole", []string{models.PermDashboard})
@@ -409,4 +496,5 @@ func TestProfit_ACL_Forbidden(t *testing.T) {
 	assertStatus(t, doRequest(http.MethodGet, "/expenses", nil, auth), http.StatusForbidden)
 	assertStatus(t, doRequest(http.MethodGet, "/profit-report", nil, auth), http.StatusForbidden)
 	assertStatus(t, doRequest(http.MethodGet, "/profit-forecast", nil, auth), http.StatusForbidden)
+	assertStatus(t, doRequest(http.MethodGet, "/adjustments", nil, auth), http.StatusForbidden)
 }

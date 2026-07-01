@@ -25,22 +25,28 @@ const forecastHorizonMonths = 60
 // expenses come from the owner's own expense entries. All business logic lives
 // here so controllers stay thin.
 type ProfitService struct {
-	saleRepo    repository.SaleRepositoryInterface
-	expenseRepo repository.ExpenseRepositoryInterface
+	saleRepo       repository.SaleRepositoryInterface
+	expenseRepo    repository.ExpenseRepositoryInterface
+	adjustmentRepo repository.AdjustmentRepositoryInterface
 }
 
-func NewProfitService(saleRepo repository.SaleRepositoryInterface, expenseRepo repository.ExpenseRepositoryInterface) *ProfitService {
-	return &ProfitService{saleRepo: saleRepo, expenseRepo: expenseRepo}
+func NewProfitService(
+	saleRepo repository.SaleRepositoryInterface,
+	expenseRepo repository.ExpenseRepositoryInterface,
+	adjustmentRepo repository.AdjustmentRepositoryInterface,
+) *ProfitService {
+	return &ProfitService{saleRepo: saleRepo, expenseRepo: expenseRepo, adjustmentRepo: adjustmentRepo}
 }
 
 // MonthlyReportRow is a single month of the profit report.
 type MonthlyReportRow struct {
 	Month         string  `json:"month"` // YYYY-MM
 	Revenue       float64 `json:"revenue"`
+	Adjustments   float64 `json:"adjustments"` // signed manual sales corrections
 	OneTime       float64 `json:"one_time"`
 	Recurring     float64 `json:"recurring"`
 	Expenses      float64 `json:"expenses"`
-	Net           float64 `json:"net"`
+	Net           float64 `json:"net"` // Revenue + Adjustments - Expenses
 	CumulativeNet float64 `json:"cumulative_net"`
 }
 
@@ -55,10 +61,11 @@ type YearlyReportRow struct {
 
 // ReportSummary is the window total and the resulting profit status.
 type ReportSummary struct {
-	TotalRevenue  float64 `json:"total_revenue"`
-	TotalExpenses float64 `json:"total_expenses"`
-	Net           float64 `json:"net"`
-	Status        string  `json:"status"` // profit | break_even | loss
+	TotalRevenue     float64 `json:"total_revenue"`
+	TotalAdjustments float64 `json:"total_adjustments"`
+	TotalExpenses    float64 `json:"total_expenses"`
+	Net              float64 `json:"net"` // TotalRevenue + TotalAdjustments - TotalExpenses
+	Status           string  `json:"status"` // profit | break_even | loss
 }
 
 // ProfitReport is the full response for the report endpoint.
@@ -121,9 +128,19 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 	}
 	spans := toSpans(recurring)
 
+	// Signed manual sales adjustments per month (miscount corrections).
+	adjustments := map[string]float64{}
+	adjRows, err := s.adjustmentRepo.MonthlyTotals(userID)
+	if err != nil {
+		return nil, fmt.Errorf("adjustments: %w", err)
+	}
+	for _, r := range adjRows {
+		adjustments[r.Month] += r.Amount
+	}
+
 	// Determine the month window: from the earliest month that has any data
 	// (or the requested `from`, whichever is later) through `to`.
-	earliest := earliestKey(revenue, oneTime)
+	earliest := earliestKey(revenue, oneTime, adjustments)
 	for _, sp := range spans {
 		if earliest == "" || sp.start < earliest {
 			earliest = sp.start
@@ -141,18 +158,20 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 	for _, m := range months {
 		rec := recurringForMonth(spans, m)
 		row := MonthlyReportRow{
-			Month:     m,
-			Revenue:   round2(revenue[m]),
-			OneTime:   round2(oneTime[m]),
-			Recurring: round2(rec),
+			Month:       m,
+			Revenue:     round2(revenue[m]),
+			Adjustments: round2(adjustments[m]),
+			OneTime:     round2(oneTime[m]),
+			Recurring:   round2(rec),
 		}
 		row.Expenses = round2(row.OneTime + row.Recurring)
-		row.Net = round2(row.Revenue - row.Expenses)
+		row.Net = round2(row.Revenue + row.Adjustments - row.Expenses)
 		cumulative = round2(cumulative + row.Net)
 		row.CumulativeNet = cumulative
 		report.Monthly = append(report.Monthly, row)
 
 		report.Summary.TotalRevenue = round2(report.Summary.TotalRevenue + row.Revenue)
+		report.Summary.TotalAdjustments = round2(report.Summary.TotalAdjustments + row.Adjustments)
 		report.Summary.TotalExpenses = round2(report.Summary.TotalExpenses + row.Expenses)
 
 		year := m[:4]
@@ -162,7 +181,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 			yearly[year] = yr
 			yearOrder = append(yearOrder, year)
 		}
-		yr.Revenue = round2(yr.Revenue + row.Revenue)
+		yr.Revenue = round2(yr.Revenue + row.Revenue + row.Adjustments)
 		yr.Expenses = round2(yr.Expenses + row.Expenses)
 		yr.Net = round2(yr.Net + row.Net)
 	}
@@ -175,7 +194,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 		report.Yearly = append(report.Yearly, *yr)
 	}
 
-	report.Summary.Net = round2(report.Summary.TotalRevenue - report.Summary.TotalExpenses)
+	report.Summary.Net = round2(report.Summary.TotalRevenue + report.Summary.TotalAdjustments - report.Summary.TotalExpenses)
 	report.Summary.Status = profitStatus(report.Summary.Net)
 	return report, nil
 }
@@ -191,15 +210,16 @@ func (s *ProfitService) Forecast(ownVendoIDs []uint, userID uint) (*ProfitForeca
 		return nil, err
 	}
 
-	// Average revenue over the last few COMPLETE months (exclude the partial
-	// current month so it doesn't drag the average down).
+	// Average effective revenue (sales + manual adjustments) over the last few
+	// COMPLETE months (exclude the partial current month so it doesn't drag the
+	// average down).
 	current := monthKey(now)
 	var revs []float64
 	for i := len(report.Monthly) - 1; i >= 0 && len(revs) < forecastAvgMonths; i-- {
 		if report.Monthly[i].Month >= current {
 			continue
 		}
-		revs = append(revs, report.Monthly[i].Revenue)
+		revs = append(revs, report.Monthly[i].Revenue+report.Monthly[i].Adjustments)
 	}
 	var avgRevenue float64
 	if len(revs) > 0 {

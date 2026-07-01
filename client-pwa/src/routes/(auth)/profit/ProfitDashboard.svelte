@@ -4,6 +4,7 @@
 	interface MonthlyRow {
 		month: string;
 		revenue: number;
+		adjustments: number;
 		one_time: number;
 		recurring: number;
 		expenses: number;
@@ -20,7 +21,13 @@
 	interface Report {
 		monthly: MonthlyRow[];
 		yearly: YearlyRow[];
-		summary: { total_revenue: number; total_expenses: number; net: number; status: string };
+		summary: {
+			total_revenue: number;
+			total_adjustments: number;
+			total_expenses: number;
+			net: number;
+			status: string;
+		};
 	}
 	interface Forecast {
 		avg_monthly_revenue: number;
@@ -108,6 +115,18 @@
 			<span class="stat-label">Total Revenue</span>
 			<span class="stat-value revenue">{fmt(report.summary.total_revenue)}</span>
 		</div>
+		{#if report.summary.total_adjustments !== 0}
+			<div class="stat">
+				<span class="stat-label">Adjustments</span>
+				<span
+					class="stat-value"
+					class:pos={report.summary.total_adjustments > 0}
+					class:neg={report.summary.total_adjustments < 0}
+				>
+					{fmt(report.summary.total_adjustments)}
+				</span>
+			</div>
+		{/if}
 		<div class="stat">
 			<span class="stat-label">Total Expenses</span>
 			<span class="stat-value expense">{fmt(report.summary.total_expenses)}</span>
@@ -198,6 +217,7 @@
 					<tr>
 						<th>Month</th>
 						<th class="ta-right">Revenue</th>
+						<th class="ta-right">Adjust.</th>
 						<th class="ta-right">One-time</th>
 						<th class="ta-right">Recurring</th>
 						<th class="ta-right">Expenses</th>
@@ -207,12 +227,18 @@
 				</thead>
 				<tbody>
 					{#if report.monthly.length === 0}
-						<tr><td colspan="7" class="empty-cell">No data in range.</td></tr>
+						<tr><td colspan="8" class="empty-cell">No data in range.</td></tr>
 					{:else}
 						{#each report.monthly as row}
 							<tr>
 								<td class="month">{fmtMonth(row.month)}</td>
 								<td class="ta-right">{fmt(row.revenue)}</td>
+								<td
+									class="ta-right"
+									class:pos={row.adjustments > 0}
+									class:neg={row.adjustments < 0}
+									class:muted={row.adjustments === 0}>{fmt(row.adjustments)}</td
+								>
 								<td class="ta-right muted">{fmt(row.one_time)}</td>
 								<td class="ta-right muted">{fmt(row.recurring)}</td>
 								<td class="ta-right">{fmt(row.expenses)}</td>

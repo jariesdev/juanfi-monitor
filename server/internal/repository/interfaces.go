@@ -120,6 +120,18 @@ type ExpenseRepositoryInterface interface {
 	ActiveRecurring(userID uint) ([]models.Expense, error)
 }
 
+// AdjustmentRepositoryInterface manages manual signed sales adjustments, scoped
+// to the owning user.
+type AdjustmentRepositoryInterface interface {
+	Search(userID uint) ([]models.Adjustment, error)
+	Get(id, userID uint) (*models.Adjustment, error)
+	Create(a *models.Adjustment) error
+	Update(a *models.Adjustment) error
+	Delete(id, userID uint) error
+	// MonthlyTotals sums signed adjustment amounts by month (YYYY-MM) for the user.
+	MonthlyTotals(userID uint) ([]MonthAmount, error)
+}
+
 // ---- Shared result types used across multiple repositories ----
 
 // PageResult is the pagination envelope matching fastapi-pagination's shape.

@@ -44,9 +44,10 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	rateRepo := repository.NewVendoRateRepository(db)
 	voucherRepo := repository.NewVendoVoucherRepository(db)
 	expenseRepo := repository.NewExpenseRepository(db)
+	adjustmentRepo := repository.NewAdjustmentRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
-	profitService := services.NewProfitService(saleRepo, expenseRepo)
+	profitService := services.NewProfitService(saleRepo, expenseRepo, adjustmentRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -64,6 +65,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	rateCtrl := controllers.NewVendoRateController(rateRepo, vendoRepo)
 	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
 	expenseCtrl := controllers.NewExpenseController(expenseRepo, profitService)
+	adjustmentCtrl := controllers.NewAdjustmentController(adjustmentRepo)
 
 	// ── Cron Scheduler ────────────────────────────────────────────────────────
 	var stopFn func()
@@ -75,7 +77,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, expenseCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, expenseCtrl, adjustmentCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -97,6 +99,7 @@ func buildRouter(
 	rateCtrl *controllers.VendoRateController,
 	voucherCtrl *controllers.VendoVoucherController,
 	expenseCtrl *controllers.ExpenseController,
+	adjustmentCtrl *controllers.AdjustmentController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -198,6 +201,10 @@ func buildRouter(
 	profit.DELETE("/expenses/:id", expenseCtrl.Delete)
 	profit.GET("/profit-report", expenseCtrl.Report)
 	profit.GET("/profit-forecast", expenseCtrl.Forecast)
+	profit.GET("/adjustments", adjustmentCtrl.List)
+	profit.POST("/adjustments", adjustmentCtrl.Create)
+	profit.PUT("/adjustments/:id", adjustmentCtrl.Update)
+	profit.DELETE("/adjustments/:id", adjustmentCtrl.Delete)
 
 	return router
 }

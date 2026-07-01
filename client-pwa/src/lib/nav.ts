@@ -47,7 +47,8 @@ export const navItems: NavItem[] = [
 		requiredPermission: 'profit',
 		children: [
 			{ href: '/profit', label: 'Profit Report', requiredPermission: 'profit' },
-			{ href: '/expenses', label: 'Expenses', requiredPermission: 'profit' }
+			{ href: '/expenses', label: 'Expenses', requiredPermission: 'profit' },
+			{ href: '/adjustments', label: 'Adjustments', requiredPermission: 'profit' }
 		]
 	},
 	{
