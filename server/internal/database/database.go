@@ -130,6 +130,7 @@ func sqliteCreateMissing(db *gorm.DB) error {
 		field string
 	}{
 		{&models.Expense{}, "EndDate"},
+		{&models.Vendo{}, "Commission"},
 	}
 	for _, ac := range addColumns {
 		if !db.Migrator().HasTable(ac.model) {

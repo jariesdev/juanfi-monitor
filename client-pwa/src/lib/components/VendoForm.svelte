@@ -8,12 +8,11 @@
 	let form = $state({
 		name: '',
 		api_url: '',
-		api_key: ''
+		api_key: '',
+		commission: 0
 	});
 
 	function submit(): void {
-		const formData = new FormData();
-		Object.keys(form).forEach((key) => formData.append(key, form[key as keyof typeof form]));
 		isProcessing = true;
 		const request = new Request(`/x-api/vendo-machines`, {
 			method: 'POST',
@@ -35,7 +34,8 @@
 				form = {
 					name: '',
 					api_url: '',
-					api_key: ''
+					api_key: '',
+					commission: 0
 				};
 				onsuccess?.();
 			})
@@ -49,7 +49,12 @@
 </script>
 
 <div>
-	<form onsubmit={(e) => { e.preventDefault(); submit(); }}>
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			submit();
+		}}
+	>
 		<div class="uk-margin-small-bottom">
 			<label class="uk-form-label" for="name">Name</label>
 			<input
@@ -70,7 +75,7 @@
 				placeholder="e.g. http:10.0.12.2"
 			/>
 		</div>
-		<div class="uk-margin-bottom">
+		<div class="uk-margin-small-bottom">
 			<label class="uk-form-label" for="api_key">API Key</label>
 			<input
 				bind:value={form.api_key}
@@ -78,6 +83,19 @@
 				class="uk-input"
 				type="text"
 				placeholder="e.g. abcd1234"
+			/>
+		</div>
+		<div class="uk-margin-bottom">
+			<label class="uk-form-label" for="commission">Commission (%)</label>
+			<input
+				bind:value={form.commission}
+				id="commission"
+				class="uk-input"
+				type="number"
+				min="0"
+				max="100"
+				step="0.01"
+				placeholder="0"
 			/>
 		</div>
 		<div class="uk-text-center">

@@ -4,6 +4,7 @@
 	interface MonthlyRow {
 		month: string;
 		revenue: number;
+		commission: number;
 		adjustments: number;
 		one_time: number;
 		recurring: number;
@@ -23,6 +24,7 @@
 		yearly: YearlyRow[];
 		summary: {
 			total_revenue: number;
+			total_commission: number;
 			total_adjustments: number;
 			total_expenses: number;
 			net: number;
@@ -115,6 +117,12 @@
 			<span class="stat-label">Total Revenue</span>
 			<span class="stat-value revenue">{fmt(report.summary.total_revenue)}</span>
 		</div>
+		{#if report.summary.total_commission !== 0}
+			<div class="stat">
+				<span class="stat-label">Commission</span>
+				<span class="stat-value expense">-{fmt(report.summary.total_commission)}</span>
+			</div>
+		{/if}
 		{#if report.summary.total_adjustments !== 0}
 			<div class="stat">
 				<span class="stat-label">Adjustments</span>
@@ -217,6 +225,7 @@
 					<tr>
 						<th>Month</th>
 						<th class="ta-right">Revenue</th>
+						<th class="ta-right">Commission</th>
 						<th class="ta-right">Adjust.</th>
 						<th class="ta-right">One-time</th>
 						<th class="ta-right">Recurring</th>
@@ -227,12 +236,18 @@
 				</thead>
 				<tbody>
 					{#if report.monthly.length === 0}
-						<tr><td colspan="8" class="empty-cell">No data in range.</td></tr>
+						<tr><td colspan="9" class="empty-cell">No data in range.</td></tr>
 					{:else}
 						{#each report.monthly as row}
 							<tr>
 								<td class="month">{fmtMonth(row.month)}</td>
 								<td class="ta-right">{fmt(row.revenue)}</td>
+								<td
+									class="ta-right"
+									class:neg={row.commission > 0}
+									class:muted={row.commission === 0}
+									>{row.commission > 0 ? '-' + fmt(row.commission) : fmt(0)}</td
+								>
 								<td
 									class="ta-right"
 									class:pos={row.adjustments > 0}

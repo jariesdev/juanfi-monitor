@@ -28,25 +28,33 @@ type ProfitService struct {
 	saleRepo       repository.SaleRepositoryInterface
 	expenseRepo    repository.ExpenseRepositoryInterface
 	adjustmentRepo repository.AdjustmentRepositoryInterface
+	vendoRepo      repository.VendoRepositoryInterface
 }
 
 func NewProfitService(
 	saleRepo repository.SaleRepositoryInterface,
 	expenseRepo repository.ExpenseRepositoryInterface,
 	adjustmentRepo repository.AdjustmentRepositoryInterface,
+	vendoRepo repository.VendoRepositoryInterface,
 ) *ProfitService {
-	return &ProfitService{saleRepo: saleRepo, expenseRepo: expenseRepo, adjustmentRepo: adjustmentRepo}
+	return &ProfitService{
+		saleRepo:       saleRepo,
+		expenseRepo:    expenseRepo,
+		adjustmentRepo: adjustmentRepo,
+		vendoRepo:      vendoRepo,
+	}
 }
 
 // MonthlyReportRow is a single month of the profit report.
 type MonthlyReportRow struct {
 	Month         string  `json:"month"` // YYYY-MM
 	Revenue       float64 `json:"revenue"`
+	Commission    float64 `json:"commission"`  // per-vendo commission deducted from sales
 	Adjustments   float64 `json:"adjustments"` // signed manual sales corrections
 	OneTime       float64 `json:"one_time"`
 	Recurring     float64 `json:"recurring"`
 	Expenses      float64 `json:"expenses"`
-	Net           float64 `json:"net"` // Revenue + Adjustments - Expenses
+	Net           float64 `json:"net"` // Revenue - Commission + Adjustments - Expenses
 	CumulativeNet float64 `json:"cumulative_net"`
 }
 
@@ -62,9 +70,10 @@ type YearlyReportRow struct {
 // ReportSummary is the window total and the resulting profit status.
 type ReportSummary struct {
 	TotalRevenue     float64 `json:"total_revenue"`
+	TotalCommission  float64 `json:"total_commission"`
 	TotalAdjustments float64 `json:"total_adjustments"`
 	TotalExpenses    float64 `json:"total_expenses"`
-	Net              float64 `json:"net"` // TotalRevenue + TotalAdjustments - TotalExpenses
+	Net              float64 `json:"net"` // Revenue - Commission + Adjustments - Expenses
 	Status           string  `json:"status"` // profit | break_even | loss
 }
 
@@ -97,16 +106,29 @@ type ProfitForecast struct {
 // ownVendoIDs are the owner's own vendo IDs; an empty slice means the owner has
 // no vendos and revenue is zero (we never fall back to "all vendos").
 func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Time) (*ProfitReport, error) {
-	// Revenue per month (map[YYYY-MM]total). Empty ownVendoIDs => no revenue;
-	// we must not call GetMonthlySales, whose empty-slice branch means "all vendos".
+	// Revenue and per-vendo commission per month (map[YYYY-MM]total). Empty
+	// ownVendoIDs => no revenue; we must not call GetMonthlySales, whose
+	// empty-slice branch means "all vendos".
 	revenue := map[string]float64{}
+	commission := map[string]float64{}
 	if len(ownVendoIDs) > 0 {
+		// Commission percentage per vendo (0–100); missing => 0.
+		commByVendo := map[uint]float64{}
+		vendos, err := s.vendoRepo.Search(nil, nil, ownVendoIDs)
+		if err != nil {
+			return nil, fmt.Errorf("vendo commissions: %w", err)
+		}
+		for _, v := range vendos {
+			commByVendo[v.ID] = v.Commission
+		}
+
 		rows, err := s.saleRepo.GetMonthlySales(from, to, ownVendoIDs)
 		if err != nil {
 			return nil, fmt.Errorf("monthly sales: %w", err)
 		}
 		for _, r := range rows {
 			revenue[r.Month] += r.Total
+			commission[r.Month] += r.Total * commByVendo[r.VendoID] / 100
 		}
 	}
 
@@ -160,17 +182,19 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 		row := MonthlyReportRow{
 			Month:       m,
 			Revenue:     round2(revenue[m]),
+			Commission:  round2(commission[m]),
 			Adjustments: round2(adjustments[m]),
 			OneTime:     round2(oneTime[m]),
 			Recurring:   round2(rec),
 		}
 		row.Expenses = round2(row.OneTime + row.Recurring)
-		row.Net = round2(row.Revenue + row.Adjustments - row.Expenses)
+		row.Net = round2(row.Revenue - row.Commission + row.Adjustments - row.Expenses)
 		cumulative = round2(cumulative + row.Net)
 		row.CumulativeNet = cumulative
 		report.Monthly = append(report.Monthly, row)
 
 		report.Summary.TotalRevenue = round2(report.Summary.TotalRevenue + row.Revenue)
+		report.Summary.TotalCommission = round2(report.Summary.TotalCommission + row.Commission)
 		report.Summary.TotalAdjustments = round2(report.Summary.TotalAdjustments + row.Adjustments)
 		report.Summary.TotalExpenses = round2(report.Summary.TotalExpenses + row.Expenses)
 
@@ -181,7 +205,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 			yearly[year] = yr
 			yearOrder = append(yearOrder, year)
 		}
-		yr.Revenue = round2(yr.Revenue + row.Revenue + row.Adjustments)
+		yr.Revenue = round2(yr.Revenue + row.Revenue - row.Commission + row.Adjustments)
 		yr.Expenses = round2(yr.Expenses + row.Expenses)
 		yr.Net = round2(yr.Net + row.Net)
 	}
@@ -194,7 +218,7 @@ func (s *ProfitService) Report(ownVendoIDs []uint, userID uint, from, to time.Ti
 		report.Yearly = append(report.Yearly, *yr)
 	}
 
-	report.Summary.Net = round2(report.Summary.TotalRevenue + report.Summary.TotalAdjustments - report.Summary.TotalExpenses)
+	report.Summary.Net = round2(report.Summary.TotalRevenue - report.Summary.TotalCommission + report.Summary.TotalAdjustments - report.Summary.TotalExpenses)
 	report.Summary.Status = profitStatus(report.Summary.Net)
 	return report, nil
 }
@@ -219,7 +243,7 @@ func (s *ProfitService) Forecast(ownVendoIDs []uint, userID uint) (*ProfitForeca
 		if report.Monthly[i].Month >= current {
 			continue
 		}
-		revs = append(revs, report.Monthly[i].Revenue+report.Monthly[i].Adjustments)
+		revs = append(revs, report.Monthly[i].Revenue-report.Monthly[i].Commission+report.Monthly[i].Adjustments)
 	}
 	var avgRevenue float64
 	if len(revs) > 0 {

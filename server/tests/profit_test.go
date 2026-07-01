@@ -18,6 +18,8 @@ var pht = time.FixedZone("PHT", 8*60*60)
 type tMonthly struct {
 	Month         string  `json:"month"`
 	Revenue       float64 `json:"revenue"`
+	Commission    float64 `json:"commission"`
+	Adjustments   float64 `json:"adjustments"`
 	OneTime       float64 `json:"one_time"`
 	Recurring     float64 `json:"recurring"`
 	Expenses      float64 `json:"expenses"`
@@ -34,6 +36,7 @@ type tReport struct {
 	} `json:"yearly"`
 	Summary struct {
 		TotalRevenue     float64 `json:"total_revenue"`
+		TotalCommission  float64 `json:"total_commission"`
 		TotalAdjustments float64 `json:"total_adjustments"`
 		TotalExpenses    float64 `json:"total_expenses"`
 		Net              float64 `json:"net"`
@@ -82,7 +85,12 @@ func seedUser(t *testing.T, username string, role *models.Role, vendoIDs []uint)
 
 func seedVendo(t *testing.T, name string) uint {
 	t.Helper()
-	v := &models.Vendo{Name: name, IsActive: 1, IsOnline: true}
+	return seedVendoWithCommission(t, name, 0)
+}
+
+func seedVendoWithCommission(t *testing.T, name string, commission float64) uint {
+	t.Helper()
+	v := &models.Vendo{Name: name, IsActive: 1, IsOnline: true, Commission: commission}
 	if err := db.Create(v).Error; err != nil {
 		t.Fatalf("seed vendo: %v", err)
 	}
@@ -485,6 +493,57 @@ func TestProfitReport_IncludesAdjustments(t *testing.T) {
 	} else {
 		t.Errorf("missing monthly row for %s", key)
 	}
+}
+
+// A vendo's commission percentage reduces its sales in the report.
+func TestProfitReport_CommissionReducesRevenue(t *testing.T) {
+	role := seedRole(t, "ProfitRoleCommission", []string{models.PermProfit})
+	vendoID := seedVendoWithCommission(t, "CommissionVendo", 10) // 10%
+	_, token := seedUser(t, "owner_commission", role, []uint{vendoID})
+	auth := map[string]string{"Authorization": token, "Content-Type": "application/json"}
+
+	m := monthAnchor(-1)
+	addSale(t, vendoID, m, 1000.0)
+
+	var report tReport
+	decodeJSON(t, doRequest(http.MethodGet, "/profit-report", nil, auth).Body, &report)
+
+	if report.Summary.TotalRevenue != 1000 {
+		t.Errorf("total_revenue: want 1000 (gross), got %v", report.Summary.TotalRevenue)
+	}
+	if report.Summary.TotalCommission != 100 {
+		t.Errorf("total_commission: want 100 (10%% of 1000), got %v", report.Summary.TotalCommission)
+	}
+	if report.Summary.Net != 900 {
+		t.Errorf("net: want 900 (1000 - 100), got %v", report.Summary.Net)
+	}
+	if r, ok := monthlyRow(report.Monthly, m.Format("2006-01")); ok {
+		if r.Commission != 100 || r.Net != 900 {
+			t.Errorf("month row: want commission 100 / net 900, got %v / %v", r.Commission, r.Net)
+		}
+	} else {
+		t.Errorf("missing monthly row for %s", m.Format("2006-01"))
+	}
+}
+
+// PUT /vendo-machines/:id updates commission and rejects out-of-range values.
+func TestVendoUpdate_Commission(t *testing.T) {
+	vendoID := seedVendo(t, "EditableVendo")
+
+	body := jsonBody(map[string]interface{}{"commission": 15.0})
+	w := doRequest(http.MethodPut, fmt.Sprintf("/vendo-machines/%d", vendoID), body, authHeader())
+	assertStatus(t, w, http.StatusOK)
+
+	var v models.Vendo
+	if err := db.First(&v, vendoID).Error; err != nil {
+		t.Fatalf("reload vendo: %v", err)
+	}
+	if v.Commission != 15 {
+		t.Errorf("commission: want 15, got %v", v.Commission)
+	}
+
+	bad := jsonBody(map[string]interface{}{"commission": 150.0})
+	assertStatus(t, doRequest(http.MethodPut, fmt.Sprintf("/vendo-machines/%d", vendoID), bad, authHeader()), http.StatusBadRequest)
 }
 
 // Profit endpoints require the profit permission.

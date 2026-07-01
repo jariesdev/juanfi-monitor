@@ -13,6 +13,9 @@ type Vendo struct {
 	TotalSales   *float64      `gorm:"column:total_sales" json:"total_sales"`
 	CurrentSales *float64      `gorm:"column:current_sales" json:"current_sales"`
 	IsActive     int           `gorm:"default:1" json:"is_active"`
+	// Commission is the percentage (0–100) of this vendo's sales kept by the
+	// location/partner. It reduces the vendo's revenue in the profit report.
+	Commission   float64       `gorm:"column:commission;default:0" json:"commission"`
 	CreatedAt    time.Time     `json:"created_at"`
 	UpdatedAt    *time.Time    `json:"updated_at"`
 

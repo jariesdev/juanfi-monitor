@@ -22,6 +22,7 @@ export interface iVendo {
 	active_users: number;
 	created_at: string;
 	is_active: boolean;
+	commission: number;
 	recent_status?: iVendoStatus;
 }
 

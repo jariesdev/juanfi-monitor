@@ -95,6 +95,14 @@ func (r *VendoRepository) Create(v *models.Vendo) error {
 	return r.db.Create(v).Error
 }
 
+// Update persists only the editable business fields, so scheduler-managed
+// columns (is_online, total/current sales) and status are never clobbered.
+func (r *VendoRepository) Update(v *models.Vendo) error {
+	return r.db.Model(v).
+		Select("name", "mac_address", "api_url", "api_key", "commission").
+		Updates(v).Error
+}
+
 // Delete removes a vendo machine by ID.
 func (r *VendoRepository) Delete(id uint) error {
 	return r.db.Delete(&models.Vendo{}, id).Error

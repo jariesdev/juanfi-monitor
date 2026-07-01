@@ -47,7 +47,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	adjustmentRepo := repository.NewAdjustmentRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
-	profitService := services.NewProfitService(saleRepo, expenseRepo, adjustmentRepo)
+	profitService := services.NewProfitService(saleRepo, expenseRepo, adjustmentRepo, vendoRepo)
 
 	// ── WebSocket Hub ─────────────────────────────────────────────────────────
 	hub := ws.NewHub()
@@ -155,6 +155,7 @@ func buildRouter(
 	auth.GET("/vendo-machines/:id/active-users", vendoCtrl.ActiveUsers)
 	auth.GET("/vendo-machines/:id", vendoCtrl.Get)
 	auth.POST("/vendo-machines", vendoCtrl.Store)
+	auth.PUT("/vendo-machines/:id", vendoCtrl.Update)
 	auth.DELETE("/vendo-machines/:id", vendoCtrl.Delete)
 	auth.POST("/vendo-machines/:id/withdraw-current-sales", vendoCtrl.Withdraw)
 	auth.POST("/vendo-machines/:id/set-status", vendoCtrl.SetStatus)

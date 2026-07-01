@@ -40,6 +40,8 @@ type VendoRepositoryInterface interface {
 	Search(q *string, isActive *bool, assignedIDs []uint) ([]models.Vendo, error)
 	GetByID(id uint) (*models.Vendo, error)
 	Create(v *models.Vendo) error
+	// Update persists the editable business fields (name, mac, api, commission).
+	Update(v *models.Vendo) error
 	Delete(id uint) error
 	SetStatus(id uint, active bool) error
 	AllActive() ([]models.Vendo, error)

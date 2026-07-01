@@ -17,12 +17,62 @@
 		{ label: 'Total Sales', field: 'recent_status.total_sales', sortable: true },
 		{ label: 'Current Sales', field: 'recent_status.current_sales', sortable: true },
 		{ label: 'Users', field: 'recent_status.active_users', sortable: true },
+		{ label: 'Commission', field: 'commission', sortable: true },
 		{ label: 'Last Reported', field: 'recent_status.created_at', sortable: true },
 		{ label: '', field: 'actions' }
 	];
 
 	export function loadData() {
 		dataTable.loadData();
+	}
+
+	// Edit modal state
+	let showEdit = $state(false);
+	let editId: number | null = $state(null);
+	let editName = $state('');
+	let editApiUrl = $state('');
+	let editCommission: number | '' = $state(0);
+	let editSaving = $state(false);
+	let editError = $state('');
+
+	function openEdit(item: RowItem) {
+		editId = item.id;
+		editName = item.name ?? '';
+		editApiUrl = item.api_url ?? '';
+		editCommission = item.commission ?? 0;
+		editError = '';
+		showEdit = true;
+	}
+
+	async function saveEdit() {
+		editError = '';
+		if (editCommission === '' || Number(editCommission) < 0 || Number(editCommission) > 100) {
+			editError = 'Commission must be between 0 and 100.';
+			return;
+		}
+		editSaving = true;
+		try {
+			const res = await fetch(`/x-api/vendo-machines/${editId}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+				body: JSON.stringify({
+					name: editName,
+					api_url: editApiUrl,
+					commission: Number(editCommission)
+				})
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				editError = body.detail ?? 'Failed to save vendo.';
+				return;
+			}
+			showEdit = false;
+			loadData();
+		} catch {
+			editError = 'An unexpected error occurred.';
+		} finally {
+			editSaving = false;
+		}
 	}
 </script>
 
@@ -48,6 +98,8 @@
 			₱<NumberFormat value={item.recent_status?.current_sales} />
 		{:else if header.field === 'recent_status.active_users'}
 			<NumberFormat value={item.recent_status?.active_users || 0} />
+		{:else if header.field === 'commission'}
+			{item.commission ?? 0}%
 		{:else if header.field === 'recent_status.created_at'}
 			<DateTime date={item.recent_status?.created_at} />
 		{:else if header.field === 'actions'}
@@ -65,6 +117,12 @@
 								<span class="action-icon" uk-icon="icon: info"></span>
 								<span>View details</span>
 							</a>
+						</li>
+						<li>
+							<button type="button" class="action-link" onclick={() => openEdit(item)}>
+								<span class="action-icon" uk-icon="icon: pencil"></span>
+								<span>Edit vendo</span>
+							</button>
 						</li>
 						<li>
 							<a href={`/vendo/${item.id}/active-users`}>
@@ -163,6 +221,66 @@
 	{/snippet}
 </DataTable>
 
+{#if showEdit}
+	<div
+		class="modal-backdrop"
+		role="button"
+		tabindex="-1"
+		onclick={() => (showEdit = false)}
+		onkeydown={(e) => e.key === 'Escape' && (showEdit = false)}
+	>
+		<div
+			class="edit-modal"
+			role="dialog"
+			tabindex="-1"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={() => {}}
+		>
+			<div class="edit-title">Edit Vendo</div>
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					saveEdit();
+				}}
+			>
+				{#if editError}
+					<div class="uk-alert uk-alert-danger">{editError}</div>
+				{/if}
+				<div class="uk-margin-small-bottom">
+					<label class="uk-form-label" for="edit-name">Name</label>
+					<input id="edit-name" class="uk-input" type="text" bind:value={editName} required />
+				</div>
+				<div class="uk-margin-small-bottom">
+					<label class="uk-form-label" for="edit-apiurl">API URL</label>
+					<input id="edit-apiurl" class="uk-input" type="text" bind:value={editApiUrl} />
+				</div>
+				<div class="uk-margin-bottom">
+					<label class="uk-form-label" for="edit-commission">Commission (%)</label>
+					<input
+						id="edit-commission"
+						class="uk-input"
+						type="number"
+						min="0"
+						max="100"
+						step="0.01"
+						bind:value={editCommission}
+					/>
+				</div>
+				<div class="edit-actions">
+					<button
+						type="button"
+						class="uk-button uk-button-default"
+						onclick={() => (showEdit = false)}>Cancel</button
+					>
+					<button type="submit" class="uk-button uk-button-primary" disabled={editSaving}>
+						{editSaving ? 'Saving…' : 'Save'}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
 <style>
 	.action-btns {
 		display: flex;
@@ -176,11 +294,56 @@
 		padding: 8px 0;
 	}
 
-	.action-menu a {
+	.action-menu a,
+	.action-menu .action-link {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 		padding: 8px 14px;
+	}
+
+	.action-menu .action-link {
+		width: 100%;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font: inherit;
+		color: inherit;
+		text-align: left;
+	}
+	.action-menu .action-link:hover {
+		background: #f5f5f5;
+	}
+
+	.modal-backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.4);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1010;
+		padding: 16px;
+	}
+	.edit-modal {
+		background: #fff;
+		border-radius: 12px;
+		padding: 22px;
+		width: 100%;
+		max-width: 420px;
+		box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+	}
+	.edit-title {
+		font-size: 1.05rem;
+		font-weight: 700;
+		color: #1a1a1a;
+		margin-bottom: 16px;
+	}
+	.edit-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 8px;
 	}
 
 	.action-icon {

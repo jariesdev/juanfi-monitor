@@ -86,9 +86,14 @@ func (v *VendoController) Store(c *gin.Context) {
 		MacAddress *string `json:"mac_address"`
 		APIURL     *string `json:"api_url"`
 		APIKey     *string `json:"api_key"`
+		Commission float64 `json:"commission"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
+		return
+	}
+	if body.Commission < 0 || body.Commission > 100 {
+		c.JSON(http.StatusBadRequest, gin.H{"detail": "commission must be between 0 and 100"})
 		return
 	}
 
@@ -97,8 +102,61 @@ func (v *VendoController) Store(c *gin.Context) {
 		MacAddress: body.MacAddress,
 		APIURL:     body.APIURL,
 		APIKey:     body.APIKey,
+		Commission: body.Commission,
 	}
 	if err := v.vendoRepo.Create(vendo); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": vendo})
+}
+
+// Update handles PUT /vendo-machines/:id — edit a vendo's business fields.
+// Only supplied fields are changed; api_key is preserved unless a non-empty
+// value is provided so device credentials are never wiped by an edit.
+func (v *VendoController) Update(c *gin.Context) {
+	id, err := parseUintParam(c, "id")
+	if err != nil {
+		return
+	}
+	var body struct {
+		Name       *string  `json:"name"`
+		MacAddress *string  `json:"mac_address"`
+		APIURL     *string  `json:"api_url"`
+		APIKey     *string  `json:"api_key"`
+		Commission *float64 `json:"commission"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
+		return
+	}
+	if body.Commission != nil && (*body.Commission < 0 || *body.Commission > 100) {
+		c.JSON(http.StatusBadRequest, gin.H{"detail": "commission must be between 0 and 100"})
+		return
+	}
+
+	vendo, err := v.vendoRepo.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"detail": "vendo not found"})
+		return
+	}
+	if body.Name != nil {
+		vendo.Name = *body.Name
+	}
+	if body.MacAddress != nil {
+		vendo.MacAddress = body.MacAddress
+	}
+	if body.APIURL != nil {
+		vendo.APIURL = body.APIURL
+	}
+	if body.APIKey != nil && *body.APIKey != "" {
+		vendo.APIKey = body.APIKey
+	}
+	if body.Commission != nil {
+		vendo.Commission = *body.Commission
+	}
+
+	if err := v.vendoRepo.Update(vendo); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
 	}
