@@ -8,21 +8,28 @@ import (
 	"github.com/jariesdev/vendoreport/internal/authz"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
+	"github.com/jariesdev/vendoreport/internal/scheduler"
 	"github.com/jariesdev/vendoreport/internal/services"
+	ws "github.com/jariesdev/vendoreport/internal/websocket"
+	"gorm.io/gorm"
 )
 
 // VendoController handles all vendo machine CRUD and operation endpoints.
 type VendoController struct {
+	db             *gorm.DB
 	vendoRepo      repository.VendoRepositoryInterface
 	withdrawalRepo repository.WithdrawalRepositoryInterface
 	userRepo       repository.UserRepositoryInterface
+	hub            *ws.Hub
 }
 
-func NewVendoController(vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface, userRepo repository.UserRepositoryInterface) *VendoController {
+func NewVendoController(db *gorm.DB, vendoRepo repository.VendoRepositoryInterface, withdrawalRepo repository.WithdrawalRepositoryInterface, userRepo repository.UserRepositoryInterface, hub *ws.Hub) *VendoController {
 	return &VendoController{
+		db:             db,
 		vendoRepo:      vendoRepo,
 		withdrawalRepo: withdrawalRepo,
 		userRepo:       userRepo,
+		hub:            hub,
 	}
 }
 
@@ -170,6 +177,16 @@ func (v *VendoController) Withdraw(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return
 	}
+
+	// A withdrawal resets the device's current sales, so refresh logs and status
+	// in the background to keep persisted data in sync. This runs asynchronously
+	// (it hits every active device over the network) so the response returns
+	// promptly; progress is broadcast to WebSocket clients via the hub.
+	go func() {
+		scheduler.RefreshVendoLogs(v.db, v.hub)
+		scheduler.UpdateVendoStatus(v.db, v.hub)
+	}()
+
 	c.JSON(http.StatusOK, gin.H{"message": withdrawal})
 }
 
