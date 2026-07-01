@@ -3,18 +3,26 @@
 	import type {iNotification} from "$lib/types/models";
 	import Notification from "$lib/components/Notification.svelte";
 	import { baseWsUrl } from '$lib/env';
+	import { setVendoProgress, setVendoOnline } from '$lib/store/vendoActivity';
 
 	let messages: string[] = $state([]);
 	let inputValue: string = $state('');
-	let ws: WebSocket;
+	let ws: WebSocket | undefined;
 	let activeNotification: string = $state('')
 	let pageVisible: DocumentVisibilityState|undefined|null = $state('visible')
 
-	onMount(() => {
-		ws = new WebSocket(`${baseWsUrl}/ws`); // Replace with your WebSocket server address
+	// Reconnect state: exponential backoff so a dropped socket recovers on its own.
+	let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+	let reconnectDelay = 1000;
+	const maxReconnectDelay = 30000;
+	let closed = false; // set on component teardown to stop reconnecting
+
+	const connect = (): void => {
+		ws = new WebSocket(`${baseWsUrl}/ws`);
 
 		ws.onopen = () => {
 			console.log('WebSocket connected');
+			reconnectDelay = 1000; // reset backoff after a successful connection
 		};
 
 		ws.onmessage = (event) => {
@@ -28,20 +36,41 @@
 				} else {
 					pushNotification(notification.message)
 				}
+			} else if (notification.type === 'vendo_refresh') {
+				setVendoProgress(notification.vendo_id, notification.progress);
+			} else if (notification.type === 'vendo_status') {
+				setVendoOnline(notification.vendo_id, notification.online);
 			}
 
 		};
 
 		ws.onclose = () => {
 			console.log('WebSocket disconnected');
+			scheduleReconnect();
 		};
 
 		ws.onerror = (error) => {
 			console.error('WebSocket error:', error);
+			ws?.close(); // triggers onclose → reconnect
 		};
+	};
+
+	const scheduleReconnect = (): void => {
+		if (closed || reconnectTimer) return;
+		reconnectTimer = setTimeout(() => {
+			reconnectTimer = undefined;
+			connect();
+		}, reconnectDelay);
+		reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
+	};
+
+	onMount(() => {
+		connect();
 	});
 
 	onDestroy(() => {
+		closed = true;
+		if (reconnectTimer) clearTimeout(reconnectTimer);
 		if (ws) {
 			ws.close();
 		}

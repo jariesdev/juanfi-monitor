@@ -10,6 +10,6 @@ var vendoStatusLogCmd = &cobra.Command{
 	Short: "Snapshot the current status of all active vendo machines",
 	Run: func(cmd *cobra.Command, args []string) {
 		initDB()
-		scheduler.UpdateVendoStatus(db)
+		scheduler.UpdateVendoStatus(db, nil)
 	},
 }
