@@ -7,6 +7,7 @@ import (
 	"github.com/jariesdev/vendoreport/internal/middleware"
 	"github.com/jariesdev/vendoreport/internal/models"
 	"github.com/jariesdev/vendoreport/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserController handles user-related API endpoints.
@@ -74,9 +75,15 @@ func (u *UserController) Create(c *gin.Context) {
 		isActive = *body.IsActive
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"detail": "failed to hash password"})
+		return
+	}
+
 	user := &models.User{
 		Username: body.Username,
-		Password: body.Password,
+		Password: string(hash),
 		IsActive: isActive,
 	}
 	if err := u.userRepo.Create(user); err != nil {
