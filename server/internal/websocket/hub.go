@@ -4,22 +4,8 @@ package websocket
 import (
 	"log"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
-)
-
-const (
-	// writeWait is the time allowed to write a message to a peer.
-	writeWait = 10 * time.Second
-	// pongWait is how long we wait for a pong before considering the peer dead.
-	pongWait = 60 * time.Second
-	// pingPeriod is how often we ping the peer. Kept well under pongWait and under
-	// typical NAT/firewall/proxy idle timeouts (~30-60s) so the socket never goes
-	// idle long enough to be reaped by an intermediary.
-	pingPeriod = 25 * time.Second
-	// maxMessageSize caps inbound frames; clients are not expected to send data.
-	maxMessageSize = 4096
 )
 
 // Client represents a single connected WebSocket client.
@@ -96,52 +82,26 @@ func (h *Hub) RegisterAndServe(conn *websocket.Conn) {
 	}
 	h.register <- client
 
-	// writePump forwards hub messages to the connection and sends periodic pings
-	// to keep the socket alive through idle-killing intermediaries (NAT, firewalls,
-	// load balancers) and to detect a half-open connection.
+	// writePump forwards messages from the hub to the WebSocket connection.
 	go func() {
-		ticker := time.NewTicker(pingPeriod)
 		defer func() {
-			ticker.Stop()
 			h.unregister <- client
 			conn.Close()
 		}()
-		for {
-			select {
-			case msg, ok := <-client.send:
-				conn.SetWriteDeadline(time.Now().Add(writeWait))
-				if !ok {
-					// The hub closed the channel: tell the peer and stop.
-					conn.WriteMessage(websocket.CloseMessage, []byte{})
-					return
-				}
-				if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
-					log.Printf("ws write: %v", err)
-					return
-				}
-			case <-ticker.C:
-				conn.SetWriteDeadline(time.Now().Add(writeWait))
-				if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-					return
-				}
+		for msg := range client.send {
+			if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				log.Printf("ws write: %v", err)
+				return
 			}
 		}
 	}()
 
-	// readPump drains inbound frames (clients aren't expected to send any) and
-	// enforces the pong deadline: each pong — browsers auto-reply to our pings —
-	// extends it, so a peer that stops responding is dropped after pongWait.
+	// readPump keeps the connection alive and handles client-side closes.
 	go func() {
 		defer func() {
 			h.unregister <- client
 			conn.Close()
 		}()
-		conn.SetReadLimit(maxMessageSize)
-		conn.SetReadDeadline(time.Now().Add(pongWait))
-		conn.SetPongHandler(func(string) error {
-			conn.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
 		for {
 			if _, _, err := conn.ReadMessage(); err != nil {
 				break
