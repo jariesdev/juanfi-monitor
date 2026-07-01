@@ -104,6 +104,22 @@ type NotificationRepositoryInterface interface {
 	Add(message string, userID *uint) (*models.Notification, error)
 }
 
+// ExpenseRepositoryInterface manages account-wide business expenses, scoped to
+// the owning user. All operations filter by userID so tenants are isolated.
+type ExpenseRepositoryInterface interface {
+	Search(userID uint, from, to *time.Time, category *string) ([]models.Expense, error)
+	Get(id, userID uint) (*models.Expense, error)
+	Create(e *models.Expense) error
+	Update(e *models.Expense) error
+	Delete(id, userID uint) error
+	// MonthlyOneTime sums non-recurring expense amounts by PHT year-month within
+	// [from, to). Recurring expenses are excluded — they are expanded separately.
+	MonthlyOneTime(userID uint, from, to time.Time) ([]MonthAmount, error)
+	// ActiveRecurring returns all recurring expenses for the user; each contributes
+	// its Amount to every month from ExpenseDate onward.
+	ActiveRecurring(userID uint) ([]models.Expense, error)
+}
+
 // ---- Shared result types used across multiple repositories ----
 
 // PageResult is the pagination envelope matching fastapi-pagination's shape.
@@ -129,6 +145,12 @@ type MonthlySaleRow struct {
 	Total     float64 `json:"total"`
 	VendoID   uint    `json:"vendo_id"`
 	VendoName string  `json:"vendo_name"`
+}
+
+// MonthAmount holds an aggregated amount for a single PHT year-month (YYYY-MM).
+type MonthAmount struct {
+	Month  string  `json:"month"`
+	Amount float64 `json:"amount"`
 }
 
 // HourlyStatusRow holds an hourly aggregated vendo status snapshot.

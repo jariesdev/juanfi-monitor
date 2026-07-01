@@ -35,7 +35,8 @@
 		settings: 'Settings',
 		users: 'User Management',
 		vouchers: 'Vouchers',
-		vendoconfig: 'Vendo Configuration'
+		vendoconfig: 'Vendo Configuration',
+		profit: 'Profit Tracking'
 	};
 
 	async function submit() {

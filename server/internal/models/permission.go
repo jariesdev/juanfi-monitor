@@ -12,6 +12,7 @@ const (
 	PermSettings    = "settings"
 	PermUsers       = "users"
 	PermVendoConfig = "vendoconfig"
+	PermProfit      = "profit"
 )
 
 // AllPermissions returns all defined permission constants in display order.
@@ -28,6 +29,7 @@ func AllPermissions() []string {
 		PermSettings,
 		PermUsers,
 		PermVendoConfig,
+		PermProfit,
 	}
 }
 
