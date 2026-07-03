@@ -15,6 +15,7 @@ import (
 
 const salesLogTypeIndex = 14      // log type index for purchase transactions
 const coinInsertLogTypeIndex = 18 // log type index for "Inserted coin" events
+const cancelTopupLogTypeIndex = 6 // log type index for "Cancel Topup" events
 
 // SystemStatus holds all fields returned by the Juanfi dashboard API.
 type SystemStatus struct {

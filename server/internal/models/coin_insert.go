@@ -14,7 +14,11 @@ type CoinInsert struct {
 	Amount     float64   `gorm:"column:amount" json:"amount"`
 	InsertTime time.Time `gorm:"column:insert_time" json:"insert_time"`
 	Status     string    `gorm:"column:status;index:idx_coin_insert_lookup" json:"status"` // pending | purchased | failed
-	CreatedAt  time.Time `json:"created_at"`
+	// Cancelled is set when the device logged a "Cancel Topup" entry for this
+	// MAC immediately after this coin insert — the user backed out of the
+	// purchase rather than the machine failing to generate a voucher.
+	Cancelled bool      `gorm:"column:cancelled" json:"cancelled"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (CoinInsert) TableName() string {

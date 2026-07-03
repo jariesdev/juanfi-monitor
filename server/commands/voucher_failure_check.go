@@ -51,18 +51,29 @@ var voucherFailureCheckCmd = &cobra.Command{
 				continue
 			}
 
-			// Parse coin-insert entries out of the stored log descriptions.
+			// Parse coin-insert entries out of the stored log descriptions,
+			// noting when the immediately following entry is that MAC's
+			// "Cancel Topup" (user backed out of the purchase).
 			var inserts []models.CoinInsert
-			for _, l := range logs {
-				if mac, amount, ok := services.ParseCoinInsertLog(l.Description); ok {
-					inserts = append(inserts, models.CoinInsert{
-						ID:         l.ID,
-						VendoID:    v.ID,
-						MacAddress: mac,
-						Amount:     amount,
-						InsertTime: l.LogTime,
-					})
+			for i, l := range logs {
+				mac, amount, ok := services.ParseCoinInsertLog(l.Description)
+				if !ok {
+					continue
 				}
+				cancelled := false
+				if i+1 < len(logs) {
+					if nextMac, ok := services.ParseCancelTopupLog(logs[i+1].Description); ok && nextMac == mac {
+						cancelled = true
+					}
+				}
+				inserts = append(inserts, models.CoinInsert{
+					ID:         l.ID,
+					VendoID:    v.ID,
+					MacAddress: mac,
+					Amount:     amount,
+					InsertTime: l.LogTime,
+					Cancelled:  cancelled,
+				})
 			}
 			if len(inserts) == 0 {
 				continue
@@ -96,10 +107,14 @@ var voucherFailureCheckCmd = &cobra.Command{
 			_, failures := services.DetectVoucherFailures(inserts, lastSale, time.Now())
 			for _, f := range failures {
 				totalFailures++
-				fmt.Printf("[%s] %s inserted coins totaling %.2f between %s and %s — no voucher generated\n",
+				reason := ""
+				if f.Cancelled {
+					reason = " (user cancelled the top-up)"
+				}
+				fmt.Printf("[%s] %s inserted coins totaling %.2f between %s and %s — no voucher generated%s\n",
 					v.Name, f.MacAddress, f.CoinTotal,
 					f.FirstInsertAt.In(loc).Format("15:04:05"),
-					f.LastInsertAt.In(loc).Format("15:04:05"))
+					f.LastInsertAt.In(loc).Format("15:04:05"), reason)
 			}
 		}
 

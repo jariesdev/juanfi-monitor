@@ -2,6 +2,7 @@ package tests
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,7 +44,7 @@ func TestSearchNotifications_UserScoping(t *testing.T) {
 	// Non-admin scope: only global + own rows.
 	ownID := uint(1234)
 	db.Create(&models.Notification{Message: "mine", UserID: &ownID})
-	result, err := repo.Search(&ownID, 1, 100)
+	result, err := repo.Search(&ownID, nil, 1, 100)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -54,7 +55,7 @@ func TestSearchNotifications_UserScoping(t *testing.T) {
 	}
 
 	// Admin scope (nil) sees the other user's row too.
-	all, err := repo.Search(nil, 1, 100)
+	all, err := repo.Search(nil, nil, 1, 100)
 	if err != nil {
 		t.Fatalf("admin search: %v", err)
 	}
@@ -117,6 +118,43 @@ func TestResolveVoucherFailures_FlagsExpiredGroupOnce(t *testing.T) {
 	db.Model(&models.Notification{}).Where("message LIKE ?", "%"+mac+"%").Count(&notifs2)
 	if failures2 != failures || notifs2 != notifs {
 		t.Errorf("second resolve created duplicates: failures %d→%d, notifications %d→%d", failures, failures2, notifs, notifs2)
+	}
+}
+
+func TestResolveVoucherFailures_CancelledTopupReasonInMessage(t *testing.T) {
+	v := testVendo(t)
+	mac := "F1:00:00:00:00:05"
+	old := time.Now().Add(-30 * time.Minute)
+	db.Create(&models.CoinInsert{VendoID: v.ID, MacAddress: mac, Amount: 5, InsertTime: old, Status: models.CoinInsertPending, Cancelled: true})
+
+	if err := services.ResolveVoucherFailures(db, v); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	var failure models.VoucherFailure
+	if err := db.Where("vendo_id = ? AND mac_address = ?", v.ID, mac).First(&failure).Error; err != nil {
+		t.Fatalf("load voucher failure: %v", err)
+	}
+	if !failure.Cancelled {
+		t.Error("expected VoucherFailure.Cancelled to be true")
+	}
+
+	var notification models.Notification
+	if err := db.Where("message LIKE ?", "%"+mac+"%").First(&notification).Error; err != nil {
+		t.Fatalf("load notification: %v", err)
+	}
+	if !strings.Contains(notification.Message, "cancelled the top-up") {
+		t.Errorf("expected notification message to mention the cancel reason, got: %q", notification.Message)
+	}
+}
+
+func TestParseCancelTopupLog(t *testing.T) {
+	mac, ok := services.ParseCancelTopupLog("AA:BB:CC:DD:EE:FF Cancel Topup")
+	if !ok || mac != "AA:BB:CC:DD:EE:FF" {
+		t.Errorf("expected mac AA:BB:CC:DD:EE:FF, ok=true, got mac=%q ok=%v", mac, ok)
+	}
+	if _, ok := services.ParseCancelTopupLog("AA:BB:CC:DD:EE:FF Inserted coin 5"); ok {
+		t.Error("expected no match for an unrelated log line")
 	}
 }
 

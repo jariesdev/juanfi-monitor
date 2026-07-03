@@ -15,7 +15,10 @@ type VoucherFailure struct {
 	LastInsertAt  time.Time `gorm:"column:last_insert_at;uniqueIndex:idx_voucher_failure_instance" json:"last_insert_at"`
 	FirstInsertAt time.Time `gorm:"column:first_insert_at" json:"first_insert_at"`
 	CoinTotal     float64   `gorm:"column:coin_total" json:"coin_total"`
-	CreatedAt     time.Time `json:"created_at"`
+	// Cancelled is true when the user cancelled the top-up (device logged
+	// "Cancel Topup") rather than the voucher generation failing outright.
+	Cancelled bool      `gorm:"column:cancelled" json:"cancelled"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (VoucherFailure) TableName() string {
