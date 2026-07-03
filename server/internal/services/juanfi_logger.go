@@ -167,12 +167,11 @@ func (l *JuanfiLogger) storeSales(rawLogs []RawLog) error {
 			continue
 		}
 
-		// Queue a notification for the WebSocket broadcast cron.
-		notification := models.Notification{
-			Message:   fmt.Sprintf("%s: %s bought %s for %.2f", l.vendo.Name, macAddress, voucher, amount),
-			CreatedAt: time.Now(),
-		}
-		if err := l.db.Create(&notification).Error; err != nil {
+		// Queue a notification (WebSocket broadcast cron picks it up) for each
+		// user assigned to this vendo — never a global one, so a sale never
+		// leaks to users with no relationship to this vendo.
+		message := fmt.Sprintf("%s: %s bought %s for %.2f", l.vendo.Name, macAddress, voucher, amount)
+		if err := notifyVendoUsers(l.db, l.vendo.ID, message); err != nil {
 			log.Printf("create notification: %v", err)
 		}
 	}

@@ -3,6 +3,7 @@ package tests
 import (
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,6 +11,30 @@ import (
 	"github.com/jariesdev/vendoreport/internal/repository"
 	"github.com/jariesdev/vendoreport/internal/services"
 )
+
+var assignTestVendoUserOnce sync.Once
+
+// ensureTestVendoHasAssignedUser guarantees testVendoID has at least one
+// assigned user, independent of whatever other tests in the suite may have
+// already assigned (or run order) — notifyVendoUsers only creates a
+// notification for vendos with assigned users, so tests asserting a
+// notification was created need this to hold regardless of run order.
+func ensureTestVendoHasAssignedUser(t *testing.T) {
+	t.Helper()
+	assignTestVendoUserOnce.Do(func() {
+		u := &models.User{Username: "voucher-failure-notify-user", Password: "x", IsActive: true}
+		if err := db.Create(u).Error; err != nil {
+			t.Fatalf("create notify-test user: %v", err)
+		}
+		var v models.Vendo
+		if err := db.First(&v, testVendoID).Error; err != nil {
+			t.Fatalf("load test vendo: %v", err)
+		}
+		if err := db.Model(u).Association("Vendos").Append([]models.Vendo{v}); err != nil {
+			t.Fatalf("assign test vendo: %v", err)
+		}
+	})
+}
 
 // ── GET /notifications ───────────────────────────────────────────────────────
 
@@ -126,7 +151,39 @@ func TestResolveVoucherFailures_NotifiesOnlyUsersAssignedToVendo(t *testing.T) {
 	}
 }
 
+func TestResolveVoucherFailures_NoAssignedUsers_NoNotification(t *testing.T) {
+	// A vendo with zero assigned users must produce zero notifications — no
+	// falling back to a "global" (nil user_id) notification, since that would
+	// be visible to every non-admin user (Search treats NULL as global).
+	v := &models.Vendo{Name: "Unassigned Vendo", IsActive: 1}
+	if err := db.Create(v).Error; err != nil {
+		t.Fatalf("create vendo: %v", err)
+	}
+
+	mac := "F1:00:00:00:00:10"
+	old := time.Now().Add(-30 * time.Minute)
+	db.Create(&models.CoinInsert{VendoID: v.ID, MacAddress: mac, Amount: 5, InsertTime: old, Status: models.CoinInsertPending})
+
+	if err := services.ResolveVoucherFailures(db, v); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	var count int64
+	db.Model(&models.Notification{}).Where("message LIKE ?", "%"+mac+"%").Count(&count)
+	if count != 0 {
+		t.Errorf("expected no notification for a vendo with no assigned users, got %d", count)
+	}
+
+	// The failure itself is still recorded for audit purposes even without a notification.
+	var failures int64
+	db.Model(&models.VoucherFailure{}).Where("vendo_id = ? AND mac_address = ?", v.ID, mac).Count(&failures)
+	if failures != 1 {
+		t.Errorf("expected the voucher failure to still be recorded, got %d", failures)
+	}
+}
+
 func TestResolveVoucherFailures_FlagsExpiredGroupOnce(t *testing.T) {
+	ensureTestVendoHasAssignedUser(t)
 	v := testVendo(t)
 	mac := "F1:00:00:00:00:01"
 	old := time.Now().Add(-30 * time.Minute)
@@ -167,6 +224,7 @@ func TestResolveVoucherFailures_FlagsExpiredGroupOnce(t *testing.T) {
 }
 
 func TestResolveVoucherFailures_CancelledTopupReasonInMessage(t *testing.T) {
+	ensureTestVendoHasAssignedUser(t)
 	v := testVendo(t)
 	mac := "F1:00:00:00:00:05"
 	old := time.Now().Add(-30 * time.Minute)

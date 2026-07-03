@@ -254,33 +254,7 @@ func ResolveVoucherFailures(db *gorm.DB, vendo *models.Vendo) error {
 				return err
 			}
 			message := FormatVoucherFailureMessage(vendo.Name, mac, group.CoinTotal, group.LastInsertAt, group.Cancelled)
-
-			// Fan out one notification per user assigned to this vendo so the
-			// history page can scope by user_id. Fall back to a single global
-			// notification (NULL user_id) when the vendo has no assigned users.
-			var userIDs []uint
-			if err := tx.Table("user_vendos").
-				Where("vendo_id = ?", vendo.ID).
-				Pluck("user_id", &userIDs).Error; err != nil {
-				return err
-			}
-			if len(userIDs) == 0 {
-				return tx.Create(&models.Notification{
-					Message:   message,
-					CreatedAt: time.Now(),
-				}).Error
-			}
-			for _, uid := range userIDs {
-				uid := uid
-				if err := tx.Create(&models.Notification{
-					Message:   message,
-					UserID:    &uid,
-					CreatedAt: time.Now(),
-				}).Error; err != nil {
-					return err
-				}
-			}
-			return nil
+			return notifyVendoUsers(tx, vendo.ID, message)
 		})
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
