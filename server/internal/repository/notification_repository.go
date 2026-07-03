@@ -84,6 +84,13 @@ func (r *NotificationRepository) Search(userID *uint, q *string, page, size int)
 	}, nil
 }
 
+// DeleteOlderThan permanently removes notifications created before the given
+// time and reports how many rows were deleted.
+func (r *NotificationRepository) DeleteOlderThan(before time.Time) (int64, error) {
+	result := r.db.Where("created_at < ?", before).Delete(&models.Notification{})
+	return result.RowsAffected, result.Error
+}
+
 // Add inserts a new notification message into the queue.
 func (r *NotificationRepository) Add(message string, userID *uint) (*models.Notification, error) {
 	n := &models.Notification{

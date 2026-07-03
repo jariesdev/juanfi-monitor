@@ -30,6 +30,7 @@ func init() {
 	RootCmd.AddCommand(vendoLoggerCmd)
 	RootCmd.AddCommand(vendoStatusLogCmd)
 	RootCmd.AddCommand(voucherFailureCheckCmd)
+	RootCmd.AddCommand(notificationsClearCmd)
 }
 
 // initDB loads config and opens the database. Called by sub-commands that need DB access.

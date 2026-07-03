@@ -36,6 +36,50 @@ func ensureTestVendoHasAssignedUser(t *testing.T) {
 	})
 }
 
+// ── DeleteOlderThan (notifications-clear command) ───────────────────────────
+
+func TestNotificationRepository_DeleteOlderThan(t *testing.T) {
+	repo := repository.NewNotificationRepository(db)
+
+	cutoff := time.Date(2020, 6, 15, 0, 0, 0, 0, time.UTC)
+	old := &models.Notification{Message: "delete-me-old", CreatedAt: cutoff.Add(-24 * time.Hour)}
+	onCutoff := &models.Notification{Message: "keep-on-cutoff", CreatedAt: cutoff}
+	recent := &models.Notification{Message: "keep-me-recent", CreatedAt: cutoff.Add(24 * time.Hour)}
+	for _, n := range []*models.Notification{old, onCutoff, recent} {
+		if err := db.Create(n).Error; err != nil {
+			t.Fatalf("seed notification: %v", err)
+		}
+	}
+
+	deleted, err := repo.DeleteOlderThan(cutoff)
+	if err != nil {
+		t.Fatalf("DeleteOlderThan: %v", err)
+	}
+	if deleted != 1 {
+		t.Errorf("expected 1 notification deleted, got %d", deleted)
+	}
+
+	var remainingIDs []uint
+	db.Model(&models.Notification{}).Where("id IN ?", []uint{old.ID, onCutoff.ID, recent.ID}).Pluck("id", &remainingIDs)
+	if len(remainingIDs) != 2 {
+		t.Fatalf("expected 2 rows remaining out of the 3 seeded, got %d", len(remainingIDs))
+	}
+	for _, id := range remainingIDs {
+		if id == old.ID {
+			t.Error("notification older than the cutoff was not deleted")
+		}
+	}
+
+	// Re-running with the same cutoff deletes nothing further.
+	deleted2, err := repo.DeleteOlderThan(cutoff)
+	if err != nil {
+		t.Fatalf("second DeleteOlderThan: %v", err)
+	}
+	if deleted2 != 0 {
+		t.Errorf("expected 0 deleted on second run, got %d", deleted2)
+	}
+}
+
 // ── GET /notifications ───────────────────────────────────────────────────────
 
 func TestSearchNotifications(t *testing.T) {
