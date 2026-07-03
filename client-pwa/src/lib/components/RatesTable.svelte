@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { goto } from '$app/navigation';
 	import SimpleTable from '$lib/components/SimpleTable.svelte';
 	import RateForm from '$lib/components/RateForm.svelte';
 	import ActionButton from '$lib/components/ActionButton.svelte';
 	import { isAdmin } from '$lib/acl.svelte.js';
 	import { toast } from '$lib/store';
-	import type { iVendoRate } from '$lib/types/models';
+	import type { iVendo, iVendoRate } from '$lib/types/models';
 	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
 
 	interface Props {
@@ -20,6 +21,9 @@
 	let isSyncing = $state(false);
 	let isSettingDefault = $state(false);
 	let controller: AbortController | undefined;
+
+	let vendos: iVendo[] = $state([]);
+	let vendoController: AbortController | undefined;
 
 	let showModal = $state(false);
 	let editingRate: iVendoRate | null = $state(null);
@@ -159,8 +163,33 @@
 		}
 	}
 
-	onMount(loadRates);
-	onDestroy(() => controller?.abort());
+	function loadVendos() {
+		vendoController?.abort();
+		vendoController = new AbortController();
+
+		fetch('/x-api/vendo-machines', { signal: vendoController.signal })
+			.then((r) => (r.ok ? r.json() : Promise.reject()))
+			.then(({ data }) => {
+				vendos = (data ?? []).sort((a: iVendo, b: iVendo) => a.name.localeCompare(b.name));
+			})
+			.catch(() => {});
+	}
+
+	function onVendoChange(e: Event) {
+		const id = (e.target as HTMLSelectElement).value;
+		if (id && Number(id) !== vendoId) {
+			goto(`/vendo/${id}/rates`);
+		}
+	}
+
+	onMount(() => {
+		loadRates();
+		loadVendos();
+	});
+	onDestroy(() => {
+		controller?.abort();
+		vendoController?.abort();
+	});
 </script>
 
 <div class="card">
@@ -199,6 +228,17 @@
 			/>
 		{/if}
 		<ActionButton icon="plus" label="Add Rate" primary onclick={openAdd} />
+
+		<select
+			class="uk-select vendo-switcher"
+			value={vendoId}
+			onchange={onVendoChange}
+			aria-label="Switch vendo"
+		>
+			{#each vendos as vendo (vendo.id)}
+				<option value={vendo.id}>{vendo.name}</option>
+			{/each}
+		</select>
 	</div>
 
 	{#if isLoading}
@@ -379,6 +419,19 @@
 		gap: 8px;
 		padding: 12px 18px;
 		border-bottom: 1px solid #f0f0f0;
+	}
+
+	.vendo-switcher {
+		display: none;
+	}
+
+	@media (min-width: 960px) {
+		.vendo-switcher {
+			display: block;
+			width: auto;
+			max-width: 220px;
+			margin-left: auto;
+		}
 	}
 
 	.table-wrap {
