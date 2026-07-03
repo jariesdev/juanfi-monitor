@@ -41,7 +41,7 @@
 </div>
 
 <Notifications
-	currentUserId={data.permissions.includes('users') ? null : (data.user?.id ?? null)}
+	currentUserId={data.permissions?.includes('users') ? null : (data.user?.id ?? null)}
 />
 <Toast />
 
