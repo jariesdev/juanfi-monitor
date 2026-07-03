@@ -158,6 +158,15 @@ func runVendoStatus(db *gorm.DB, v *models.Vendo, report func(frac float64)) boo
 	if err != nil {
 		log.Printf("scheduler: status update [%s]: %v", v.Name, err)
 		db.Model(&models.Vendo{}).Where("id = ?", v.ID).Update("is_online", false)
+		// v.IsOnline still holds the state loaded at the start of this poll
+		// cycle, so this fires exactly once per online→offline transition,
+		// not on every poll while the vendo stays down.
+		if v.IsOnline {
+			message := fmt.Sprintf("%s is offline or unreachable. Try restarting it by unplugging it from power for a few seconds and plugging it back in.", v.Name)
+			if err := services.NotifyVendoUsers(db, v.ID, message); err != nil {
+				log.Printf("scheduler: notify offline [%s]: %v", v.Name, err)
+			}
+		}
 		if report != nil {
 			report(1.0)
 		}

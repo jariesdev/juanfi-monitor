@@ -16,7 +16,7 @@ var assignTestVendoUserOnce sync.Once
 
 // ensureTestVendoHasAssignedUser guarantees testVendoID has at least one
 // assigned user, independent of whatever other tests in the suite may have
-// already assigned (or run order) — notifyVendoUsers only creates a
+// already assigned (or run order) — NotifyVendoUsers only creates a
 // notification for vendos with assigned users, so tests asserting a
 // notification was created need this to hold regardless of run order.
 func ensureTestVendoHasAssignedUser(t *testing.T) {
