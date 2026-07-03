@@ -64,8 +64,8 @@ flowchart TB
 | Status history query | `GET /vendo-status-history` | PWA |
 
 ## Processing steps
-- **Notifications @1m:** `PullUnread()` → for each, broadcast JSON `{"type":"notification","message":...}` to the hub.
-- **Logs+sales @5m:** iterate active vendos → `JuanfiLogger.Run()` (see [system-logs.md](system-logs.md)).
+- **Notifications @1m:** `PullUnread()` → for each, broadcast JSON `{"type":"notification","id":...,"message":...,"user_id":...,"created_at":...}` to the hub. Notification rows are queued not just for new sales but also for coin-insert voucher-failure detection — see [coin-failure-notifications.md](coin-failure-notifications.md).
+- **Logs+sales @5m:** iterate active vendos → `JuanfiLogger.Run()` (see [system-logs.md](system-logs.md)); this same run also persists coin-insert events and resolves voucher failures ([coin-failure-notifications.md](coin-failure-notifications.md)).
 - **Status @5m:** iterate active vendos → `GetSystemStatus()`; on failure set `is_online=false`; on success record a `vendo_status` snapshot **only when metrics changed** and keep `is_online` in sync.
 - **History read:** `GET /vendo-status-history` → aggregated hourly rows, row-scoped.
 
@@ -199,6 +199,7 @@ flowchart TB
 # Related Components
 - [system-logs.md](system-logs.md) — shares the log/sales ingestion path.
 - [vendo-machines.md](vendo-machines.md) — live status counterpart and `is_online` consumer.
+- [coin-failure-notifications.md](coin-failure-notifications.md) — coin-inserted-but-no-voucher detection, another producer of `notifications` rows broadcast through this same pipeline.
 
 ---
 

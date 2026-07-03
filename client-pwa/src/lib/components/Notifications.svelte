@@ -1,15 +1,24 @@
 <script lang="ts">
-	import {onMount, onDestroy} from 'svelte';
-	import type {iNotification} from "$lib/types/models";
-	import Notification from "$lib/components/Notification.svelte";
+	import { onMount, onDestroy } from 'svelte';
+	import type { iNotification } from '$lib/types/models';
+	import Notification from '$lib/components/Notification.svelte';
 	import { baseWsUrl } from '$lib/env';
 	import { setVendoProgress, setVendoOnline } from '$lib/store/vendoActivity';
+	import { pushIncoming } from '$lib/store/notifications';
+
+	interface Props {
+		// null when the user is an admin (sees every notification); otherwise
+		// only global frames (user_id null) and the user's own are shown.
+		currentUserId?: number | null;
+	}
+
+	const { currentUserId = null }: Props = $props();
 
 	let messages: string[] = $state([]);
 	let inputValue: string = $state('');
 	let ws: WebSocket | undefined;
-	let activeNotification: string = $state('')
-	let pageVisible: DocumentVisibilityState|undefined|null = $state('visible')
+	let activeNotification: string = $state('');
+	let pageVisible: DocumentVisibilityState | undefined | null = $state('visible');
 
 	// Reconnect state: exponential backoff so a dropped socket recovers on its own.
 	let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
@@ -26,22 +35,30 @@
 		};
 
 		ws.onmessage = (event) => {
-			const notification = JSON.parse(event.data)
+			const notification = JSON.parse(event.data);
 
 			if (notification.type === 'notification') {
+				// Skip frames targeted at another user.
+				if (
+					currentUserId !== null &&
+					notification.user_id != null &&
+					notification.user_id !== currentUserId
+				) {
+					return;
+				}
+				pushIncoming(notification);
 				messages.push(notification.message);
 
-				if (pageVisible !== 'visible' && ! activeNotification) {
-					showNotification()
+				if (pageVisible !== 'visible' && !activeNotification) {
+					showNotification();
 				} else {
-					pushNotification(notification.message)
+					pushNotification(notification.message);
 				}
 			} else if (notification.type === 'vendo_refresh') {
 				setVendoProgress(notification.vendo_id, notification.progress);
 			} else if (notification.type === 'vendo_status') {
 				setVendoOnline(notification.vendo_id, notification.online);
 			}
-
 		};
 
 		ws.onclose = () => {
@@ -87,48 +104,48 @@
 		if (pageVisible !== 'visible') return;
 
 		if (messages.length > 0) {
-			activeNotification = messages.shift() || ''
+			activeNotification = messages.shift() || '';
 		} else {
-			activeNotification = ''
+			activeNotification = '';
 		}
-	}
+	};
 
 	const getNotification = (): string => {
 		if (messages.length > 0) {
-			return messages.shift() || ''
+			return messages.shift() || '';
 		}
 
-		return activeNotification = ''
-	}
+		return (activeNotification = '');
+	};
 
 	const pushNotification = (message: string): void => {
-		if (!("Notification" in window)) {
+		if (!('Notification' in window)) {
 			// Check if the browser supports notifications
-			console.log("This browser does not support desktop notification");
-		} else if (window.Notification.permission === "granted") {
+			console.log('This browser does not support desktop notification');
+		} else if (window.Notification.permission === 'granted') {
 			// Check whether notification permissions have already been granted;
 			// if so, create a notification
 			const notification = new window.Notification(message);
-		} else if (window.Notification.permission !== "denied") {
+		} else if (window.Notification.permission !== 'denied') {
 			// We need to ask the user for permission
 			window.Notification.requestPermission().then((permission) => {
 				// If the user accepts, let's create a notification
-				if (permission === "granted") {
+				if (permission === 'granted') {
 					const notification = new window.Notification(message);
 				}
 			});
 		}
-	}
+	};
 
 	const handleVisibilityChange = (): void => {
 		if (pageVisible === 'visible') {
-			showNotification()
+			showNotification();
 		}
-	}
+	};
 </script>
 
 <svelte:document bind:visibilityState={pageVisible} onvisibilitychange={handleVisibilityChange} />
 
 <div class="notifications uk-width-expand uk-position-absolute uk-position-bottom">
-		<Notification message={activeNotification} onHide={showNotification} />
+	<Notification message={activeNotification} onHide={showNotification} />
 </div>

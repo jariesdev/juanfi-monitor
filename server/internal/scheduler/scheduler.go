@@ -51,9 +51,12 @@ func broadcastNotifications(db *gorm.DB, hub *ws.Hub) {
 	}
 
 	for _, n := range notifications {
-		payload := map[string]string{
-			"type":    "notification",
-			"message": n.Message,
+		payload := map[string]any{
+			"type":       "notification",
+			"id":         n.ID,
+			"message":    n.Message,
+			"user_id":    n.UserID,
+			"created_at": n.CreatedAt,
 		}
 		msg, err := json.Marshal(payload)
 		if err != nil {

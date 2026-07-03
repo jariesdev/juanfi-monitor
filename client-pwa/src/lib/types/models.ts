@@ -82,6 +82,8 @@ export type Permission = (typeof ALL_PERMISSIONS)[number];
 export interface iNotification {
 	id: number;
 	message: string;
+	user_id?: number | null;
+	created_at?: string;
 }
 
 export interface iVendoRate {

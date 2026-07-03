@@ -45,6 +45,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	voucherRepo := repository.NewVendoVoucherRepository(db)
 	expenseRepo := repository.NewExpenseRepository(db)
 	adjustmentRepo := repository.NewAdjustmentRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	profitService := services.NewProfitService(saleRepo, expenseRepo, adjustmentRepo, vendoRepo)
@@ -66,6 +67,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	voucherCtrl := controllers.NewVendoVoucherController(voucherRepo, vendoRepo)
 	expenseCtrl := controllers.NewExpenseController(expenseRepo, profitService)
 	adjustmentCtrl := controllers.NewAdjustmentController(adjustmentRepo)
+	notificationCtrl := controllers.NewNotificationController(notificationRepo)
 
 	// ── Cron Scheduler ────────────────────────────────────────────────────────
 	var stopFn func()
@@ -77,7 +79,7 @@ func New(db *gorm.DB, corsOrigins []string, jwtSecret string, isProd bool, start
 	}
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, expenseCtrl, adjustmentCtrl, userRepo)
+	router := buildRouter(corsOrigins, jwtSecret, isProd, trustedProxies, hub, authCtrl, userCtrl, roleCtrl, vendoCtrl, logCtrl, saleCtrl, statusCtrl, withdrawalCtrl, rateCtrl, voucherCtrl, expenseCtrl, adjustmentCtrl, notificationCtrl, userRepo)
 
 	return &App{Router: router, Hub: hub, StopScheduler: stopFn}
 }
@@ -100,6 +102,7 @@ func buildRouter(
 	voucherCtrl *controllers.VendoVoucherController,
 	expenseCtrl *controllers.ExpenseController,
 	adjustmentCtrl *controllers.AdjustmentController,
+	notificationCtrl *controllers.NotificationController,
 	userRepo repository.UserRepositoryInterface,
 ) *gin.Engine {
 	router := gin.New()
@@ -143,6 +146,8 @@ func buildRouter(
 
 	auth.GET("/logs", logCtrl.Search)
 	auth.POST("/log/refresh", logCtrl.Refresh)
+
+	auth.GET("/notifications", notificationCtrl.Search)
 
 	auth.GET("/sales", saleCtrl.Search)
 	auth.GET("/daily-sales", saleCtrl.DailySales)

@@ -50,12 +50,22 @@ func (l *JuanfiLogger) RunWithProgress(report func(frac float64)) error {
 		log.Printf("juanfi logger [%s]: store sales: %v", l.vendo.Name, err)
 	}
 	if report != nil {
-		report(0.8)
+		report(0.7)
+	}
+
+	if err := StoreCoinInserts(l.db, l.api, l.vendo, rawLogs); err != nil {
+		log.Printf("juanfi logger [%s]: store coin inserts: %v", l.vendo.Name, err)
+	}
+	if report != nil {
+		report(0.85)
 	}
 
 	formatted := l.api.GetFormattedLogs(rawLogs)
 	if err := l.storeLogs(formatted); err != nil {
 		log.Printf("juanfi logger [%s]: store logs: %v", l.vendo.Name, err)
+	}
+	if err := ResolveVoucherFailures(l.db, l.vendo); err != nil {
+		log.Printf("juanfi logger [%s]: resolve voucher failures: %v", l.vendo.Name, err)
 	}
 	if report != nil {
 		report(1.0)

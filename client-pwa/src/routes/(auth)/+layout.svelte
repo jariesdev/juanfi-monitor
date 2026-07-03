@@ -8,7 +8,7 @@
 	import type { Snippet } from 'svelte';
 
 	interface LayoutData {
-		user: unknown;
+		user: { id?: number } | null;
 		permissions: string[];
 	}
 
@@ -25,7 +25,11 @@
 </div>
 
 <!-- Main content — offset matches sidebar width on desktop -->
-<main class="auth-content" class:sidebar-expanded={!$navCollapsed} class:sidebar-collapsed={$navCollapsed}>
+<main
+	class="auth-content"
+	class:sidebar-expanded={!$navCollapsed}
+	class:sidebar-collapsed={$navCollapsed}
+>
 	<div class="content-inner uk-margin-auto-left uk-margin-auto-right">
 		{@render children()}
 	</div>
@@ -36,7 +40,9 @@
 	<BottomNav />
 </div>
 
-<Notifications />
+<Notifications
+	currentUserId={data.permissions.includes('users') ? null : (data.user?.id ?? null)}
+/>
 <Toast />
 
 <style>

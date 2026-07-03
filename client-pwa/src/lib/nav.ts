@@ -41,6 +41,7 @@ export const navItems: NavItem[] = [
 		]
 	},
 	{ href: '/logs', icon: 'list', label: 'Logs', requiredPermission: 'logs' },
+	{ href: '/notifications', icon: 'bell', label: 'Notifications' },
 	{
 		icon: 'credit-card',
 		label: 'Financials',

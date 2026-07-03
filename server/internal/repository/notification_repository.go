@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"math"
 	"time"
 
 	"github.com/jariesdev/vendoreport/internal/models"
@@ -44,6 +45,38 @@ func (r *NotificationRepository) PullUnread() ([]models.Notification, error) {
 	}
 
 	return notifications, nil
+}
+
+// Search returns a paginated list of notifications, newest first. A nil
+// userID (admin) returns everything; otherwise only global notifications
+// (NULL user_id) and the user's own are returned.
+func (r *NotificationRepository) Search(userID *uint, page, size int) (*PageResult[models.Notification], error) {
+	var notifications []models.Notification
+	var total int64
+
+	query := r.db.Model(&models.Notification{}).Order("created_at DESC, id DESC")
+
+	if userID != nil {
+		query = query.Where("user_id IS NULL OR user_id = ?", *userID)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	offset := (page - 1) * size
+	if err := query.Offset(offset).Limit(size).Find(&notifications).Error; err != nil {
+		return nil, err
+	}
+
+	pages := int(math.Ceil(float64(total) / float64(size)))
+	return &PageResult[models.Notification]{
+		Items: notifications,
+		Total: total,
+		Page:  page,
+		Size:  size,
+		Pages: pages,
+	}, nil
 }
 
 // Add inserts a new notification message into the queue.

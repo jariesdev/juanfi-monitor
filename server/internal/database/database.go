@@ -71,6 +71,8 @@ var allModels = []interface{}{
 	&models.VendoVoucher{},
 	&models.Expense{},
 	&models.Adjustment{},
+	&models.CoinInsert{},
+	&models.VoucherFailure{},
 }
 
 // autoMigrate runs the appropriate migration strategy for the driver.
