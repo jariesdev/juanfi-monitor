@@ -51,7 +51,7 @@ func (r *SaleRepository) Search(q *string, date *string, vendoID *uint, assigned
 	}
 	if date != nil && *date != "" {
 		loc := time.FixedZone("PHT", 8*60*60)
-		start, err := time.ParseInLocation("2006-01-02", *date, loc)
+		start, err := time.ParseInLocation(time.DateOnly, *date, loc)
 		if err == nil {
 			end := start.Add(24 * time.Hour)
 			query = query.Where("sale_time >= ? AND sale_time < ?", start, end)

@@ -24,9 +24,9 @@ var voucherFailureCheckCmd = &cobra.Command{
 		loc := time.FixedZone("PHT", 8*60*60)
 		dateStr := voucherFailureCheckDate
 		if dateStr == "" {
-			dateStr = time.Now().In(loc).AddDate(0, 0, -1).Format("2006-01-02")
+			dateStr = time.Now().In(loc).AddDate(0, 0, -1).Format(time.DateOnly)
 		}
-		start, err := time.ParseInLocation("2006-01-02", dateStr, loc)
+		start, err := time.ParseInLocation(time.DateOnly, dateStr, loc)
 		if err != nil {
 			fmt.Printf("invalid --date %q (want YYYY-MM-DD): %v\n", dateStr, err)
 			return
@@ -113,8 +113,8 @@ var voucherFailureCheckCmd = &cobra.Command{
 				}
 				fmt.Printf("[%s] %s inserted coins totaling %.2f between %s and %s — no voucher generated%s\n",
 					v.Name, f.MacAddress, f.CoinTotal,
-					f.FirstInsertAt.In(loc).Format("15:04:05"),
-					f.LastInsertAt.In(loc).Format("15:04:05"), reason)
+					f.FirstInsertAt.In(loc).Format(time.TimeOnly),
+					f.LastInsertAt.In(loc).Format(time.TimeOnly), reason)
 			}
 		}
 

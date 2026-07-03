@@ -85,7 +85,7 @@ func (s *SaleController) MonthlySales(c *gin.Context) {
 // 30-day window ending today (in PHT) when absent. The returned times are
 // PHT-local start-of-day, suitable for conversion to UTC in the repository.
 func parseDateRange(c *gin.Context) (from, to time.Time) {
-	layout := "2006-01-02"
+	layout := time.DateOnly
 	now := time.Now().In(phtLocation)
 	to = now
 	from = now.AddDate(0, -1, 0)

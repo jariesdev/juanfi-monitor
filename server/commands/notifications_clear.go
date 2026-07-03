@@ -20,7 +20,7 @@ var notificationsClearCmd = &cobra.Command{
 		initDB()
 
 		loc := time.FixedZone("PHT", 8*60*60)
-		cutoff, err := time.ParseInLocation("2006-01-02", args[0], loc)
+		cutoff, err := time.ParseInLocation(time.DateOnly, args[0], loc)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: invalid date %q (want YYYY-MM-DD): %v\n", args[0], err)
 			os.Exit(1)
@@ -32,6 +32,6 @@ var notificationsClearCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "error: delete notifications: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Deleted %d notification(s) created before %s.\n", deleted, cutoff.Format("2006-01-02"))
+		fmt.Printf("Deleted %d notification(s) created before %s.\n", deleted, cutoff.Format(time.DateOnly))
 	},
 }

@@ -37,14 +37,14 @@ func (r *VendoStatusRepository) GetHourlyStatus(vendoID *uint, from, to *string,
 	}
 	if from != nil && *from != "" {
 		loc := time.FixedZone("PHT", 8*60*60)
-		start, err := time.ParseInLocation("2006-01-02", *from, loc)
+		start, err := time.ParseInLocation(time.DateOnly, *from, loc)
 		if err == nil {
 			query = query.Where("vendo_status.created_at >= ?", start)
 		}
 	}
 	if to != nil && *to != "" {
 		loc := time.FixedZone("PHT", 8*60*60)
-		end, err := time.ParseInLocation("2006-01-02", *to, loc)
+		end, err := time.ParseInLocation(time.DateOnly, *to, loc)
 		if err == nil {
 			end = end.Add(24 * time.Hour)
 			query = query.Where("vendo_status.created_at < ?", end)

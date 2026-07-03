@@ -36,6 +36,7 @@ The application is permission-based ACL. Roles are created dynamically via the U
 * Use table-driven tests and mock repositories/external services.
 * Prefer the Go standard library unless a third-party package provides significant value.
 * Generate production-ready, maintainable, and testable code by default.
+* When formatting or parsing dates/times, use the named layout constants from the standard library `time` package (`time.DateOnly`, `time.DateTime`, `time.TimeOnly`, `time.RFC3339`, etc. — see `/usr/local/go/src/time/format.go`) instead of hardcoding the equivalent layout string. E.g. `time.ParseInLocation(time.DateOnly, dateStr, loc)` rather than `time.ParseInLocation("2006-01-02", dateStr, loc)`. Only write out a literal reference-time layout when no constant matches the format you need.
 
 ### Run & test
 ```bash

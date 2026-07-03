@@ -66,12 +66,12 @@ func ownVendoIDs(c *gin.Context) []uint {
 func (e *ExpenseController) List(c *gin.Context) {
 	var from, to *time.Time
 	if v := c.Query("from_date"); v != "" {
-		if t, err := time.ParseInLocation("2006-01-02", v, phtLocation); err == nil {
+		if t, err := time.ParseInLocation(time.DateOnly, v, phtLocation); err == nil {
 			from = &t
 		}
 	}
 	if v := c.Query("to_date"); v != "" {
-		if t, err := time.ParseInLocation("2006-01-02", v, phtLocation); err == nil {
+		if t, err := time.ParseInLocation(time.DateOnly, v, phtLocation); err == nil {
 			end := t.Add(24 * time.Hour)
 			to = &end
 		}
@@ -181,12 +181,12 @@ func (e *ExpenseController) Report(c *gin.Context) {
 	from := time.Date(2000, 1, 1, 0, 0, 0, 0, phtLocation)
 	to := time.Now().In(phtLocation)
 	if v := c.Query("from_date"); v != "" {
-		if t, err := time.ParseInLocation("2006-01-02", v, phtLocation); err == nil {
+		if t, err := time.ParseInLocation(time.DateOnly, v, phtLocation); err == nil {
 			from = t
 		}
 	}
 	if v := c.Query("to_date"); v != "" {
-		if t, err := time.ParseInLocation("2006-01-02", v, phtLocation); err == nil {
+		if t, err := time.ParseInLocation(time.DateOnly, v, phtLocation); err == nil {
 			to = t.Add(24 * time.Hour)
 		}
 	}
@@ -218,13 +218,13 @@ func parseExpenseRequest(c *gin.Context, req *expenseRequest) (date time.Time, e
 		c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid category"})
 		return time.Time{}, nil, false
 	}
-	date, err := time.ParseInLocation("2006-01-02", req.ExpenseDate, phtLocation)
+	date, err := time.ParseInLocation(time.DateOnly, req.ExpenseDate, phtLocation)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid expense_date (want YYYY-MM-DD)"})
 		return time.Time{}, nil, false
 	}
 	if req.IsRecurring && req.EndDate != "" {
-		ed, err := time.ParseInLocation("2006-01-02", req.EndDate, phtLocation)
+		ed, err := time.ParseInLocation(time.DateOnly, req.EndDate, phtLocation)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"detail": "invalid end_date (want YYYY-MM-DD)"})
 			return time.Time{}, nil, false

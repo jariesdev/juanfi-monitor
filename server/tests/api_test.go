@@ -586,7 +586,7 @@ func TestSearchLogs_FilterByVendoID(t *testing.T) {
 }
 
 func TestSearchLogs_FilterByDate(t *testing.T) {
-	today := time.Now().Format("2006-01-02")
+	today := time.Now().Format(time.DateOnly)
 	w := doRequest(http.MethodGet, "/logs?date="+today, nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
 }
@@ -650,14 +650,14 @@ func TestSearchSales_FilterByVendoID(t *testing.T) {
 }
 
 func TestSearchSales_FilterByDate(t *testing.T) {
-	today := time.Now().Format("2006-01-02")
+	today := time.Now().Format(time.DateOnly)
 	w := doRequest(http.MethodGet, "/sales?date="+today, nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
 }
 
 func TestDailySales(t *testing.T) {
-	from := time.Now().AddDate(0, -1, 0).Format("2006-01-02")
-	to := time.Now().Format("2006-01-02")
+	from := time.Now().AddDate(0, -1, 0).Format(time.DateOnly)
+	to := time.Now().Format(time.DateOnly)
 	w := doRequest(http.MethodGet, fmt.Sprintf("/daily-sales?from_date=%s&to_date=%s", from, to), nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
 
@@ -675,8 +675,8 @@ func TestDailySales_DefaultDates(t *testing.T) {
 }
 
 func TestMonthlySales(t *testing.T) {
-	from := time.Now().AddDate(-1, 0, 0).Format("2006-01-02")
-	to := time.Now().Format("2006-01-02")
+	from := time.Now().AddDate(-1, 0, 0).Format(time.DateOnly)
+	to := time.Now().Format(time.DateOnly)
 	w := doRequest(http.MethodGet, fmt.Sprintf("/monthly-sales?from_date=%s&to_date=%s", from, to), nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
 
@@ -712,8 +712,8 @@ func TestVendoStatusHistory_ActiveOnly(t *testing.T) {
 }
 
 func TestVendoStatusHistory_DateRange(t *testing.T) {
-	from := time.Now().AddDate(0, -1, 0).Format("2006-01-02")
-	to := time.Now().Format("2006-01-02")
+	from := time.Now().AddDate(0, -1, 0).Format(time.DateOnly)
+	to := time.Now().Format(time.DateOnly)
 	path := fmt.Sprintf("/vendo-status-history?from_date=%s&to_date=%s", from, to)
 	w := doRequest(http.MethodGet, path, nil, authHeader())
 	assertStatus(t, w, http.StatusOK)
