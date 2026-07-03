@@ -211,7 +211,7 @@ func ResolveVoucherFailures(db *gorm.DB, vendo *models.Vendo) error {
 				return err
 			}
 			loc := time.FixedZone("PHT", 8*60*60)
-			message := fmt.Sprintf("%s: %s inserted coins totaling %.2f at %s but no voucher was generated",
+			message := fmt.Sprintf("%s: %s inserted coins totaling %.2f at %s but no voucher was detected",
 				vendo.Name, mac, group.CoinTotal, group.LastInsertAt.In(loc).Format("Jan 2, 3:04 PM"))
 
 			// Fan out one notification per user assigned to this vendo so the
