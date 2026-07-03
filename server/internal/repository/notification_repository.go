@@ -49,12 +49,17 @@ func (r *NotificationRepository) PullUnread() ([]models.Notification, error) {
 
 // Search returns a paginated list of notifications, newest first. A nil
 // userID (admin) returns everything; otherwise only global notifications
-// (NULL user_id) and the user's own are returned.
-func (r *NotificationRepository) Search(userID *uint, page, size int) (*PageResult[models.Notification], error) {
+// (NULL user_id) and the user's own are returned. When q is non-nil the
+// message column is filtered by substring match.
+func (r *NotificationRepository) Search(userID *uint, q *string, page, size int) (*PageResult[models.Notification], error) {
 	var notifications []models.Notification
 	var total int64
 
 	query := r.db.Model(&models.Notification{}).Order("created_at DESC, id DESC")
+
+	if q != nil && *q != "" {
+		query = query.Where("message LIKE ?", "%"+*q+"%")
+	}
 
 	if userID != nil {
 		query = query.Where("user_id IS NULL OR user_id = ?", *userID)

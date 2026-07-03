@@ -21,9 +21,15 @@ func NewNotificationController(notificationRepo repository.NotificationRepositor
 
 // Search handles GET /notifications — paginated notification history. Admins
 // see all notifications; everyone else sees global ones plus their own.
-// Query params: page, size.
+// Query params: q (message filter), page, size.
 func (n *NotificationController) Search(c *gin.Context) {
+	q := c.Query("q")
 	page, size := paginationParams(c)
+
+	var qPtr *string
+	if q != "" {
+		qPtr = &q
+	}
 
 	var userIDPtr *uint
 	if !authz.IsAdmin(c) {
@@ -31,7 +37,7 @@ func (n *NotificationController) Search(c *gin.Context) {
 		userIDPtr = &currentUser.ID
 	}
 
-	result, err := n.notificationRepo.Search(userIDPtr, page, size)
+	result, err := n.notificationRepo.Search(userIDPtr, qPtr, page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

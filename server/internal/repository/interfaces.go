@@ -105,7 +105,7 @@ type VendoVoucherRepositoryInterface interface {
 type NotificationRepositoryInterface interface {
 	PullUnread() ([]models.Notification, error)
 	Add(message string, userID *uint) (*models.Notification, error)
-	Search(userID *uint, page, size int) (*PageResult[models.Notification], error)
+	Search(userID *uint, q *string, page, size int) (*PageResult[models.Notification], error)
 }
 
 // ExpenseRepositoryInterface manages account-wide business expenses, scoped to
