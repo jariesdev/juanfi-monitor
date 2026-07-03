@@ -8,6 +8,7 @@
 	import ActiveCustomerChart from '$lib/components/ActiveCustomerChart.svelte';
 	import VendoCapacityChart from '$lib/components/VendoCapacityChart.svelte';
 	import MonthlySaleChart from '$lib/components/MonthlySaleChart.svelte';
+	import { hasPermission } from '$lib/acl.svelte.js';
 	import { onMount } from 'svelte';
 
 	onMount(() => {
@@ -18,12 +19,16 @@
 <section class="uk-section">
 	<ActiveUsersWidget />
 
-	<h3 class="uk-text-light uk-text-center">Daily Sales</h3>
-	<DailySaleChart />
+	{#if hasPermission('sales')}
+		<h3 class="uk-text-light uk-text-center">Daily Sales</h3>
+		<DailySaleChart />
+	{/if}
 	<h3 class="uk-text-light uk-text-center">Vendo Capacity Counter</h3>
 	<VendoCapacityChart />
-	<h3 class="uk-text-light uk-text-center">Monthly Sales</h3>
-	<MonthlySaleChart />
+	{#if hasPermission('sales')}
+		<h3 class="uk-text-light uk-text-center">Monthly Sales</h3>
+		<MonthlySaleChart />
+	{/if}
 	<h3 class="uk-text-light uk-text-center">Active User History</h3>
 	<ActiveCustomerChart />
 </section>

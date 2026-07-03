@@ -81,6 +81,51 @@ func testVendo(t *testing.T) *models.Vendo {
 	return &v
 }
 
+func TestResolveVoucherFailures_NotifiesOnlyUsersAssignedToVendo(t *testing.T) {
+	// Dedicated vendo so this test's user_vendos assignment doesn't affect
+	// the shared testVendoID used elsewhere in the suite.
+	v := &models.Vendo{Name: "Notify Scoping Vendo", IsActive: 1}
+	if err := db.Create(v).Error; err != nil {
+		t.Fatalf("create vendo: %v", err)
+	}
+
+	assignedUser := &models.User{Username: "notif-assigned-user", Password: "x", IsActive: true}
+	unassignedUser := &models.User{Username: "notif-unassigned-user", Password: "x", IsActive: true}
+	if err := db.Create(assignedUser).Error; err != nil {
+		t.Fatalf("create assigned user: %v", err)
+	}
+	if err := db.Create(unassignedUser).Error; err != nil {
+		t.Fatalf("create unassigned user: %v", err)
+	}
+	// Only assignedUser is granted access to v; unassignedUser is a user of
+	// the system but has no relationship to this vendo.
+	if err := db.Model(assignedUser).Association("Vendos").Replace([]models.Vendo{*v}); err != nil {
+		t.Fatalf("assign vendo: %v", err)
+	}
+
+	mac := "F1:00:00:00:00:09"
+	old := time.Now().Add(-30 * time.Minute)
+	db.Create(&models.CoinInsert{VendoID: v.ID, MacAddress: mac, Amount: 5, InsertTime: old, Status: models.CoinInsertPending})
+
+	if err := services.ResolveVoucherFailures(db, v); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+
+	var notifications []models.Notification
+	if err := db.Where("message LIKE ?", "%"+mac+"%").Find(&notifications).Error; err != nil {
+		t.Fatalf("load notifications: %v", err)
+	}
+	if len(notifications) != 1 {
+		t.Fatalf("expected exactly 1 notification (one per assigned user), got %d", len(notifications))
+	}
+	if notifications[0].UserID == nil || *notifications[0].UserID != assignedUser.ID {
+		t.Errorf("expected notification for assigned user %d, got user_id=%v", assignedUser.ID, notifications[0].UserID)
+	}
+	if notifications[0].UserID != nil && *notifications[0].UserID == unassignedUser.ID {
+		t.Error("notification was sent to a user not assigned to the vendo")
+	}
+}
+
 func TestResolveVoucherFailures_FlagsExpiredGroupOnce(t *testing.T) {
 	v := testVendo(t)
 	mac := "F1:00:00:00:00:01"
