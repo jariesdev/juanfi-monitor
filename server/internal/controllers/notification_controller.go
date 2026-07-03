@@ -19,8 +19,10 @@ func NewNotificationController(notificationRepo repository.NotificationRepositor
 	return &NotificationController{notificationRepo: notificationRepo}
 }
 
-// Search handles GET /notifications — paginated notification history. Admins
-// see all notifications; everyone else sees global ones plus their own.
+// Search handles GET /notifications — paginated notification history, always
+// scoped to the authenticated caller (from the JWT via CurrentUserKey), never
+// a client-supplied user ID. Non-admins see only their own notifications;
+// admins additionally see system notifications (NULL user_id).
 // Query params: q (message filter), page, size.
 func (n *NotificationController) Search(c *gin.Context) {
 	q := c.Query("q")
@@ -31,13 +33,10 @@ func (n *NotificationController) Search(c *gin.Context) {
 		qPtr = &q
 	}
 
-	var userIDPtr *uint
-	if !authz.IsAdmin(c) {
-		currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
-		userIDPtr = &currentUser.ID
-	}
+	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
+	includeGlobal := authz.IsAdmin(c)
 
-	result, err := n.notificationRepo.Search(userIDPtr, qPtr, page, size)
+	result, err := n.notificationRepo.Search(currentUser.ID, includeGlobal, qPtr, page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

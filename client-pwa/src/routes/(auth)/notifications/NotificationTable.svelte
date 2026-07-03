@@ -11,6 +11,9 @@
 		{ label: 'Message', field: 'message' }
 	];
 
+	// The list is scoped to the current user server-side (GET /notifications
+	// always filters by the authenticated caller, never a client-supplied ID).
+
 	// Live update: reload page 1 whenever a new notification frame arrives
 	// over the WebSocket (already filtered for the current user upstream).
 	$effect(() => {

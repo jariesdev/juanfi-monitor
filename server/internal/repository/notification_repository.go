@@ -47,11 +47,14 @@ func (r *NotificationRepository) PullUnread() ([]models.Notification, error) {
 	return notifications, nil
 }
 
-// Search returns a paginated list of notifications, newest first. A nil
-// userID (admin) returns everything; otherwise only global notifications
-// (NULL user_id) and the user's own are returned. When q is non-nil the
-// message column is filtered by substring match.
-func (r *NotificationRepository) Search(userID *uint, q *string, page, size int) (*PageResult[models.Notification], error) {
+// Search returns a paginated list of notifications belonging to userID,
+// newest first. userID must be the authenticated caller's own ID — never a
+// client-supplied value — so this is always "my notifications", not an
+// arbitrary lookup. When includeGlobal is true (the caller is an admin),
+// system notifications (NULL user_id) are also included alongside the
+// user's own. When q is non-nil the message column is filtered by substring
+// match.
+func (r *NotificationRepository) Search(userID uint, includeGlobal bool, q *string, page, size int) (*PageResult[models.Notification], error) {
 	var notifications []models.Notification
 	var total int64
 
@@ -61,8 +64,10 @@ func (r *NotificationRepository) Search(userID *uint, q *string, page, size int)
 		query = query.Where("message LIKE ?", "%"+*q+"%")
 	}
 
-	if userID != nil {
-		query = query.Where("user_id IS NULL OR user_id = ?", *userID)
+	if includeGlobal {
+		query = query.Where("user_id = ? OR user_id IS NULL", userID)
+	} else {
+		query = query.Where("user_id = ?", userID)
 	}
 
 	if err := query.Count(&total).Error; err != nil {

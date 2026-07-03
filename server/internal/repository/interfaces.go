@@ -105,7 +105,7 @@ type VendoVoucherRepositoryInterface interface {
 type NotificationRepositoryInterface interface {
 	PullUnread() ([]models.Notification, error)
 	Add(message string, userID *uint) (*models.Notification, error)
-	Search(userID *uint, q *string, page, size int) (*PageResult[models.Notification], error)
+	Search(userID uint, includeGlobal bool, q *string, page, size int) (*PageResult[models.Notification], error)
 	DeleteOlderThan(before time.Time) (int64, error)
 }
 

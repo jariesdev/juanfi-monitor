@@ -105,37 +105,60 @@ func TestSearchNotifications(t *testing.T) {
 }
 
 func TestSearchNotifications_UserScoping(t *testing.T) {
-	otherUserID := uint(9999)
-	db.Create(&models.Notification{Message: "private for someone else", UserID: &otherUserID})
+	ownID := uint(1234)
+	otherID := uint(9999)
+	db.Create(&models.Notification{Message: "mine", UserID: &ownID})
+	db.Create(&models.Notification{Message: "private for someone else", UserID: &otherID})
+	db.Create(&models.Notification{Message: "system-wide notice"}) // global, NULL user_id
 
 	repo := repository.NewNotificationRepository(db)
 
-	// Non-admin scope: only global + own rows.
-	ownID := uint(1234)
-	db.Create(&models.Notification{Message: "mine", UserID: &ownID})
-	result, err := repo.Search(&ownID, nil, 1, 100)
+	// Non-admin (includeGlobal=false): strictly the caller's own rows —
+	// never another user's, and not even global/system notifications.
+	own, err := repo.Search(ownID, false, nil, 1, 100)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
-	for _, n := range result.Items {
-		if n.UserID != nil && *n.UserID != ownID {
-			t.Errorf("non-admin scope leaked notification for user %d", *n.UserID)
+	for _, n := range own.Items {
+		if n.UserID == nil || *n.UserID != ownID {
+			t.Errorf("non-admin scope leaked a row not owned by %d: user_id=%v", ownID, n.UserID)
 		}
 	}
-
-	// Admin scope (nil) sees the other user's row too.
-	all, err := repo.Search(nil, nil, 1, 100)
-	if err != nil {
-		t.Fatalf("admin search: %v", err)
-	}
 	found := false
-	for _, n := range all.Items {
-		if n.UserID != nil && *n.UserID == otherUserID {
+	for _, n := range own.Items {
+		if n.UserID != nil && *n.UserID == ownID {
 			found = true
 		}
 	}
 	if !found {
-		t.Error("admin scope should include other users' notifications")
+		t.Error("expected the caller's own notification to be present")
+	}
+
+	// Admin (includeGlobal=true): own rows plus global/system notifications,
+	// but still never another specific user's notifications.
+	admin, err := repo.Search(ownID, true, nil, 1, 100)
+	if err != nil {
+		t.Fatalf("admin search: %v", err)
+	}
+	sawOwn, sawGlobal, sawOther := false, false, false
+	for _, n := range admin.Items {
+		switch {
+		case n.UserID != nil && *n.UserID == ownID:
+			sawOwn = true
+		case n.UserID == nil:
+			sawGlobal = true
+		case n.UserID != nil && *n.UserID == otherID:
+			sawOther = true
+		}
+	}
+	if !sawOwn {
+		t.Error("expected admin scope to include the caller's own notification")
+	}
+	if !sawGlobal {
+		t.Error("expected admin scope to include global/system notifications")
+	}
+	if sawOther {
+		t.Error("admin scope must not include another specific user's notifications")
 	}
 }
 
