@@ -1,0 +1,5 @@
+# Juanfi device API (`internal/services/juanfi_api.go`)
+
+All vendo machines run Juanfi firmware. Every call goes to `<api_url>/admin/<path>` with an `X-TOKEN: <api_key>` header and a `query=<unix-ms-timestamp>` param auto-appended (`buildURL`). Most endpoints are GET-only, even ones that mutate device state (e.g. `ResetCurrentSales` is a GET with `?type=coinCount`) — `api/saveRates` is the one exception, requiring a real POST.
+
+Rate plans (`api/getRates` / `api/saveRates`) use a pipe/hash-delimited string format: entries separated by `|`, fields within an entry separated by `#` — `Name#Price#Minutes#ValidityMinutes#DataLimitMB#UserProfile` (`DataLimitMB` and `UserProfile` are optional/may be blank). `GetRates()` parses this into `[]Rate`; `SaveRates()` (`encodeRates`) serialises it back, POSTing `data=<encoded string>` as `application/x-www-form-urlencoded` with `rateType=1`. A blank `UserProfile` from the device means Mikrotik's `default` hotspot profile — `GetRates` normalizes it to the literal string `"default"` rather than `""`.

@@ -1,0 +1,7 @@
+# Server gotchas
+
+- **SQLite schema** — `database.Connect()` takes a `migrate bool`. `config.ShouldMigrate()` now always returns `true` (the old Python/Alembic app is gone), but for SQLite this only ever *creates missing tables* (`sqliteCreateMissing()` in `internal/database/database.go`) — it never alters an existing table.
+- **GORM association gotcha (SQLite)** — do **not** add a `gorm:"foreignKey:..."` association struct field (e.g. `Vendo *Vendo`) to a new model unless the code actually dereferences it. `AutoMigrate` on a model with such an association also walks into and tries to reconcile the *referenced* table's schema — and since the real `app.db`'s tables were originally created by the old Alembic app, they don't column-for-column match what GORM expects. SQLite's migrator then tries to rebuild the referenced table (rename → create temp → copy → drop) and the generated `INSERT...SELECT` can silently omit a NOT NULL column, crashing the server on startup with e.g. `NOT NULL constraint failed: vendos__temp.name`. Keep new models referencing existing tables to a plain `VendoID *uint` scalar column — no association struct field — unless you actually need to preload it.
+- **JWT secret** — must not be `change_me_in_production` when `APP_ENV=production`; the app will fatal on startup.
+- **CGO required** — `mattn/go-sqlite3` needs gcc. Set `CGO_ENABLED=1` when building for deployment.
+- All authenticated routes expect `Authorization: Bearer <JWT>` (HS256, 1-hour expiry).
