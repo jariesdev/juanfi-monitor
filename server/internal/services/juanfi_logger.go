@@ -171,7 +171,7 @@ func (l *JuanfiLogger) storeSales(rawLogs []RawLog) error {
 		// user assigned to this vendo — never a global one, so a sale never
 		// leaks to users with no relationship to this vendo.
 		message := fmt.Sprintf("%s: %s bought %s for %.2f", l.vendo.Name, macAddress, voucher, amount)
-		if err := NotifyVendoUsers(l.db, l.vendo.ID, message); err != nil {
+		if err := NotifyVendoUsers(l.db, l.vendo.ID, message, models.NotificationTypeInfo); err != nil {
 			log.Printf("create notification: %v", err)
 		}
 	}

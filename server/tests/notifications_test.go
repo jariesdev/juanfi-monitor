@@ -115,7 +115,7 @@ func TestSearchNotifications_UserScoping(t *testing.T) {
 
 	// Non-admin (includeGlobal=false): strictly the caller's own rows —
 	// never another user's, and not even global/system notifications.
-	own, err := repo.Search(ownID, false, nil, 1, 100)
+	own, err := repo.Search(ownID, false, nil, nil, 1, 100)
 	if err != nil {
 		t.Fatalf("search: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestSearchNotifications_UserScoping(t *testing.T) {
 
 	// Admin (includeGlobal=true): own rows plus global/system notifications,
 	// but still never another specific user's notifications.
-	admin, err := repo.Search(ownID, true, nil, 1, 100)
+	admin, err := repo.Search(ownID, true, nil, nil, 1, 100)
 	if err != nil {
 		t.Fatalf("admin search: %v", err)
 	}
@@ -159,6 +159,45 @@ func TestSearchNotifications_UserScoping(t *testing.T) {
 	}
 	if sawOther {
 		t.Error("admin scope must not include another specific user's notifications")
+	}
+}
+
+func TestSearchNotifications_TypeFilter(t *testing.T) {
+	uid := uint(4321)
+	db.Create(&models.Notification{Message: "type-filter info", UserID: &uid, Type: models.NotificationTypeInfo})
+	db.Create(&models.Notification{Message: "type-filter alert", UserID: &uid, Type: models.NotificationTypeAlert})
+
+	repo := repository.NewNotificationRepository(db)
+
+	info := models.NotificationTypeInfo
+	infoResult, err := repo.Search(uid, false, nil, &info, 1, 100)
+	if err != nil {
+		t.Fatalf("search info: %v", err)
+	}
+	for _, n := range infoResult.Items {
+		if n.Type != models.NotificationTypeInfo {
+			t.Errorf("expected only info notifications, got type=%q", n.Type)
+		}
+	}
+
+	alert := models.NotificationTypeAlert
+	alertResult, err := repo.Search(uid, false, nil, &alert, 1, 100)
+	if err != nil {
+		t.Fatalf("search alert: %v", err)
+	}
+	for _, n := range alertResult.Items {
+		if n.Type != models.NotificationTypeAlert {
+			t.Errorf("expected only alert notifications, got type=%q", n.Type)
+		}
+	}
+
+	all, err := repo.Search(uid, false, nil, nil, 1, 100)
+	if err != nil {
+		t.Fatalf("search all: %v", err)
+	}
+	if len(all.Items) != len(infoResult.Items)+len(alertResult.Items) {
+		t.Errorf("expected unfiltered search to include both types: all=%d info=%d alert=%d",
+			len(all.Items), len(infoResult.Items), len(alertResult.Items))
 	}
 }
 

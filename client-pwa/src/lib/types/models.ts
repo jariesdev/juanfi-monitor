@@ -84,6 +84,7 @@ export interface iNotification {
 	message: string;
 	user_id?: number | null;
 	created_at?: string;
+	type?: 'info' | 'alert';
 }
 
 export interface iVendoRate {

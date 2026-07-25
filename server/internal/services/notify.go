@@ -13,7 +13,7 @@ import (
 // treats a NULL user_id as visible to every non-admin user, so a vendo with
 // no assigned users intentionally gets no notification at all rather than
 // falling back to a "global" one that would leak to unrelated users.
-func NotifyVendoUsers(db *gorm.DB, vendoID uint, message string) error {
+func NotifyVendoUsers(db *gorm.DB, vendoID uint, message string, notifType string) error {
 	var userIDs []uint
 	if err := db.Table("user_vendos").
 		Where("vendo_id = ?", vendoID).
@@ -25,6 +25,7 @@ func NotifyVendoUsers(db *gorm.DB, vendoID uint, message string) error {
 		uid := uid
 		if err := db.Create(&models.Notification{
 			Message:   message,
+			Type:      notifType,
 			UserID:    &uid,
 			CreatedAt: time.Now(),
 		}).Error; err != nil {

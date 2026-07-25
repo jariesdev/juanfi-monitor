@@ -55,6 +55,7 @@ func broadcastNotifications(db *gorm.DB, hub *ws.Hub) {
 			"type":       "notification",
 			"id":         n.ID,
 			"message":    n.Message,
+			"notif_type": n.Type,
 			"user_id":    n.UserID,
 			"created_at": n.CreatedAt,
 		}
@@ -163,7 +164,7 @@ func runVendoStatus(db *gorm.DB, v *models.Vendo, report func(frac float64)) boo
 		// not on every poll while the vendo stays down.
 		if v.IsOnline {
 			message := fmt.Sprintf("%s is offline or unreachable. Try restarting it by unplugging it from power for a few seconds and plugging it back in.", v.Name)
-			if err := services.NotifyVendoUsers(db, v.ID, message); err != nil {
+			if err := services.NotifyVendoUsers(db, v.ID, message, models.NotificationTypeAlert); err != nil {
 				log.Printf("scheduler: notify offline [%s]: %v", v.Name, err)
 			}
 		}

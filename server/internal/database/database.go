@@ -135,6 +135,7 @@ func sqliteCreateMissing(db *gorm.DB) error {
 		{&models.Vendo{}, "Commission"},
 		{&models.CoinInsert{}, "Cancelled"},
 		{&models.VoucherFailure{}, "Cancelled"},
+		{&models.Notification{}, "Type"},
 	}
 	for _, ac := range addColumns {
 		if !db.Migrator().HasTable(ac.model) {

@@ -12,6 +12,13 @@ navCollapsed.subscribe((v) => {
 	if (browser) localStorage.setItem('nav-collapsed', String(v));
 });
 
+// Notifications page type filter (info/alert/""=all) — persisted across visits
+const storedNotifType = browser ? localStorage.getItem('notification-type-filter') || '' : '';
+export const notificationTypeFilter = writable<string>(storedNotifType);
+notificationTypeFilter.subscribe((v) => {
+	if (browser) localStorage.setItem('notification-type-filter', v);
+});
+
 export interface iToast {
 	message: string;
 	type: 'success' | 'error';

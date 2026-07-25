@@ -23,9 +23,10 @@ func NewNotificationController(notificationRepo repository.NotificationRepositor
 // scoped to the authenticated caller (from the JWT via CurrentUserKey), never
 // a client-supplied user ID. Non-admins see only their own notifications;
 // admins additionally see system notifications (NULL user_id).
-// Query params: q (message filter), page, size.
+// Query params: q (message filter), type (info|alert), page, size.
 func (n *NotificationController) Search(c *gin.Context) {
 	q := c.Query("q")
+	notifType := c.Query("type")
 	page, size := paginationParams(c)
 
 	var qPtr *string
@@ -33,10 +34,15 @@ func (n *NotificationController) Search(c *gin.Context) {
 		qPtr = &q
 	}
 
+	var typePtr *string
+	if notifType != "" {
+		typePtr = &notifType
+	}
+
 	currentUser := c.MustGet(middleware.CurrentUserKey).(*models.User)
 	includeGlobal := authz.IsAdmin(c)
 
-	result, err := n.notificationRepo.Search(currentUser.ID, includeGlobal, qPtr, page, size)
+	result, err := n.notificationRepo.Search(currentUser.ID, includeGlobal, qPtr, typePtr, page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"detail": err.Error()})
 		return

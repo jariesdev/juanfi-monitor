@@ -254,7 +254,7 @@ func ResolveVoucherFailures(db *gorm.DB, vendo *models.Vendo) error {
 				return err
 			}
 			message := FormatVoucherFailureMessage(vendo.Name, mac, group.CoinTotal, group.LastInsertAt, group.Cancelled)
-			return NotifyVendoUsers(tx, vendo.ID, message)
+			return NotifyVendoUsers(tx, vendo.ID, message, models.NotificationTypeAlert)
 		})
 		if err != nil {
 			if errors.Is(err, gorm.ErrDuplicatedKey) {

@@ -53,8 +53,9 @@ func (r *NotificationRepository) PullUnread() ([]models.Notification, error) {
 // arbitrary lookup. When includeGlobal is true (the caller is an admin),
 // system notifications (NULL user_id) are also included alongside the
 // user's own. When q is non-nil the message column is filtered by substring
-// match.
-func (r *NotificationRepository) Search(userID uint, includeGlobal bool, q *string, page, size int) (*PageResult[models.Notification], error) {
+// match. When notifType is non-nil and non-empty, results are restricted to
+// that type (e.g. "info" or "alert").
+func (r *NotificationRepository) Search(userID uint, includeGlobal bool, q *string, notifType *string, page, size int) (*PageResult[models.Notification], error) {
 	var notifications []models.Notification
 	var total int64
 
@@ -62,6 +63,10 @@ func (r *NotificationRepository) Search(userID uint, includeGlobal bool, q *stri
 
 	if q != nil && *q != "" {
 		query = query.Where("message LIKE ?", "%"+*q+"%")
+	}
+
+	if notifType != nil && *notifType != "" {
+		query = query.Where("type = ?", *notifType)
 	}
 
 	if includeGlobal {
