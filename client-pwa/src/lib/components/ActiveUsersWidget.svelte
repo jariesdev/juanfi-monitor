@@ -5,8 +5,10 @@
 	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
 	import SimpleTable from '$lib/components/SimpleTable.svelte';
 	import { refreshingVendos } from '$lib/store/vendoActivity';
+	import { viewport } from '$lib/utils/viewport.svelte';
 
-	const MAX_VISIBLE = 4;
+	const vp = viewport();
+	const MAX_VISIBLE = $derived(vp.isMobile ? 3 : 4);
 
 	const modalHeaders: SimpleTableHeader[] = [
 		{ label: 'Name', field: 'name' },
