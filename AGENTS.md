@@ -100,7 +100,7 @@ Rate plans (`api/getRates` / `api/saveRates`) use a pipe/hash-delimited string f
 - Use `src/lib/` for shared components, stores, and utilities
 - Use actions for form handling and validation
 - Use interfaces for data models and API responses
-- **UIkit is the primary UI component/styling library** — use `uk-*` classes (e.g. `uk-button`, `uk-input`, `uk-modal`, `uk-dropdown`) and the `uk-icon="icon: <name>"` directive for icons. It's vendored locally, not an npm package — CSS at `src/lib/css/uikit*.css` and JS at `src/lib/js/uikit*.js`/`uikit-icons*.js`. The bundled icon set is smaller than UIkit's full set (e.g. there's `eye-slash` but no plain `eye`) — check `src/lib/js/uikit-icons.js` for available icon names before referencing one.
+- **UIkit is the primary UI component/styling library** — use `uk-*` classes (e.g. `uk-button`, `uk-input`, `uk-modal`, `uk-dropdown`) and the `uk-icon="icon: <name>"` directive for icons. It's installed as the `uikit` npm package (pinned to `3.18.3`), wired up in `src/routes/+layout.svelte` (`import 'uikit/dist/css/uikit.min.css'`, `import UIkit from 'uikit'`, `UIkit.use(icons)`). Check `node_modules/uikit/dist/js/uikit-icons.js` for available icon names before referencing one.
 
 ### Run & test
 ```bash

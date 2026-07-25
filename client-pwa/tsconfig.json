@@ -16,9 +16,6 @@
 		"src/service-worker.js",
 		"src/service-worker/**/*.js",
 		"src/service-worker.ts",
-		"src/service-worker/**/*.ts",
-		"src/lib/js/**",
-		"src/lib/js/**/*.js",
-		"src/lib/js/*.js"
+		"src/service-worker/**/*.ts"
 	]
 }

@@ -1,14 +1,16 @@
 <script>
 	import './styles.css';
-	import '$lib/css/uikit.css';
+	import 'uikit/dist/css/uikit.min.css';
 	import '$lib/css/override.css';
-	import '$lib/js/uikit.min.js';
-	import '$lib/js/uikit-icons.min.js';
+	import UIkit from 'uikit';
+	import UIkitIcons from 'uikit/dist/js/uikit-icons.js';
 	import OfflineAlert from '$lib/components/OfflineAlert.svelte';
 	import { onMount } from 'svelte';
 
+	UIkit.use(UIkitIcons);
+
 	onMount(() => {
-		import('$lib/js/uikit.min.js');
+		UIkit.update();
 	});
 </script>
 
