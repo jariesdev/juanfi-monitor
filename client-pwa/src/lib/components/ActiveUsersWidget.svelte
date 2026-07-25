@@ -4,6 +4,7 @@
 	import type { iVendo } from '$lib/types/models';
 	import type { RowItem, SimpleTableHeader } from '$lib/types/datatable';
 	import SimpleTable from '$lib/components/SimpleTable.svelte';
+	import { refreshingVendos } from '$lib/store/vendoActivity';
 
 	const MAX_VISIBLE = 4;
 
@@ -144,7 +145,7 @@
 		{#each vendos.slice(0, MAX_VISIBLE) as v (v.id)}
 			<div class="vendo-card">
 				<div class="vendo-name">
-					<span class="status-dot" class:online={v.is_online}></span>
+					<span class="status-dot" class:online={v.is_online} class:refreshing={$refreshingVendos.has(v.id)}></span>
 					{v.name}
 				</div>
 				<div class="vendo-users" use:countupInt={rawUsers(v)}></div>
@@ -200,6 +201,7 @@
 	}
 
 	.status-dot {
+		position: relative;
 		flex-shrink: 0;
 		display: inline-block;
 		width: 7px;
@@ -210,6 +212,23 @@
 
 	.status-dot.online {
 		background: #4ade80;
+	}
+
+	.status-dot.refreshing::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		background: inherit;
+		animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+	}
+
+	@keyframes ping {
+		75%,
+		100% {
+			transform: scale(2.2);
+			opacity: 0;
+		}
 	}
 
 	.vendo-users {
