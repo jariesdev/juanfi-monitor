@@ -182,8 +182,12 @@
 		}
 	}
 
-	onMount(() => {
+	$effect(() => {
+		vendoId;
 		loadRates();
+	});
+
+	onMount(() => {
 		loadVendos();
 	});
 	onDestroy(() => {
